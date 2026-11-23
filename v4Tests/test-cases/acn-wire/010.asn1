@@ -1,0 +1,20 @@
+-- Issue 132: a CONTAINING region holds at most the largest encoding of its contents, and the contents end inside the
+-- region, to the bit. --acn-v2 regions with an external size (POctExt, PBitExt, PBitExt2) were bounded only by the
+-- rest of the stream: Ada read the fields after an over-long region past the end of the stream as zeros and returned
+-- success with the position past the end, C accepted a region that left the following fields inside the stream and
+-- skipped its unused part. BIT STRING contents that end past their region (BBox, PBitEmb: embedded length; PBitExt,
+-- PBitExt2 in legacy: external size) were accepted by Ada (both modes) and by C legacy (contents ending inside the
+-- region's last octet). The region around a CHOICE (010_choice.asn1, --acn-v2 only) is bounded by the CHOICE's own
+-- maximum, not by its largest CONTAINING alternative.
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 010_decode_test.c / 010_decode_test.adb (C with ASan /
+-- UBSan, Ada with -gnata), legacy and --acn-v2.
+ACN-WIRE-REGION DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    T        ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN OPTIONAL, c INTEGER (0..255) OPTIONAL }
+    Inner    ::= SEQUENCE { a INTEGER (0..255), b INTEGER (0..3) }
+    BBox     ::= BIT STRING (CONTAINING T)
+    OBox     ::= OCTET STRING (CONTAINING T)
+    PBitEmb  ::= SEQUENCE { f BIT STRING (CONTAINING T), tail INTEGER (0..15) }
+    PBitExt  ::= SEQUENCE { f BIT STRING (CONTAINING T), tail INTEGER (0..15) }
+    POctExt  ::= SEQUENCE { v OCTET STRING (CONTAINING Inner), tail INTEGER (0..15) }
+    PBitExt2 ::= SEQUENCE { v BIT STRING (CONTAINING Inner), tail INTEGER (0..15) }
+END

@@ -1,0 +1,5 @@
+REJ DEFINITIONS ::= BEGIN
+    P <INTEGER:len> [] { items [] { [size len] } }
+    T [] { a [], n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    S [] { a [], n INTEGER [size 4, encoding pos-int], items [] { [size n] }, tail [] }
+END

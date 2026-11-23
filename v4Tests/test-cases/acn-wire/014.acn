@@ -1,0 +1,7 @@
+ACN-WIRE-CALLEE DEFINITIONS ::= BEGIN
+    T [encoding pos-int, size 8]
+    Sub [encoding pos-int, size 24]
+    Q12 [] { f [], g [], z [] }
+    TR [] { r [encoding pos-int, size 32], k [] }
+    Q9 [] { f [], z [] }
+END

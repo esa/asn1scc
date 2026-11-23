@@ -8,7 +8,7 @@ the same encoding (the truncation at a bit offset and the single-bit flips since
 | sweep | what is decoded | expected result | C | Ada |
 |---|---|---|---|---|
 | truncation | the first `k` bytes of the encoding, for `k = 0, 1, ...`, from a buffer of exactly `k` bytes | the decoder fails with a nonzero error code | yes | no |
-| truncation at a bit offset | the value encoded again starting at bit `s` of the buffer, for `s = 1 .. 7`; first the whole encoding, then its first `k` bytes, each decoded from bit `s` | the whole encoding decodes to a value that passes `IsConstraintValid`; a truncated copy fails with a nonzero error code | yes | no |
+| truncation at a bit offset | the value encoded again starting at bit `s` of the buffer, for `s = 1 .. 7`; first the whole encoding, then its first `k` bytes, each decoded from bit `s` | the whole encoding decodes to a value that passes `IsConstraintValid`; a truncated copy fails with a nonzero error code | yes | round trip only |
 | corruption | the whole encoding with byte `i` set to `0x00`, then to `0xFF`, then with each of its 8 bits flipped in turn (restored after each decode) | the decoder fails with a nonzero error code, or succeeds with a value that passes `IsConstraintValid`; it must not crash or raise an exception | yes | yes |
 | corruption, more patterns and offsets | C only: byte `i` also decremented by `2^b` for `b = 0 .. 7`; the copy encoded from bit 1 corrupted with `0x00`, `0xFF` and the bit flips; the copy encoded from bit 3 with the decrements | as for the corruption | yes | no |
 
@@ -28,10 +28,28 @@ A decremented byte turns a length field `n` into `n - 1` when the field ends at 
 `--acn-v2`) that is one octet too short then makes the contents end a few bits past the region, inside its
 last byte. That happens only when the region starts inside a byte, hence the copies encoded from bit 1 and 3.
 
-Ada runs only the corruption sweep (with the bit flips). Every generated Ada decoder has a precondition that the stream holds
-enough bytes for the largest encoding of its type, so a truncated stream is outside the decoder's contract.
-PDUs that contain an ACN `size deduced` field are swept in C only, and a truncated copy of such a PDU may
-also decode successfully (to a valid value with fewer elements).
+The corruption also reaches the headers of a fixed-size fragmented encoding. A uPER IA5String,
+NumericString, OCTET STRING or BIT STRING with `SIZE(N)`, `N >= 65536`, is encoded in blocks: a header octet before each
+block of 64K items, one before a block of 48K, 32K or 16K items, then the length of the rest (one or two octets). In a
+large value most of these headers lie far from both ends, beyond the positions the budget allows, so the corruption
+sweep (C and Ada, the same patterns as above) also changes each header byte and the byte after it. The positions are
+computed by the compiler from `N` and the item size; to keep their number small for any `N`, only the first and the
+last 64K header are taken (the others are decoded by the same code), plus the header of the smaller block and the
+length of the rest: at most 9 positions, without the first and the last two bytes of the encoding (the sweep
+corrupts them at any budget) and without a byte past its end (items of 0 bits, `FROM("A")`). This applies to a test value of such a type itself (also through a type
+reference), with uPER, and with ACN when the type has no ACN encoding properties (a fixed-size OCTET / BIT STRING
+has no headers in ACN). A fragmented type inside a SEQUENCE, CHOICE or SEQUENCE OF gets no extra positions.
+
+Ada runs the corruption sweep (with the bit flips) and the round trips from a bit offset without
+truncation: the value is encoded again into a new stream starting at bit `s = 1 .. 7` (`1 .. 15` / `1 .. 31` for an ACN
+type with `align-to-next word` / `dword`, so that every alignment residue is reached), decoded from bit `s`; the
+decoder must stop at the bit where the encoder stopped, and the decoded value must pass `IsConstraintValid` and be equal
+(`Equal`) to the encoded one. The new stream holds the largest encoding of the type plus 1 (2, 4) bytes, so the
+encoder's and decoder's preconditions hold at every offset. Every generated Ada decoder has a precondition that the
+stream holds enough bytes for the largest encoding of its type, so a truncated stream is outside the decoder's contract.
+PDUs that contain an ACN `size deduced` field are decoded from a view that ends with the last encoded byte (the Ada
+round trips from a bit offset too: the view ends with the byte that holds the last bit the encoder wrote); a truncated
+copy of such a PDU may also decode successfully (to a valid value with fewer elements), so C accepts that for them.
 
 ## Failures
 
@@ -43,16 +61,26 @@ position:
 
 In C the test returns error code 6 (truncation), 7 (corruption) or 8 (the value encoded from a bit offset
 other than 0 did not decode to a valid value); in Ada the test fails in the step
-`TC_DECODE_CORRUPTED` (error code 7), after the line printed by the sweep. A failure means that a decoder accepted input it should have rejected, rejected it
-without setting an error code, or crashed. Please report it.
+`TC_DECODE_CORRUPTED` (error code 7), after the line printed by the sweep. A failed Ada round trip from a bit offset
+prints the offset and the stage first, e.g.
+
+    Msg_ACN_enc_dec: round trip from bit offset 3: decoding failed with error code 1012
+
+and fails in the step of that stage (`TC_ENCODE`, `TC_DECODE`, `TC_VALIDATE_DECODED` or `TC_EQUAL`) with the codec's
+error code, or 8 (invalid or different value, exception). A failure means that a decoder accepted input it should have rejected, rejected it
+without setting an error code, or crashed, or (round trip from a bit offset) that an encoder or decoder does not work
+when the value does not start at the first bit of the buffer. Please report it.
 
 ## Cost and the budget
 
 For an encoding of `L` bytes a full sweep needs `8 L` truncated (byte boundary and 7 bit offsets) and up to
 `18 L` corrupted decodes at bit 0 (C; Ada `10 L`), plus `10 L` and `8 L` for the C copies encoded from bit 1 and 3. To keep run times low for large values, each sweep tries at most 128 positions at
 the start and 128 at the end of the encoding, and stops after the decoders have read about 1 MB in total
-(512 KB per end); the truncations at the 7 bit offsets share one more such budget. At least two positions
+(512 KB per end); the truncations at the 7 bit offsets share one more such budget. The Ada round trips from a bit
+offset are not limited by the budget: they add 7 (15, 31) encodes and decodes of the whole value per test. At least two positions
 are always tried at each end. Encodings of up to 256 bytes are swept completely.
+The fragmentation headers (at most 9 positions) come on top of the budget: they are a fixed, small set whatever the
+size of the value, and a smaller budget does not remove them.
 
 The budget can be changed with `-atcSweepBudget <bytes>`:
 

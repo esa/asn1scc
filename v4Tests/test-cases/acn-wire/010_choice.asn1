@@ -1,0 +1,13 @@
+-- Issue 132, --acn-v2 only (legacy does not support a CHOICE of CONTAINING regions sized by an ACN parameter): the region
+-- around such a CHOICE holds the whole CHOICE body, so it is bounded by the CHOICE's own maximum (Doc1: 4 octets, the
+-- alternative that is not a CONTAINING; Doc2B: 17 bits, the CHOICE's index and the contents), not by the largest
+-- CONTAINING alternative (1 octet, 16 bits). Run with 010.asn1 by v4Tests/scripts/runWireTests.sh.
+ACN-WIRE-REGION-CHOICE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    Val8      ::= SEQUENCE { number INTEGER (0..255) }
+    Val16     ::= SEQUENCE { number INTEGER (0..65535) }
+    Payload1  ::= CHOICE { value OCTET STRING (CONTAINING Val8), big INTEGER (0..4294967295),
+                           other OCTET STRING (CONTAINING Val8) }
+    Doc1      ::= SEQUENCE { payload Payload1, trailer INTEGER (0..255) }
+    Payload2B ::= CHOICE { value BIT STRING (CONTAINING Val16), other BIT STRING (CONTAINING Val16) }
+    Doc2B     ::= SEQUENCE { payload Payload2B, trailer INTEGER (0..255) }
+END

@@ -95,6 +95,8 @@ static flag ObjectIdentifier_subidentifiers_uper_decode(BitStream* pBitStrm, asn
 		if (!BitStream_ReadByte(pBitStrm, &curByte))
 			return FALSE;
 		(*pRemainingOctets)--;
+		/* X.690 8.19.2: the leading octet of a subidentifier is not 0x80 (siValue is 0 at the leading octet only) */
+		if (*siValue == 0 && curByte == 0x80) return FALSE;
 
 		bLastOctet = ((curByte & 0x80) == 0);
 		curOctetValue = curByte & 0x7F;
@@ -116,6 +118,8 @@ static flag ObjectIdentifier_uper_decode_length(BitStream* pBitStrm, asn1SccSint
 		(*totalSize) <<= 8;
 		(*totalSize) |= len2;
 		(*totalSize) &= 0x7FFF;
+		/* X.691 10.9.3.6: a length below 128 takes one octet */
+		if (*totalSize < 0x80) return FALSE;
 	}
 	return *totalSize > 0;
 }

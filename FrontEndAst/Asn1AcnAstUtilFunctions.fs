@@ -458,7 +458,7 @@ let getRealEncodingClass (bSlim:bool) (acnEncodingClass:RealEncodingClass) =
 
 type Real             with
     member this.AllCons  = this.cons@this.withcons
-    member this.getClass (args:CommandLineSettings)  = getRealEncodingClass args.slim this.acnEncodingClass
+    member this.getClass (_:CommandLineSettings)  = this.storageClass
 
 
 type StringType       with
@@ -767,3 +767,42 @@ and isLiveDeduced (t:Asn1Type) =
             | Some _    -> false        //CONTAINING boundary: the container size delimits the region
             | None      -> isLiveDeduced rf.resolvedType
         | _ -> false
+
+/// The value an ACN INTEGER field takes when no consumer of it is in the value (q/issues.md Issues 105 / 123, legacy
+/// initExpr) and that the --acn-v2 fallback patch writes (Issue 142): 0 when the field's range holds it, else the bound
+/// nearest to 0. A field with a range not holding 0 rejects 0: uPER encoding asserts min <= v (wire value v - min), the
+/// Ada ACN integer reads check the range.
+let acnIntegerDefaultValue (a: AcnInteger) : BigInteger =
+    match a.uperRange with
+    | Concrete (lo, _) when lo > 0I -> lo
+    | Concrete (_, hi) when hi < 0I -> hi
+    | PosInf lo when lo > 0I        -> lo
+    | NegInf hi when hi < 0I        -> hi
+    | Concrete _ | PosInf _ | NegInf _ | Full -> 0I
+
+/// q/issues.md Issues 132 / 141: --acn-v2 encodes a CHOICE whose own ACN parameter sizes CONTAINING alternatives
+/// (`Payload <INTEGER:length> [] { value [size length], other [size length] }`) as one region around the whole CHOICE
+/// body (index, alignment, every alternative), measured into that parameter (BackendAst/DAstACNDeferred.fs, CHOICE
+/// wrapper). The region's kind is the one of the **last** declared CONTAINING alternative on the parameter, the kind the
+/// backend has always used (the first match of the size dependencies, DAstACNDeferred.findContainingSizeParamInfo, is
+/// the last alternative): an OCTET STRING region is padded to whole octets from its start, a BIT STRING one is exact.
+/// Mixed kinds keep their wire (OCT, OCT, BIT: a BIT region; BIT, OCT, OCT: an OCTET one). The parameter and the
+/// region's kind; None when no alternative is a CONTAINING sized by a parameter of the CHOICE. The single source for the
+/// CHOICE's ACN sizes (AcnCreateFromAntlr: an OCTET region rounds them up to whole octets, else REQUIRED_BITS undercounts
+/// the padding) and for the wrapper the backend emits.
+let choiceContainingRegion (acnParameters: AcnGenericTypes.AcnParameter list) (children: ChChildInfo list) : (AcnGenericTypes.AcnParameter * ContainedInOctOrBitString) option =
+    let regionKinds (prm: AcnGenericTypes.AcnParameter) =
+        children |> List.choose (fun c ->
+            match c.Type.Kind with
+            | ReferenceType rf ->
+                match rf.encodingOptions with
+                | Some eo ->
+                    match eo.acnEncodingClass with
+                    | SZ_EC_ExternalField rp when rp.asStringList = [prm.name] -> Some eo.octOrBitStr
+                    | SZ_EC_ExternalField _ | SZ_EC_FIXED_SIZE | SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_TerminationPattern _
+                    | SZ_EC_Deduced -> None
+                | None -> None
+            | Integer _ | Real _ | IA5String _ | NumericString _ | OctetString _ | NullType _ | BitString _ | Boolean _
+            | Enumerated _ | ObjectIdentifier _ | SequenceOf _ | Sequence _ | Choice _ | TimeType _ -> None)
+    acnParameters |> List.tryPick (fun prm ->
+        regionKinds prm |> List.tryLast |> Option.map (fun kind -> prm, kind))

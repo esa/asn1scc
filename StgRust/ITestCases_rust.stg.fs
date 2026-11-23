@@ -29,8 +29,8 @@ type ITestCases_rust() =
             test_cases_rust.Codec_DecodeSweep_helper  nBudget 
         override this.Codec_DecodeSweep_adapter  (sModName:string) (sFuncName:string) (sDecFuncName:string) (soEncFuncName:string option) (sTasName:string) (sAmber:string) (soIsValidFunc:string option) =
             test_cases_rust.Codec_DecodeSweep_adapter  sModName sFuncName sDecFuncName soEncFuncName sTasName sAmber soIsValidFunc 
-        override this.Codec_DecodeSweep  (sModName:string) (sFuncName:string) (sDecFuncName:string) (soEncFuncName:string option) (sTasName:string) (sEnc:string) (sAmber:string) (sVal:string) (soIsValidFunc:string option) (bTruncate:bool) (bDeduced:bool) (nBudget:BigInteger) =
-            test_cases_rust.Codec_DecodeSweep  sModName sFuncName sDecFuncName soEncFuncName sTasName sEnc sAmber sVal soIsValidFunc bTruncate bDeduced nBudget 
+        override this.Codec_DecodeSweep  (sModName:string) (sFuncName:string) (sDecFuncName:string) (soEncFuncName:string option) (sTasName:string) (sEnc:string) (sAmber:string) (sVal:string) (soIsValidFunc:string option) (bTruncate:bool) (bDeduced:bool) (nBudget:BigInteger) (soEqualFunc:string option) (sInitFunc:string) (nLastOffset:BigInteger) (nExtraBytes:BigInteger) (arrnCorruptAt:seq<BigInteger>) =
+            test_cases_rust.Codec_DecodeSweep  sModName sFuncName sDecFuncName soEncFuncName sTasName sEnc sAmber sVal soIsValidFunc bTruncate bDeduced nBudget soEqualFunc sInitFunc nLastOffset nExtraBytes arrnCorruptAt 
         override this.Codec_write_CharstreamToFile  () =
             test_cases_rust.Codec_write_CharstreamToFile  () 
         override this.Codec_write_bitstreamToFile  () =
@@ -77,23 +77,29 @@ type ITestCases_rust() =
             test_cases_rust.printTestCaseFileBody  sThisFile arrsIncludedModules arrsTestFunctionBodies arrsProgramUnitNames arrsRtlUnits 
         override this.decodingCaseKind  (sBody:string) (sIdentifier:string) =
             test_cases_rust.decodingCaseKind  sBody sIdentifier 
-        override this.emitConstraintViolationTestCase  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sSetInvalidValue:string) (sWhat:string) (sIsValidFunc:string) (sErrCodeModule:string) (sErrCode:string) (arrsEncodeChecks:seq<string>) =
-            test_cases_rust.emitConstraintViolationTestCase  sFuncName arrsVars sModName sTasName sAmber sInitializeTcData bStatic sSetInvalidValue sWhat sIsValidFunc sErrCodeModule sErrCode arrsEncodeChecks 
+        override this.emitConstraintViolationTestCase  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sSetInvalidValue:string) (sWhat:string) (sIsValidFunc:string) (sErrCodeModule:string) (sErrCode:string) (arrsEncodeChecks:seq<string>) (soEqualFunc:string option) =
+            test_cases_rust.emitConstraintViolationTestCase  sFuncName arrsVars sModName sTasName sAmber sInitializeTcData bStatic sSetInvalidValue sWhat sIsValidFunc sErrCodeModule sErrCode arrsEncodeChecks soEqualFunc 
         override this.constraintViolationEncodeCheck  (sEncFunc:string) (sModName:string) (sTasName:string) (sEnc:string) (sAmber:string) (sErrCodeModule:string) (sErrCode:string) =
             test_cases_rust.constraintViolationEncodeCheck  sEncFunc sModName sTasName sEnc sAmber sErrCodeModule sErrCode 
         override this.constraintViolationUncheckedEncodeCheck  (sEncFunc:string) (sModName:string) (sTasName:string) (sEnc:string) (sAmber:string) =
             test_cases_rust.constraintViolationUncheckedEncodeCheck  sEncFunc sModName sTasName sEnc sAmber 
         override this.constraintViolationStringChar  (sStr:string) (nIndex:BigInteger) (nChar:BigInteger) =
             test_cases_rust.constraintViolationStringChar  sStr nIndex nChar 
+        override this.constraintViolationStringFill  (sStr:string) (nCount:BigInteger) (nChar:BigInteger) =
+            test_cases_rust.constraintViolationStringFill  sStr nCount nChar 
+        override this.constraintViolationRealInfinity  (sVal:string) (bNegative:bool) =
+            test_cases_rust.constraintViolationRealInfinity  sVal bNegative 
         override this.constraintViolationEveryElement  (sIdx:string) (sCount:string) (arrsGuards:seq<string>) (sSetInvalidValue:string) =
             test_cases_rust.constraintViolationEveryElement  sIdx sCount arrsGuards sSetInvalidValue 
         override this.emitValidityTestCase  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (bStatic:bool) (sIsValidFunc:string) (arrsValueChecks:seq<string>) =
             test_cases_rust.emitValidityTestCase  sFuncName arrsVars sModName sTasName sAmber bStatic sIsValidFunc arrsValueChecks 
         override this.validityCheck  (sModName:string) (sAmber:string) (sInitializeTcData:string) (sWhat:string) (sIsValidFunc:string) =
             test_cases_rust.validityCheck  sModName sAmber sInitializeTcData sWhat sIsValidFunc 
-        override this.emitEqualityVariantTestCase  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sEqualFunc:string) (arrsVariantChecks:seq<string>) =
-            test_cases_rust.emitEqualityVariantTestCase  sFuncName arrsVars sModName sTasName sAmber sInitializeTcData bStatic sEqualFunc arrsVariantChecks 
+        override this.emitEqualityVariantTestCase  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sEqualFunc:string) (arrsVariantChecks:seq<string>) (bReflexiveChecks:bool) =
+            test_cases_rust.emitEqualityVariantTestCase  sFuncName arrsVars sModName sTasName sAmber sInitializeTcData bStatic sEqualFunc arrsVariantChecks bReflexiveChecks 
         override this.equalityVariantCheck  (sModName:string) (sAmber:string) (sApplyVariant:string) (sWhat:string) (sEqualFunc:string) =
             test_cases_rust.equalityVariantCheck  sModName sAmber sApplyVariant sWhat sEqualFunc 
+        override this.equalityReflexiveCheck  (sModName:string) (sAmber:string) (sWhat:string) (sEqualFunc:string) =
+            test_cases_rust.equalityReflexiveCheck  sModName sAmber sWhat sEqualFunc 
         override this.emitInconsistentValueTestCase  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sChange:string) (sWhat:string) (sEncFunc:string) (sEnc:string) =
             test_cases_rust.emitInconsistentValueTestCase  sFuncName arrsVars sModName sTasName sAmber sInitializeTcData bStatic sChange sWhat sEncFunc sEnc 

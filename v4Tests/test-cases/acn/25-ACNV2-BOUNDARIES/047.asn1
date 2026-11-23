@@ -1,0 +1,28 @@
+-- ACNV2_ONLY C_ADA_ONLY (legacy: no CHOICE of CONTAINING regions sized by an ACN parameter, as 045)
+-- Issue 141: the region around a CHOICE whose own ACN parameter sizes OCTET STRING CONTAINING alternatives is padded
+-- to whole octets from its start, and the CHOICE's ACN sizes (so every enclosing REQUIRED_BITS) count the padding.
+-- Before, they counted the CHOICE's bits: Doc7's REQUIRED_BYTES was 6 for 49 bits on the wire (the C encoder of a
+-- maximal value wrote past a buffer of REQUIRED_BYTES, the automatic tests failed in decoding; Ada encoder
+-- postconditions failed under -gnata). Doc11: a CONTAINING alternative next to a plain one (the region holds every
+-- alternative: small INTEGER (0..7) takes a whole octet too). Doc13: a BIT STRING alternative before OCTET STRING ones on
+-- the same parameter (an OCTET STRING region, 18 bits on 3 octets). Doc9: a CHOICE aligned to a word inside the region
+-- (unchanged: its sizes were already whole octets). Bytes: acn-wire/015.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Val16 ::= SEQUENCE { number INTEGER (0..65535) }
+
+Payload7 ::= CHOICE { value OCTET STRING (CONTAINING Val16), other OCTET STRING (CONTAINING Val16) }
+Doc7 ::= SEQUENCE { pl Payload7, trailer INTEGER (0..255), extra BOOLEAN }
+
+Payload11 ::= CHOICE { value OCTET STRING (CONTAINING Val16), small INTEGER (0..7) }
+Doc11 ::= SEQUENCE { pl Payload11, trailer INTEGER (0..255), extra BOOLEAN }
+
+Payload13 ::= CHOICE { value BIT STRING (CONTAINING Val16), other OCTET STRING (CONTAINING Val16), third OCTET STRING (CONTAINING Val16) }
+Doc13 ::= SEQUENCE { pl Payload13, trailer INTEGER (0..255), extra BOOLEAN }
+
+Payload9 ::= CHOICE { value OCTET STRING (CONTAINING Val16), other OCTET STRING (CONTAINING Val16) }
+Doc9 ::= SEQUENCE { pre BOOLEAN, pl Payload9, trailer INTEGER (0..255), extra BOOLEAN }
+
+END
+
+--TCFS   047.acn

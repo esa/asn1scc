@@ -1,0 +1,20 @@
+-- Issue 141: --acn-v2 encodes a CHOICE whose own ACN parameter sizes OCTET STRING CONTAINING alternatives as one region
+-- around the CHOICE, padded to whole octets from its start (Payload: 1 index bit + 16 bits = 17 bits, 3 octets on the
+-- wire). The CHOICE's sizes counted 17 bits, so Doc's REQUIRED_BITS was 42 (6 octets) for a stream of 49 bits: the C
+-- encoder of a maximal value wrote one octet past a buffer of REQUIRED_BYTES (assert, or with NDEBUG a heap write),
+-- the Ada encoder's postcondition failed. With alternatives of both kinds on the parameter the region takes the kind of
+-- the last one, as before the fix: Payload13 (BIT, OCTET, OCTET) an OCTET STRING region (18 bits, 3 octets), PayloadL
+-- (OCTET, OCTET, BIT) a BIT STRING one (18 bits, length in bits, no padding). Bytes unchanged by the fix.
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 015_wire_test.c (-DNDEBUG, ASan) / 015_wire_test.adb,
+-- --acn-v2 only (legacy has no such region).
+ACN-WIRE-CHOICE-REGION DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    Val16     ::= SEQUENCE { number INTEGER (0..65535) }
+    Payload   ::= CHOICE { value OCTET STRING (CONTAINING Val16), other OCTET STRING (CONTAINING Val16) }
+    Doc       ::= SEQUENCE { pl Payload, trailer INTEGER (0..255), extra BOOLEAN }
+    Payload13 ::= CHOICE { value BIT STRING (CONTAINING Val16), other OCTET STRING (CONTAINING Val16),
+                           third OCTET STRING (CONTAINING Val16) }
+    Doc13     ::= SEQUENCE { pl Payload13, trailer INTEGER (0..255), extra BOOLEAN }
+    PayloadL  ::= CHOICE { value OCTET STRING (CONTAINING Val16), other OCTET STRING (CONTAINING Val16),
+                           third BIT STRING (CONTAINING Val16) }
+    DocL      ::= SEQUENCE { pl PayloadL, trailer INTEGER (0..255), extra BOOLEAN }
+END

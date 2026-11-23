@@ -36,8 +36,13 @@ static int reject_missing_producer(void) {
     value.exist.b2 = 1;
     BitStream_AttachBuffer(&stream, buf, sizeof buf);
     encoded = Chain_ACN_Encode(&value, &stream, &error, TRUE);
-    if (encoded || error != ERR_ACN_DET_CONSISTENCY_MISMATCH) {
-        fprintf(stderr, "missing producer: ret=%d err=%d\n", encoded, error);
+    /* b1 (which holds the field b2 is present by) absent, b2 present: the encoder fails with b2's own code right after
+       b0 (bit 8), before b2 is written (q/issues.md Issue 108); before, b2 was written and the consistency check after
+       the patches rejected the value (ERR_ACN_DET_CONSISTENCY_MISMATCH). _2_2: the generated de-duplication suffix of
+       the call wrapper's code (deterministic for this grammar) */
+    if (encoded || error != ERR_ACN_ENCODE_CHAIN_B2_2_2 || stream.currentByte * 8 + stream.currentBit != 8) {
+        fprintf(stderr, "missing producer: ret=%d err=%d at bit %ld\n", encoded, error,
+                (long)stream.currentByte * 8 + stream.currentBit);
         return 0;
     }
     return 1;

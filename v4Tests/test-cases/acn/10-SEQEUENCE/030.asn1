@@ -1,0 +1,66 @@
+-- C_ADA_ONLY (the experimental Python / Rust backends keep failing on a field none of whose consumers is in the value)
+-- Issue 123 (cycle i108a): an ACN field whose holder is present and none of whose consumers is in the value takes its
+-- default value (0, FALSE / the false-pattern, the first item, the minimum of a range not holding 0) in legacy and in
+-- --acn-v2 (fields consumed in their own function), instead of failing with ERR_ACN_ENCODE_..._UNINITIALIZED /
+-- ERR_ACN_ENCODE_UPDATE_...: a size, a CHOICE determinant, a CONTAINING length, an argument to a callee with one or two
+-- consumers, consumers in a SEQUENCE OF element, in a CHOICE alternative, two parameter levels, ENUMERATED encode-values,
+-- a BOOLEAN pattern, a uPER range. S17 / S19: the callee's parameter is one source of the field's MultiAcnUpdate; with
+-- its consumers absent it is ignored. The automatic tests encode and decode these values (before, the 14d tests
+-- expected their rejection). Wire bytes: test-cases/acn-wire/011.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+    Cv ::= SEQUENCE { v INTEGER (0..255) }
+    Pay ::= SEQUENCE { d OCTET STRING (SIZE(0..15)) OPTIONAL, e INTEGER (0..255) }
+    Pay2 ::= SEQUENCE { d1 OCTET STRING (SIZE(0..15)) OPTIONAL, d2 OCTET STRING (SIZE(0..15)) OPTIONAL, e INTEGER (0..255) }
+    Mid ::= SEQUENCE { m OCTET STRING (SIZE(0..15)) OPTIONAL, q Pay2 }
+    Ch8 ::= CHOICE { c8a INTEGER (0..255), c8b BOOLEAN }
+    -- the field in an OPTIONAL holder, its consumer OPTIONAL outside it: size, CONTAINING, argument (a CHOICE determinant:
+    -- test-cases/acn-wire/011 S4; here the CHOICE's own encoding would keep an arm no automatic test reaches)
+    S1 ::= SEQUENCE { h SEQUENCE { a INTEGER (0..255) } OPTIONAL, p OCTET STRING (SIZE(0..15)) OPTIONAL, tail INTEGER (0..255) }
+    S2 ::= SEQUENCE { h SEQUENCE { a INTEGER (0..255) } OPTIONAL, p OCTET STRING (SIZE(0..15)) OPTIONAL, tail INTEGER (0..255) }
+    S5 ::= SEQUENCE { h SEQUENCE { a INTEGER (0..255) } OPTIONAL, cont OCTET STRING (CONTAINING Cv) OPTIONAL, tail INTEGER (0..255) }
+    S6 ::= SEQUENCE { h SEQUENCE { a INTEGER (0..255) } OPTIONAL, pl Pay OPTIONAL, tail INTEGER (0..255) }
+    -- a mandatory field, its only consumer OPTIONAL
+    S7 ::= SEQUENCE { p OCTET STRING (SIZE(0..15)) OPTIONAL, tail INTEGER (0..255) }
+    S8 ::= SEQUENCE { c Ch8 OPTIONAL, tail INTEGER (0..255) }
+    S11 ::= SEQUENCE { o OCTET STRING (SIZE(3)) OPTIONAL, tail INTEGER (0..255) }
+    -- passed to a callee with one / two consumers
+    S9 ::= SEQUENCE { pl Pay, tail INTEGER (0..255) }
+    S12 ::= SEQUENCE { pl Pay2, tail INTEGER (0..255) }
+    -- a consumer in the field's function and the callee's: S17 two in the callee, S18 one, S19 one level deeper
+    S17 ::= SEQUENCE { o OCTET STRING (SIZE(0..15)) OPTIONAL, pl Pay2, tail INTEGER (0..255) }
+    S18 ::= SEQUENCE { o OCTET STRING (SIZE(0..15)) OPTIONAL, pl Pay, tail INTEGER (0..255) }
+    S19 ::= SEQUENCE { o OCTET STRING (SIZE(0..15)) OPTIONAL, pl Mid, tail INTEGER (0..255) }
+    -- a present-when CHOICE with an ENUMERATED determinant and an absent OPTIONAL payload (PUS-C present-when-choice)
+    MsgType ::= ENUMERATED { cmd(0), tm(1) }
+    MsgPayload ::= CHOICE { cmd INTEGER (0..255), tm BOOLEAN }
+    Message ::= SEQUENCE { payload MsgPayload OPTIONAL }
+    -- uPER-encoded fields whose range does not hold 0: the default is the minimum
+    Len ::= INTEGER (1..8)
+    Len5 ::= INTEGER (5..8)
+    T1 ::= SEQUENCE { p OCTET STRING (SIZE(1..8)) OPTIONAL, tail INTEGER (0..255) }
+    PayL ::= SEQUENCE { d OCTET STRING (SIZE(5..8)) OPTIONAL, e INTEGER (0..255) }
+    T2 ::= SEQUENCE { pl PayL, tail INTEGER (0..255) }
+    -- ENUMERATED with encode-values (the first item, wire 5), inline and through a parameter
+    Kind ::= ENUMERATED { ka(5), kb(9) }
+    T3 ::= SEQUENCE { c CHOICE { ka INTEGER (0..255), kb BOOLEAN } OPTIONAL, tail INTEGER (0..255) }
+    Kc3 ::= CHOICE { ka INTEGER (0..255), kb BOOLEAN }
+    T3b ::= SEQUENCE { c Kc3 OPTIONAL, tail INTEGER (0..255) }
+    -- a present-when BOOLEAN with a true-value pattern, its consumer in an OPTIONAL component
+    T4 ::= SEQUENCE { q SEQUENCE { x INTEGER (0..255) OPTIONAL, y INTEGER (0..255) } OPTIONAL, tail INTEGER (0..255) }
+    -- a SEQUENCE OF element holding the field and its consumer
+    T6 ::= SEQUENCE (SIZE(1..2)) OF SEQUENCE { h SEQUENCE { a INTEGER (0..255) } OPTIONAL, p OCTET STRING (SIZE(0..15)) OPTIONAL, tail INTEGER (0..255) }
+    -- the consumer in a CHOICE alternative
+    T7 ::= SEQUENCE { c CHOICE { ca OCTET STRING (SIZE(0..15)), cb INTEGER (0..255) }, tail INTEGER (0..255) }
+    -- two parameter levels, an OPTIONAL reference in the middle
+    MidP ::= SEQUENCE { q Pay OPTIONAL, z INTEGER (0..255) }
+    T8 ::= SEQUENCE { pl MidP, tail INTEGER (0..255) }
+    -- a fixed-size consumer inside the elements of a SEQUENCE OF (of the callee, of the field's function): the constant
+    PG ::= SEQUENCE { items SEQUENCE (SIZE(0..2)) OF OCTET STRING (SIZE(3)) }
+    T5 ::= SEQUENCE { pl PG, tail INTEGER (0..255) }
+    T5b ::= SEQUENCE { items SEQUENCE (SIZE(0..2)) OF OCTET STRING (SIZE(3)), tail INTEGER (0..255) }
+    -- the CHOICE alternative holding the consumers inside a SEQUENCE OF not selected (acn-wire/007_reject/argmand)
+    QQ ::= SEQUENCE { o OCTET STRING (SIZE(3)) }
+    TA ::= SEQUENCE { c CHOICE { list SEQUENCE (SIZE(1..2)) OF SEQUENCE { q QQ }, z BOOLEAN } }
+END
+
+--TCFS     030.acn

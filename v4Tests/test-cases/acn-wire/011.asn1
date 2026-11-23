@@ -1,0 +1,45 @@
+-- Issues 123 / 125 / 142 (cycle i108a): a determinant field whose holder is present and none of whose consumers is in
+-- the value takes its default value (0, FALSE, the first item, the minimum of a range not holding 0); legacy and
+-- --acn-v2 write the same bytes. No directives: run by v4Tests/scripts/runWireTests.sh with 011_wire_test.c (ASan /
+-- UBSan) and 011_wire_test.adb (-gnata), legacy and --acn-v2. Before: legacy (and --acn-v2 for a field consumed only in
+-- its own function) failed with ERR_ACN_ENCODE_..._UNINITIALIZED / _UPDATE_ (Issue 123); --acn-v2 patched the
+-- constant of an absent fixed-size consumer (203 next to a present consumer, else the constant instead of the default:
+-- Issue 125) and wrote the minimum of a uPER range raw as the fallback (Issue 142). The corpus twins with automatic
+-- tests are test-cases/acn/10-SEQEUENCE/030 and 25-ACNV2-BOUNDARIES/046.
+WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    Ch ::= CHOICE { one INTEGER(0..255), two BOOLEAN }
+    Pay ::= SEQUENCE { d OCTET STRING (SIZE(0..15)) OPTIONAL, e INTEGER(0..255) }
+    Pay2 ::= SEQUENCE { d1 OCTET STRING (SIZE(0..15)) OPTIONAL, d2 OCTET STRING (SIZE(0..15)) OPTIONAL, e INTEGER(0..255) }
+    PayF ::= SEQUENCE { o OCTET STRING (SIZE(3)) OPTIONAL, e INTEGER(0..255) }
+    Mid ::= SEQUENCE { m OCTET STRING (SIZE(0..15)) OPTIONAL, q Pay2 }
+    -- the field's only consumer, OPTIONAL, in the field's function: a size, a CHOICE determinant
+    S7 ::= SEQUENCE { p OCTET STRING (SIZE(0..15)) OPTIONAL, tail INTEGER(0..255) }
+    S8 ::= SEQUENCE { c Ch OPTIONAL, tail INTEGER(0..255) }
+    -- the field in an OPTIONAL holder (present), its CHOICE consumer OPTIONAL (absent) outside it
+    S4 ::= SEQUENCE { h SEQUENCE { a INTEGER(0..255) } OPTIONAL, c Ch OPTIONAL, tail INTEGER(0..255) }
+    -- the field passed to a callee: one consumer, two consumers (a MultiAcnUpdate of the parameter in legacy)
+    S9 ::= SEQUENCE { pl Pay, tail INTEGER(0..255) }
+    S12 ::= SEQUENCE { pl Pay2, tail INTEGER(0..255) }
+    -- a fixed-size consumer (SIZE(3)) next to a callee's consumer, in the field's function and in the callee (Issue 125)
+    S10 ::= SEQUENCE { o OCTET STRING (SIZE(3)) OPTIONAL, pl Pay, tail INTEGER(0..255) }
+    S13 ::= SEQUENCE { pl PayF, d OCTET STRING (SIZE(0..15)) OPTIONAL, tail INTEGER(0..255) }
+    -- the callee's fixed-size consumer is the only one: absent, the field takes the default (--acn-v2 wrote 3)
+    S14 ::= SEQUENCE { pl PayF, tail INTEGER(0..255) }
+    -- a fixed-size consumer inside the elements of the callee's SEQUENCE OF: the constant also for an empty list
+    PG ::= SEQUENCE { items SEQUENCE (SIZE(0..2)) OF OCTET STRING (SIZE(3)) }
+    S15 ::= SEQUENCE { pl PG, tail INTEGER(0..255) }
+    -- a consumer in the field's function and two in a callee: the callee's parameter is a source of the field's
+    -- MultiAcnUpdate in legacy; with both callee consumers absent it is ignored (Fable C1); S19 one level deeper
+    S17 ::= SEQUENCE { o OCTET STRING (SIZE(0..15)) OPTIONAL, pl Pay2, tail INTEGER(0..255) }
+    S19 ::= SEQUENCE { o OCTET STRING (SIZE(0..15)) OPTIONAL, pl Mid, tail INTEGER(0..255) }
+    -- a uPER-encoded field whose range does not hold 0: its default is the minimum (wire 0), in the field's function
+    -- (legacy encoded 0: an assertion) and through a parameter (--acn-v2 wrote the minimum as the wire value)
+    Len ::= INTEGER (1..8)
+    Len5 ::= INTEGER (5..8)
+    T1 ::= SEQUENCE { p OCTET STRING (SIZE(1..8)) OPTIONAL, tail INTEGER(0..255) }
+    PayL ::= SEQUENCE { d OCTET STRING (SIZE(5..8)) OPTIONAL, e INTEGER(0..255) }
+    T2 ::= SEQUENCE { pl PayL, tail INTEGER(0..255) }
+    -- acn-wire/007_reject/argmand: a constant consumer inside the elements of a CHOICE alternative not selected
+    QQ ::= SEQUENCE { o OCTET STRING (SIZE(3)) }
+    TA ::= SEQUENCE { c CHOICE { list SEQUENCE (SIZE(1..2)) OF SEQUENCE { q QQ }, z BOOLEAN } }
+END

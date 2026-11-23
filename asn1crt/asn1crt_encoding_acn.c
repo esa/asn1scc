@@ -2290,6 +2290,7 @@ void Acn_InitDet_IA5String_FixSize(BitStream* bs, int nChars, AcnInsertedFieldRe
     int i;
     det->pos = Acn_BitStream_GetPos(bs);
     det->is_set = FALSE;
+    det->in_stream = TRUE;
     det->value = 0;
     det->str_value[0] = '\0';
     for (i = 0; i < nChars * 7; i++)
@@ -2298,6 +2299,7 @@ void Acn_InitDet_IA5String_FixSize(BitStream* bs, int nChars, AcnInsertedFieldRe
 
 /* IA5String deferred patching: write string value at saved position */
 flag Acn_PatchDet_IA5String_FixSize(const char* strVal, BitStream* bs, int nChars, AcnInsertedFieldRef* det, int* err) {
+    if (!det->in_stream) return TRUE; /* the component holding the field is absent: it is not in the stream */
     if (!det->is_set) {
         int i, b;
         int slen = (int)strlen(strVal);

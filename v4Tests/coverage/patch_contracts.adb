@@ -36,6 +36,18 @@ procedure Patch_Contracts is
       Result : ASN1_RESULT;
       Rejected : Boolean := False;
    begin
+      --  A ref whose field is not in the stream (no InitDet ran: the
+      --  component holding the field is absent) is patched by nothing:
+      --  the patch succeeds and writes no bit (q/issues.md Issue 107).
+      Bs.Buffer := (others => 165);
+      Bs.Current_Bit_Pos := Bs.Size_In_Bytes * 8;
+      Patch (Value, Bs, Det, Result);
+      Check (Result.Success and then Result.ErrorCode = 0
+        and then not Det.Is_Set and then not Det.In_Stream
+        and then Bs.Buffer = (Bs.Buffer'Range => 165)
+        and then Bs.Current_Bit_Pos = Bs.Size_In_Bytes * 8,
+        "patch of a never-reserved ref");
+
       --  The slot lies between sentinel bytes. Initialization/patching of
       --  a partial byte must preserve the other bits in that byte as well.
       Bs.Buffer := (others => 165);

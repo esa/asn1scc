@@ -1,0 +1,12 @@
+-- ACN fields of a referenced unsigned INTEGER type encoded as ASCII (q: Issue 98): the digits have no sign character,
+-- the same bytes as a component of the type with the same encoding (before, the field took the signed ASCII class,
+-- '+2', and did not compile in C / Ada).
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 002_wire_test.c / 002_wire_test.adb.
+WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+	Len ::= INTEGER (0 .. 20)
+	Fn  ::= SEQUENCE { s OCTET STRING (SIZE(0 .. 20)) }
+	Fc  ::= SEQUENCE { s OCTET STRING (SIZE(0 .. 20)) }
+	Cm  ::= SEQUENCE { a Len }
+
+END

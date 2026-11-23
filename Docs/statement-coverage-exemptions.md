@@ -64,6 +64,29 @@ as "exempted, no violation" if a test ever executes it, which would mean the
 proof no longer holds. Decision and MC/DC obligations inside a region are
 exempted the same way (ASN1SCC-COV-002 covers the guard decision itself).
 
+## Defensive checks that stay open (not exempted)
+
+Some checks of the generated C encoders can fail only when the encoder is
+called outside its usual conditions. They are reachable, so they are **not**
+exempted, and the automatic tests do not execute their failing side; they
+stay in the "neither covered nor proven" count, for the reason below.
+
+- **The result of an RTL write of the contents of an OCTET / BIT STRING**
+  (`BitStream_EncodeOctetString_no_length`, `BitStream_EncodeContainingOctets`
+  / `Bits`, after a variable-size, external-field or CONTAINING length): the
+  RTL function refuses the write when the bitstream has no room for it, or for
+  a negative length. For a valid value encoded into a bitstream of at least
+  `<Type>_REQUIRED_BYTES_FOR_ENCODING` / `..._ACN_ENCODING` bytes (the size
+  the generated `*_Encode` wrappers and the automatic tests use) neither
+  happens. It can happen when a caller passes a shorter bitstream, or encodes
+  an invalid value with `bCheckConstraints = FALSE`; the check is then the only
+  barrier before a write past the buffer, because the other C write primitives
+  (e.g. `BitStream_AppendBit`) do not check the bitstream's size. The check
+  stays, and the encoder returns FALSE. A test cannot make the write fail
+  without making other writes of the same encoder undefined, so none is
+  generated.
+
+
 ---
 
 ## ASN1SCC-COV-001: default arm after a range-checked index decode (C, Ada)
@@ -420,10 +443,14 @@ if (ret) {
             break;
     default:                                    /*COVERAGE_IGNORE*/    /* <- exempted */
         *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
-        ret = FALSE;                    /*COVERAGE_IGNORE*/
+        return FALSE;                   /*COVERAGE_IGNORE*/
     }
 }
 ```
+
+Since asn1scc 4.9.140.0 the exempted arms of the CHOICE encoders and of the
+determinant updates return FALSE instead of setting `ret = FALSE` (see
+ASN1SCC-COV-005): the parts that follow need no check of `ret` for it.
 
 `--acn-v2` (the specialised encoder of `chr`, which receives the reserved
 determinant as a parameter):
@@ -522,14 +549,20 @@ if (ret) {
             intVal_Msg_kind = 1UL;
             break;
         default:                                    /*COVERAGE_IGNORE*/    /* <- exempted */
-            ret = FALSE;                            /*COVERAGE_IGNORE*/
             *pErrCode = ERR_ACN_ENCODE_MSG_KIND;                 /*COVERAGE_IGNORE*/
+            return FALSE;                           /*COVERAGE_IGNORE*/
     }
-    if (ret) {
-        Acn_Enc_Int_PositiveInteger_ConstSize_8(pBitStrm, intVal_Msg_kind);
-    }
+    /* no check of ret: the default arm returns (coverage step 14q) */
+    Acn_Enc_Int_PositiveInteger_ConstSize_8(pBitStrm, intVal_Msg_kind);
 }
 ```
+
+Since asn1scc 4.9.140.0 the exempted arm returns FALSE (with its error code)
+instead of setting `ret = FALSE`: in a C encoder every part after a failure
+runs only under `if (ret)` and the function returns `ret`, so both forms
+behave the same, and the code after the switch needs no check of `ret` (that
+check could only be FALSE through the exempted arm). Where the region is not
+emitted (the arm is reachable), the arm keeps `ret = FALSE` and the check.
 
 **Proof.** Every assignment of the local in the encoder stores an item that
 has a `case` (or a copy of another local of which the same holds, when one
@@ -539,7 +572,9 @@ is set only right after an assignment of the local, or after a construct that
 assigns it on every path on which `ret` stays TRUE (a switch with an
 assignment in every `case` and a failing `default:`, or an `if` / `else if`
 chain with an assignment in every branch and a final `else` that sets `ret =
-FALSE`), with the same `ret` argument as ASN1SCC-COV-004.
+FALSE` or, since asn1scc 4.9.141.0, assigns the local its default value, the
+first item, when no consumer of the determinant is in the encoded value), with
+the same `ret` argument as ASN1SCC-COV-004.
 
 **Conditions** (checked by `classifyStatements.py`): the switch is in an
 encoder and its selector is a local declared without an initializer in that

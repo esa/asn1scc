@@ -1,0 +1,7 @@
+WIRE DEFINITIONS ::= BEGIN
+	Un  [encoding ASCII, size null-terminated]
+	Nr  [encoding ASCII, size null-terminated]
+	Sg  [encoding ASCII, size null-terminated]
+	Big [encoding ASCII, size null-terminated]
+	Any [encoding ASCII, size null-terminated]
+END

@@ -383,7 +383,15 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         let aux = lm.lg.generateChoiceAuxiliaries r ACN t o nestingScope p.accessPath codec
         // coverage step 12b: one arm runs, then (C) the default arm of an invalid selector
         let encOutcome =
-            encodeOutcomeOf codec (EncodeOutcome.sequence [EncodeOutcome.alternatives true (childrenStatements0 |> List.map (fun s -> s.encOutcome)); lm.lg.encodeTemplateOutcome EncChoiceDefaultArm])
+            // coverage step 14q: an exempted default arm (ASN1SCC-COV-004, the encode case of soCovExempt above)
+            // returns FALSE itself (writes no ret)
+            let defaultArm =
+                let pp, _ = joinedOrAsIdentifier lm codec p
+                match codec, ec, alwaysAbsentChildren with
+                | Encode, (CEC_enum _ | CEC_presWhen), [] when (nestingScope.selectorExemption (choiceSelectorKey pp (lm.lg.getAccess p.accessPath)) "ASN1SCC-COV-004").IsSome ->
+                    EncodeOutcome.noWrite
+                | _ -> lm.lg.encodeTemplateOutcome EncChoiceDefaultArm
+            encodeOutcomeOf codec (EncodeOutcome.sequence [EncodeOutcome.alternatives true (childrenStatements0 |> List.map (fun s -> s.encOutcome)); defaultArm])
         Some ({AcnFuncBodyResult.funcBody = choiceContent; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; userDefinedFunctions=childrenUserDefFuncs; bValIsUnReferenced=false; bBsIsUnReferenced=bBsIsUnReferenced; resultExpr=resultExpr; auxiliaries=childrenAuxiliaries@aux; icdResult = Some icd; encOutcome = encOutcome}), ns
 
 

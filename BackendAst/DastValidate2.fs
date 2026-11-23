@@ -271,7 +271,7 @@ let integerConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (lm:LanguageMac
         st
 
 
-let realConstraint2ValidationCodeBlock  (l:LanguageMacros) (acnEncodingClass : RealEncodingClass) (c:RealTypeConstraint) st =
+let realConstraint2ValidationCodeBlock  (l:LanguageMacros) (acnEncodingClass : RealEncodingClass) (c:RealTypeConstraint) (st:State) =
     let valToStrFunc (v:double) = 
         let d2str (v:double) = v.ToString(FsUtils.doubleParseString, NumberFormatInfo.InvariantInfo)
         let d2str_b (v:double) = v.ToString("G17", NumberFormatInfo.InvariantInfo)
@@ -282,7 +282,12 @@ let realConstraint2ValidationCodeBlock  (l:LanguageMacros) (acnEncodingClass : R
             match FsUtils.nearestFloat32 v with
             | None -> ()
             | Some (nearestLow, nearestHi) ->
-                printfn "Warning: The constant %A cannot be precisely represented in IEEE754-1985-32 encoding.\n The closest representable values are %A and %A" (d2str_b v) (f2str nearestLow) (f2str nearestHi)
+                match st.constructionPass with
+                | EmittingPass ->
+                    printfn "Warning: The constant %A cannot be precisely represented in IEEE754-1985-32 encoding.\n The closest representable values are %A and %A" (d2str_b v) (f2str nearestLow) (f2str nearestHi)
+                | ValidatorOutcomePass ->
+                    // cycle 15a2: the emitting construction of the same type assignment prints it
+                    ()
         | _ -> ()
 
         d2str v
@@ -682,6 +687,13 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
             nonEmbeddedChildrenValidFuncs          = nonEmbeddedChildrenValidFuncs
             outcome                     = outcome
         }
+    // coverage step 14p: callers (references) look the outcome up by the name of the function they call
+    let ns =
+        match funcName with
+        | Some fn ->
+            let key = DAstUtilFunctions.encodeCallKey lm t.id.ModName fn
+            {ns with validatorOutcomes = ns.validatorOutcomes.Add (key, outcome); tasValidatorKeys = ns.tasValidatorKeys.Add key}
+        | None    -> ns
     Some ret, ns
 
 let funcBody l fncs (e:ErrorCode) (p:CodegenScope) =
@@ -1320,7 +1332,11 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
             let tas = (r.GetModuleByName o.modName).GetTypeAssignmentByName o.tasName r
             let tasTypeDef = l.lg.getTypeDefinition tas.Type.FT_TypeDefinition
             if l.lg.hasModules && ToC t.id.ModName <> tasTypeDef.programUnit then
-                tasTypeDef.programUnit + "." + tasTypeDef.typeName
+                // Qualify with the language's cross-module function prefix: it is
+                // "<mod>." for Ada/C, but Rust functions live in the body module
+                // and must be reached as "crate::<mod>::" (a bare "DV." is not a
+                // Rust path and fails to compile with E0425).
+                l.lg.constructCrossModuleFuncPrefix tasTypeDef.programUnit + tasTypeDef.typeName
             else tasTypeDef.typeName
         else baseTypeDefinitionName
     let baseFncName = l.lg.constructReferenceFuncName checkedTypeDefinitionName "" (l.isvalid.methodNameSuffix())
@@ -1328,10 +1344,35 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
     // coverage step 11b: the referenced type's function always succeeds, so it is not called. Only without
     // constraints at the reference site: with them resolvedType is the narrower merged type (e.g. a fixed SIZE),
     // whose outcome says nothing about the called function of the wider referenced type.
+    // Coverage step 14p: first the outcome of the function the reference calls (State.validatorOutcomes; sortTypes
+    // creates referenced type assignments first). The copy of the referenced type at a site with ids of its own (ACN
+    // arguments, CONTAINING) has inline children whose typedefs are references to the type assignment's, so the 11b
+    // rules do not see the ranges they enforce and the copy is MayBeInvalid while the called function is AlwaysValid.
+    // The site's own constraints (vcbs) are still checked below.
+    let calledFunctionOutcome = us.validatorOutcomes.TryFind (DAstUtilFunctions.encodeCallKey l t.id.ModName baseFncName)
     let referencedNotCalled =
-        match resolvedType.isValidFunction with
-        | Some rf -> rf.outcome = AlwaysValid && o.refCons.IsEmpty && not (containsSubtypeConstraints o.resolvedType)
-        | None    -> false
+        match resolvedType.isValidFunction, calledFunctionOutcome with
+        | Some _, Some AlwaysValid       -> true
+        | Some rf, (Some MayBeInvalid | None) -> rf.outcome = AlwaysValid && o.refCons.IsEmpty && not (containsSubtypeConstraints o.resolvedType)
+        | None, _                        -> false
+    // Coverage step 14p: an INTEGER reference with constraints of its own (MyPDU ::= T1 (0 .. 100)) declares the
+    // subtype `range a .. b` of the merged uPER range (DAstTypeDefinition.createInteger_u); when every constraint at the
+    // site is one interval, the range holds them all (the merged range is their intersection with the base's), so
+    // with the typedefs enforcing ranges (Ada) the check becomes a pragma Assert, as 11b does for a type's own range.
+    let siteRangeEnforced =
+        match l.lg.typedefConstraintModel, typeDefinition, t.ActualType.Kind with
+        | TypedefsEnforceRanges, TypeDefinition _, Asn1AcnAst.Integer io ->
+            let intCons = o.refCons |> List.choose (fun c -> match c with Asn1AcnAst.IntegerTypeConstraint z -> Some z | _ -> None)
+            let declaresRange =
+                match io.uperRange with
+                | Concrete _ | NegInf _     -> true
+                | PosInf a                  -> a <> 0I      // `range 0 .. MAX` declares no range (createInteger)
+                | Full                      -> false
+            declaresRange && not intCons.IsEmpty && intCons.Length = o.refCons.Length &&
+                intCons |> List.forall (rangeIsOneInterval (fun x -> x + 1I) (fun x -> x - 1I))
+        | TypedefsAreBaseTypes, _, _
+        | TypedefsEnforceRanges, ReferenceToExistingDefinition _, _
+        | TypedefsEnforceRanges, TypeDefinition _, _ -> false
     let ns =
         // the call is registered only when it is made (else the referenced function would be emitted as dead
         // code when nothing else calls it); Scala's ACN encoders of OPTIONAL children call it anyway
@@ -1345,12 +1386,24 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
                 addFunctionCallToState us caller callee
         | Some _, true
         | None, _      -> us
+    // coverage step 14q (Q3 b): the function this site's validation calls, so that an encoder of the site may call the
+    // referenced encoder's body (without its validation) only when that validation is the one done here
+    let ns =
+        match resolvedType.isValidFunction, referencedNotCalled with
+        | Some _, false -> {ns with siteValidatorCalls = ns.siteValidatorCalls.Add (t.id.AsString, DAstUtilFunctions.encodeCallKey l t.id.ModName baseFncName)}
+        | Some _, true
+        | None, _       -> ns
+    let errorCodeComment0 = o.refCons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
     let funBody (errCode: ErrorCode) (p:CodegenScope) =
         let with_component_check, lv2 =
             convertMultipleVCBsToStatementAndSetErrorCode l p errCode vcbs |>
             List.unzip
 
         match resolvedType.isValidFunction with
+        | Some _ when referencedNotCalled && siteRangeEnforced && (impliedCheck l vcbs errorCodeComment0 p).IsSome ->
+            let comment = l.isvalid.validation_comment "the referenced type is not checked: it cannot hold an invalid value"
+            let st = (impliedCheck l vcbs errorCodeComment0 p).Value
+            ValidationStatementImplied (comment + "\n" + st + "\n" + l.isvalid.convertVCBTRUEToStatementAndUpdateErrCode (), [])
         | Some _ when referencedNotCalled ->
             let comment = l.isvalid.validation_comment "the referenced type is not checked: it cannot hold an invalid value"
             match (with_component_check) |> DAstUtilFunctions.nestItems_ret l  with
@@ -1374,8 +1427,6 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
             | None   -> convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName
             | Some s ->ValidationStatement (s, (lv2 |>List.collect id))
 
-    let errorCodeComment = o.refCons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
-
-    createIsValidFunction r l t funBody  typeDefinition [] [] [] [] (Some errorCodeComment) ns
+    createIsValidFunction r l t funBody  typeDefinition [] [] [] [] (Some errorCodeComment0) ns
 
 

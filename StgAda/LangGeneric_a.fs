@@ -449,8 +449,12 @@ type LangGeneric_a() =
 
         override this.computeDeferredFallbackValue (acnType: Asn1AcnAst.AcnInsertedType) (uperMinOffset: BigInteger) : string =
             match acnType with
-            | Asn1AcnAst.AcnInsertedType.AcnInteger _ ->
-                if uperMinOffset > 0I then uperMinOffset.ToString() else "0"
+            | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
+                // the wire value of the field's default (Issues 123 / 142): the default less the offset of a uPER-encoded
+                // field (PatchDet writes its argument as is). A range holding no value >= 0 keeps 0 (legacy would write the
+                // bound): not reachable, no ACN size / present-when consumer takes a negative value (i108a review)
+                let wire = Asn1AcnAstUtilFunctions.acnIntegerDefaultValue ai - uperMinOffset
+                if wire >= 0I then wire.ToString() else "0"
             | Asn1AcnAst.AcnInsertedType.AcnBoolean _ -> "0"
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
                 // Ada is strictly typed: Asn1UInt(<enum_literal>) is illegal.
@@ -497,6 +501,11 @@ type LangGeneric_a() =
         override _.atcDecodeSweep _ = CorruptionSweep
         // The precondition of every Ada decoder guarantees a full-size stream: reads cannot fail.
         override _.decodeReadFailureModel = ReadsCannotFail
+        // Issue 106: fail at the dependent when the holder of its determinant field is absent
+        override _.decodeFailsWhenHolderAbsent = true
+        override _.encodeFailsWhenHolderAbsent = true
+        // Issue 107: the AcnInsertedFieldRef of the RTL tracks whether its field is in the stream
+        override _.deferredRefTracksStream = true
         // Ranged subtypes (INTEGER, SIZE lengths) and enumerations: a value cannot violate those constraints.
         override _.typedefConstraintModel = TypedefsEnforceRanges
         // The discriminant of a CHOICE is an enumeration of its alternatives (coverage step 14i).
@@ -504,19 +513,29 @@ type LangGeneric_a() =
         override _.acnDeterminantFlagModel = FlagMaybeUninitialized
         // An encoder does not call an IsConstraintValid that cannot fail (coverage step 12a).
         override _.encoderValidationModel = EncodersSkipAlwaysValidPrimitives
+        // coverage step 14q (Q6 b): the determinant of several sources from one that is always set
+        override _.multiAcnUpdateFromAlwaysSetSource = true
+        // Issue 105: the determinant of several sources takes its default value when no source is set
+        override _.multiAcnUpdateDefaultWhenNoSource = true
+        // coverage step 14q (Q3 b): <X>_Encode_Body_aux, called by the encoders of the same package after their validation
+        override _.encoderBodySplit = true
         // What the Ada encode templates write to result (coverage step 12b; gnatprove checks the assertions).
         override _.encodeTemplateOutcome t =
             match t with
             | EncRtlWritesOnly | EncPresenceBits | EncEnumerated | EncOctetStringFixedSize | EncOctetStringNoLength | EncBitStringFixedSize
             | EncStringFixedSize | EncSequenceOfFixedSize                           -> EncodeOutcome.noWrite
-            // the blocks are joined by checks of result before anything writes it
-            | EncFragmentation                                                      -> EncodeOutcome.unknown
+            // BitStream_EncodeContainingOctets / Bits: procedures without result (coverage step 14p)
+            | EncContainingUper                                                     -> EncodeOutcome.noWrite
+            // the fragmentation writes no result; since coverage step 14p its fixed-size blocks are joined by what an element
+            // does (DAstUPer.handleFixedSizeFragmentation), so no check reads result before anything writes it
+            | EncFragmentation                                                      -> EncodeOutcome.noWrite
             // since coverage step 14i the ACN external-field / null-terminated / deduced loops state
             // pragma Loop_Invariant (result.Success) after an element that cannot fail, as the uPER loops do
             | EncSequenceOfOtherLoop | EncLoopWithoutInvariant                      -> EncodeOutcome.noWrite
-            // result.Success := Length >= min AND Length <= max
+            // coverage step 14q (Q3 a): pragma Assume (Length >= min AND Length <= max), the string's size likewise: the
+            // validation at the entry of the encoder checked it (every Ada _aux validates its value unless that cannot fail)
             | EncOctetStringVarSize LengthChecked | EncBitStringVarSize LengthChecked | EncStringVarSize
-            | EncSequenceOfVarSize LengthChecked                                    -> {canFail = true; writes = AlwaysWrites; callee = None}
+            | EncSequenceOfVarSize LengthChecked                                    -> EncodeOutcome.noWrite
             // the Length subtype of the typedef holds that range: a pragma Assert instead of the check (coverage step 14b2)
             | EncOctetStringVarSize LengthEnforcedByTypedef | EncBitStringVarSize LengthEnforcedByTypedef
             | EncSequenceOfVarSize LengthEnforcedByTypedef                          -> EncodeOutcome.noWrite
@@ -527,14 +546,17 @@ type LangGeneric_a() =
             | EncContainingDeferredWrapper PatchChecked                             -> {canFail = true; writes = ReadsFirst; callee = None}
             // ... the same with the only / first patch of the size field and pragma Assume (step 14e, E3)
             | EncContainingDeferredWrapper PatchUnchecked                           -> {canFail = false; writes = ReadsFirst; callee = None}
-            // result.Success := nStringLength >= min AND ...: a component write, so result must be initialised before
-            | EncStringVarSizeUper                                                  -> {canFail = true; writes = ReadsFirst; callee = None}
+            // <PatchDet>(..., result) after a body that cannot fail, checked or with pragma Assume (coverage step 14q)
+            | EncContainingRegionEnd PatchChecked                                   -> {canFail = true; writes = AlwaysWrites; callee = None}
+            | EncContainingRegionEnd PatchUnchecked                                 -> {canFail = false; writes = AlwaysWrites; callee = None}
+            // pragma Assume (nStringLength >= min AND ...): checked at the entry of the encoder (coverage step 14q, Q3 a)
+            | EncStringVarSizeUper                                                  -> EncodeOutcome.noWrite
             // an exhaustive case over the selector: no default arm
             | EncChoiceDefaultArm                                                   -> EncodeOutcome.noWrite
             // determinant updates (coverage step 12c): assignments; an exhaustive case over the CHOICE selector
             | EncDeterminantAssign | EncDeterminantSwitch                           -> EncodeOutcome.noWrite
-            // result.success := <v> <= max: a component write, so result must be initialised before
-            | EncDeterminantRangeCheck                                              -> {canFail = true; writes = ReadsFirst; callee = None}
+            // pragma Assume (<v> <= max): the string's SIZE, checked at the entry of the encoder (coverage step 14q, Q3 a)
+            | EncDeterminantRangeCheck                                              -> EncodeOutcome.noWrite
             // result := (Success => result.Success and <sources agree>, ...)
             | EncDeterminantMulti                                                   -> {canFail = true; writes = ReadsFirst; callee = None}
         override _.atcEmitsConstraintViolationTests = true

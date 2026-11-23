@@ -106,14 +106,47 @@ let buildReferenceIcdArgAux
     | None -> None
 
 
+/// Issue 134 (S3) / Issue 135: an embedded-length or fixed-size CONTAINING region writes the length of the encoding of
+/// the function it calls (calleeType) under the length range of the contents at the site (encOptions, from
+/// o.resolvedType; octets for an OCTET STRING, bits for a BIT STRING). It fits only when the maxima are equal (a larger
+/// site maximum: the legacy decoder writes past its buffer of the callee's maximum; a smaller one: the encoder writes a
+/// length above its range) and, with an embedded length, the site's minimum is not above the callee's (else a length
+/// below the range). Compared in the region's unit, so a change of bits inside the same octets of an OCTET STRING region
+/// fits. The message when it does not fit; None when it fits or the region has another class.
+let containingCalleeMismatch (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (encOptions:EncodeWithinOctetOrBitStringProperties) (calleeType:Asn1AcnAst.Asn1Type) : string option =
+    let regionUnits (bits:bigint) =
+        match encOptions.octOrBitStr with
+        | ContainedInOctString -> (bits + 7I) / 8I
+        | ContainedInBitString -> bits
+    let unitName =
+        match encOptions.octOrBitStr with
+        | ContainedInOctString -> "octets"
+        | ContainedInBitString -> "bits"
+    let calleeMin, calleeMax = regionUnits calleeType.acnMinSizeInBits, regionUnits calleeType.acnMaxSizeInBits
+    let siteMin, siteMax = encOptions.minSize.acn, encOptions.maxSize.acn
+    let calleeDoesNotFit =
+        match encOptions.acnEncodingClass with
+        | SZ_EC_LENGTH_EMBEDDED _ -> siteMax <> calleeMax || siteMin > calleeMin
+        | SZ_EC_FIXED_SIZE        -> siteMax <> calleeMax
+        | SZ_EC_ExternalField _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced -> false
+    match calleeDoesNotFit with
+    | false -> None
+    | true  ->
+        let calleeName =
+            match calleeType.id.topLevelTas with
+            | Some tas -> tas.tasName
+            | None     -> o.tasName.Value
+        Some (sprintf "the length of this CONTAINING region (%s .. %s %s) does not match the encoding of %s (%s .. %s %s), whose functions the region calls" (siteMin.ToString()) (siteMax.ToString()) unitName calleeName (calleeMin.ToString()) (calleeMax.ToString()) unitName)
+
 let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (isValidFunc: IsValidFunction option) (baseType:Asn1Type) (us:State)  =
-  let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t "_ACN" codec
+  let baseTypeDefinitionName, baseFncName = getReferenceCallFuncName r lm typeDefinition o t "_ACN" codec
 
   let icd = buildReferenceIcdArgAux r t o baseType
 
   match o.encodingOptions with
   | None          ->
-      match o.hasExtraConstrainsOrChildrenOrAcnArgs with
+      // cycle 15g-b1: the same predicate tells the decode classifier that this site is a call (DecodeOutcome.acnHasDecodeContent)
+      match not (DecodeOutcome.acnReferenceIsCall o) with
       | true  ->
           // TODO: this is where stuff gets inlined
           TL "ACN_REF_01" (fun () ->
@@ -166,10 +199,13 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                         let toc = ToC str
                         toc, Some toc
                     | _ -> str, None
+                // coverage step 12b: what the call of the referenced type's encoder does; 14q (Q3 b): its body when this
+                // site's validation is the one the encoder would repeat
+                let callTarget, encOutcome = encodeCallTarget lm t.id.ModName us codec t.id baseFncName
                 let funcBodyContent =
                     match p.accessPath.steps with
                     | [] ->
-                        let baseContent = callSuperclassFunc lm pp baseFncName codec
+                        let baseContent = callSuperclassFunc lm pp callTarget codec
                         match codec with
                         | Decode when nestingScope.nestingLevel = 0I ->
                             let rec isPrimitive (kind: Asn1AcnAst.Asn1TypeKind) =
@@ -181,9 +217,7 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                             | Some wrapLine -> baseContent + "\n" + wrapLine
                             | None -> baseContent
                         | _ -> baseContent
-                    | _ -> callBaseTypeFunc lm pp baseFncName codec
-                // coverage step 12b: what the call of the referenced type's encoder does
-                let encOutcome = encodeCallOutcome lm t.id.ModName us codec baseFncName
+                    | _ -> callBaseTypeFunc lm pp callTarget codec
                 Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = icd; encOutcome = encOutcome}), us)
 
             let ns =
@@ -211,11 +245,38 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
         //'size deduced' contents must be decoded from a stream that ends with their region;
         //other contents are decoded from a stream as large as their largest encoding
         let bDeducedContent = isLiveDeduced o.resolvedType
-        //the values of the two constants above, as literals: a decoder checks the length read from the stream against
-        //them in the determinant's own type, before any conversion (q/issues.md Issue 64)
-        let nReqBitsForAcnEncoding = (GetActualTypeByName r o.modName o.tasName).acnMaxSizeInBits
+        //the bound of the length a decoder reads from the stream, as a literal, checked in the determinant's own type
+        //before any conversion (q/issues.md Issue 64). i115 (F5): the maximum of the contents at this site (what the
+        //parent's REQUIRED_BITS counts), at most the type assignment's (the size of tmpBs, the constants above). The
+        //site's ACN spec may drop part of the type assignment's encoding (CFDP `payload [size ...] {file-directive
+        //[present-when ...], ...}` has no CHOICE index: 259 octets, PayloadData 260); a length between the two passed
+        //the check and the Ada reads of the region and after it ran past the stream the decoder precondition provides.
+        //A site's maximum can also be larger (a site ACN specification that overrides the contents' children; legacy
+        //rejects it below, --acn-v2 gives an embedded / fixed site a function of its own, Issue 135, DAstACNDeferred):
+        //the type assignment's then.
+        //Issues 134 / 138: the callee is the referenced type assignment (Box of `OCTET STRING (CONTAINING Box)`, Box ::=
+        //OCTET STRING (CONTAINING T); Sub of `CONTAINING Sub`, Sub ::= T (WITH COMPONENTS ...)), not the end of its chain:
+        //its functions are called and its constants size the temporary buffer (containedCalleeTas).
+        let calleeType = containedCalleeType r o
+        let nReqBitsForAcnEncoding = min o.resolvedType.acnMaxSizeInBits calleeType.acnMaxSizeInBits
         let nReqBytesForAcnEncoding = System.Numerics.BigInteger (ceil ((double nReqBitsForAcnEncoding)/8.0))
 
+        //Issue 134 (S3): legacy decodes an embedded-length / fixed-size region into a temporary buffer of the callee's
+        //maximum and encodes the contents with the callee's function, whose length (octets for an OCTET STRING, bits for
+        //a BIT STRING) it writes under the length range of the contents at this site (encOptions, from o.resolvedType).
+        //The callee's encoding fits that range only when the maxima are equal (a larger site maximum: the decoder writes
+        //past the buffer; a smaller one: the encoder writes a length above its range) and, with an embedded length, the
+        //site's minimum is not above the callee's (else a length below the range). A site ACN specification with child
+        //overrides (`f [] { a [size 12] }`) breaks this in either direction: reject it. Compared in the region's unit,
+        //so a change of bits inside the same octets of an OCTET STRING region is accepted. --acn-v2 decodes in place (no
+        //buffer) and gives a site with such overrides a function of its own (Issue 135, DAstACNDeferred, which applies
+        //the same check to the other sites); the external-size class (CFDP) checks its length against the buffer.
+        match r.args.acnDeferred, containingCalleeMismatch t o encOptions calleeType with
+        | false, Some msg ->
+            let errLoc = match t.acnLocation with Some l -> l | None -> loc
+            raise (SemanticError (errLoc, msg + "; not supported without --acn-v2 (use a type assignment for the contents)"))
+        | true, _
+        | false, None -> ()
         let octet_string_containing_func            = lm.acn.octet_string_containing_func
         let bit_string_containing_func              = lm.acn.bit_string_containing_func
         let octet_string_containing_ext_field_func  = lm.acn.octet_string_containing_ext_field_func
@@ -232,7 +293,11 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                     let toc = ToC str
                     toc, Some toc
                 | _ -> str, None
-            let funcBodyContent, errCodes, localVariables, userDefinedFunctions, ns2 =
+            // coverage step 14q: the call of the contents' encoder (C: with bCheckConstraints = FALSE); when it cannot fail
+            // the template does not check its result before the length and the contents
+            let callTarget, callOutcome = encodeCallTarget lm t.id.ModName us codec t.id baseFncName
+            let soNoCheckNote = encodeNoCheckNote lm codec callOutcome
+            let funcBodyContent, errCodes, localVariables, userDefinedFunctions, ns2, partOutcome =
                 match encOptions.acnEncodingClass, encOptions.octOrBitStr with
                 | SZ_EC_ExternalField    relPath    , ContainedInOctString  ->
                     let filterDependency (d:AcnDependency) =
@@ -258,26 +323,28 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                         let localVars2 = lm.lg.acn.getAcnContainingByLocVars (sprintf "%s_REQUIRED_BYTES_FOR_ACN_ENCODING" (AcnDependencies.containedTypeName r lm t.id.ModName o))
                         localVariables0@localVars2
 
-                    fncBody, errCode::errCodes0,lvs, userDefinedFunctions, ns1
+                    // the bytes the size determinant's update encoded (C: ret = BitStream_EncodeOctetString_no_length(...))
+                    fncBody, errCode::errCodes0,lvs, userDefinedFunctions, ns1, lm.lg.encodeTemplateOutcome EncOctetStringNoLength
                 | SZ_EC_ExternalField    relPath    , ContainedInBitString  ->
                     let extField        = getExternalField lm r deps t.id
                     let fncBody = bit_string_containing_ext_field_func pp baseFncName sReqBytesForUperEncoding sReqBitForUperEncoding nReqBitsForAcnEncoding extField errCode.errCodeName codec
-                    fncBody, [errCode],[], [], us
+                    // the bits the size determinant's update encoded (BitStream_AppendBits)
+                    fncBody, [errCode],[], [], us, lm.lg.encodeTemplateOutcome EncRtlWritesOnly
                 | SZ_EC_FIXED_SIZE        , ContainedInOctString  ->
-                    let fncBody = octet_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true errCode.errCodeName bDeducedContent codec
-                    fncBody, [errCode],[], [], us
+                    let fncBody = octet_string_containing_func pp callTarget baseTypeDefinitionName sReqBytesForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true errCode.errCodeName bDeducedContent soNoCheckNote codec
+                    fncBody, [errCode],[], [], us, EncodeOutcome.sequence [callOutcome; lm.lg.encodeTemplateOutcome EncOctetStringNoLength]
                 | SZ_EC_LENGTH_EMBEDDED nBits , ContainedInOctString  ->
-                    let fncBody = octet_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false errCode.errCodeName bDeducedContent codec
-                    fncBody, [errCode],[], [], us
+                    let fncBody = octet_string_containing_func pp callTarget baseTypeDefinitionName sReqBytesForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false errCode.errCodeName bDeducedContent soNoCheckNote codec
+                    fncBody, [errCode],[], [], us, EncodeOutcome.sequence [callOutcome; lm.lg.encodeTemplateOutcome EncOctetStringNoLength]
                 | SZ_EC_FIXED_SIZE                        , ContainedInBitString  ->
-                    let fncBody = bit_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true errCode.errCodeName codec
-                    fncBody, [errCode],[], [], us
+                    let fncBody = bit_string_containing_func pp callTarget baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true errCode.errCodeName soNoCheckNote codec
+                    fncBody, [errCode],[], [], us, EncodeOutcome.sequence [callOutcome; lm.lg.encodeTemplateOutcome EncRtlWritesOnly]
                 | SZ_EC_LENGTH_EMBEDDED nBits                 , ContainedInBitString  ->
-                    let fncBody = bit_string_containing_func pp baseFncName baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false errCode.errCodeName codec
-                    fncBody, [errCode],[], [], us
+                    let fncBody = bit_string_containing_func pp callTarget baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false errCode.errCodeName soNoCheckNote codec
+                    fncBody, [errCode],[], [], us, EncodeOutcome.sequence [callOutcome; lm.lg.encodeTemplateOutcome EncRtlWritesOnly]
                 | SZ_EC_TerminationPattern nullVal  ,  _                    ->  raise(SemanticError (loc, "Invalid type for parameter4"))
                 | SZ_EC_Deduced                     ,  _                    ->  raise(SemanticError (loc, "'size deduced': backend code generation is not implemented yet"))
-            let funcBodyResult = Some ({AcnFuncBodyResult.funcBody = funcBodyContent; userDefinedFunctions=userDefinedFunctions; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = icd; encOutcome = EncodeOutcome.unknown})
+            let funcBodyResult = Some ({AcnFuncBodyResult.funcBody = funcBodyContent; userDefinedFunctions=userDefinedFunctions; errCodes = errCodes; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; icdResult = icd; encOutcome = encodeOutcomeOf codec partOutcome})
             funcBodyResult, ns2)
 
         let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)

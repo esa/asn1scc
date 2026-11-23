@@ -834,6 +834,33 @@ type ILangGeneric () =
     abstract member decodeOneValueWithoutRead : bool
     default _.decodeOneValueWithoutRead = false
 
+    /// q/issues.md Issue 106: the decoder of a dependent fails (error code of the dependent) when the component holding
+    /// its determinant field is absent in the stream (BackendAst/AbsentHolder.fs, macros acn_dec_absent_holder_guard /
+    /// _fail), and the decode local of such a field starts with its initial value. C and Ada; the other backends keep
+    /// their output (Scala / Python / Rust: the macros are stubs).
+    abstract member decodeFailsWhenHolderAbsent : bool
+    default _.decodeFailsWhenHolderAbsent = false
+
+    /// q/issues.md Issue 108 (rule R4): the encoder of a dependent fails (error code of the dependent) when the value
+    /// holds the dependent while the component holding its determinant field is absent (BackendAst/AbsentHolder.fs
+    /// encodeGuard / presenceEncodeGuard, macros acn_enc_absent_holder_guard / _fail), and such a value is not valid for
+    /// the automatic tests (AbsentHolder.holderAbsentChecks). C and Ada; the other backends keep their output (stubs).
+    abstract member encodeFailsWhenHolderAbsent : bool
+    default _.encodeFailsWhenHolderAbsent = false
+
+    /// q/issues.md Issue 107 (--acn-v2): the RTL AcnInsertedFieldRef carries `in_stream` (set by InitDet; a PatchDet of a
+    /// ref whose field is not in the stream writes nothing), the decoder sets it where it reads a field that a consumer
+    /// reads through a ref while the component holding the field may be absent, and the refs of such fields are reset
+    /// at the start of every SEQUENCE OF element (BackendAst/AbsentHolder.fs, macros acn_deferred_det_in_stream_* /
+    /// _mark_in_stream / _reset). C and Ada; the other backends keep their output (stubs).
+    abstract member deferredRefTracksStream : bool
+    default _.deferredRefTracksStream = false
+
+    /// Issue 106: the initial value of the decode local of an IA5String ACN field, an array of `stringSize` + 1
+    /// characters (C: a string literal, the range initialiser of initializeString is a GNU extension).
+    abstract member stringLocalInit : int -> string
+    default this.stringLocalInit stringSize = this.initializeString None stringSize
+
     /// Coverage step 14c3: a decoder SEQUENCE joins its parts by what they write, as the encoders do
     /// (DAstUtilFunctions.nestEncodeParts): after a part that writes no ret (an ALWAYS ABSENT child, a one-value part)
     /// the rest follows without `if (ret)`. C only (Ada joins its decode parts by DecodeOutcome).
@@ -858,6 +885,23 @@ type ILangGeneric () =
 
     /// Whether the call of a child's encoder validates the child again (Ada: T_Encode_aux calls IsConstraintValid
     /// unless 12a skipped it; C passes bCheckConstraints = FALSE), so that the call can fail on its validity check.
+    /// Coverage step 14q (Q3 b): a type assignment's encoder that validates its value is split into the validation (the
+    /// _aux, unchanged for its callers outside the package) and a body without it, which the encoders of the same
+    /// package call after their own validation has checked the value (Ada).
+    /// Coverage step 14q (Q6 b): MultiAcnUpdate takes the determinant's value from a source whose update sets it on every
+    /// path (no chain over the sources' flags with a failing else); C and Ada (Scala / Python: usesWrappedOptional).
+    abstract member multiAcnUpdateFromAlwaysSetSource : bool
+    default _.multiAcnUpdateFromAlwaysSetSource = false
+    /// Issue 105 (legacy ACN): when no source of a MultiAcnUpdate is set (every consumer of the determinant is absent
+    /// from the value) the determinant takes its default value instead of failing the encoding; the automatic test
+    /// values agree (AcnDependencies.agreedTestCaseValue). C and Ada; ACN fields of type INTEGER, BOOLEAN or ENUMERATED.
+    /// Issue 123: the same for a single update whose consumer is absent (the else of checkAccessPath) and for an ACN
+    /// parameter's MultiAcnUpdate that is the field's only update; one that is a source of the caller's MultiAcnUpdate
+    /// leaves its value unset (its flag FALSE: the caller ignores it).
+    abstract member multiAcnUpdateDefaultWhenNoSource : bool
+    default _.multiAcnUpdateDefaultWhenNoSource = false
+    abstract member encoderBodySplit : bool
+    default _.encoderBodySplit = false
     abstract member encodeCallValidates : bool
     default _.encodeCallValidates = true
 

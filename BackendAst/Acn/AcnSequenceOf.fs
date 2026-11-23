@@ -220,10 +220,16 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
                             | Decode, AlwaysSucceeds WritesResult   -> true, true
                             | Decode, AlwaysSucceeds NoResultWrite  -> true, false
                             | Decode, MayFail                       -> false, true
+                        // coverage step 14k (G1b): as DAstUPer, a full-range embedded length and an element that cannot fail
+                        let varFullRange =
+                            match codec, DecodeOutcome.acnSeqOfVarFullRangeElement r deps lm o with
+                            | Decode, AlwaysSucceeds w -> Some (w = WritesResult)
+                            | Decode, MayFail | Encode, _ -> None
                         let ret, localVariables =
-                            match o.isFixedSize with
-                            | true  -> fixedSize pp td (i level) internalItemBody o.minSize.acn child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr callAux bFixedItemCannotFail bFixedItemWritesResult codec, nStringLength
-                            | false -> varSize pp access td (i level) internalItemBody o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux sType bItemCannotFail bItemWritesResult (lengthEnforced lengthCheck) codec, nStringLength
+                            match o.isFixedSize, varFullRange with
+                            | true, _  -> fixedSize pp td (i level) internalItemBody o.minSize.acn child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr callAux bFixedItemCannotFail bFixedItemWritesResult codec, nStringLength
+                            | false, Some bWrites -> lm.uper.seqOf_VarSize_fullRange pp access (i level) internalItemBody o.minSize.acn o.maxSize.acn nSizeInBits nIntItemMaxSize bWrites, nStringLength
+                            | false, None -> varSize pp access td (i level) internalItemBody o.minSize.acn o.maxSize.acn nSizeInBits child.acnMinSizeInBits nIntItemMaxSize 0I childInitExpr errCode.errCodeName absOffset remBits lvl ix offset introSnap callAux sType bItemCannotFail bItemWritesResult (lengthEnforced lengthCheck) codec, nStringLength
                         Some ({AcnFuncBodyResult.funcBody = ret; errCodes = errCode::childErrCodes; localVariables = (lv level)@(internalItem.localVariables@localVariables); userDefinedFunctions=internalItem.userDefinedFunctions; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=internalItem.auxiliaries @ auxiliaries; icdResult = Some icd; encOutcome = elemOutcome internalItem})
 
                 | SZ_EC_ExternalField _ ->

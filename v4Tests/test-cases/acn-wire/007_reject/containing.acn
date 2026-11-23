@@ -1,0 +1,3 @@
+REJ DEFINITIONS ::= BEGIN
+    S [] { a [], n INTEGER [size 8, encoding pos-int], items [] { [size n] }, tail [] }
+END

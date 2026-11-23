@@ -105,6 +105,12 @@ flag BitStream_DecodeOctetString(BitStream* pBitStrm, byte* arr, int* nCount, as
 
 flag BitStream_EncodeBitString(BitStream* pBitStrm, const byte* arr, int nCount, asn1SccSint asn1SizeMin, asn1SccSint asn1SizeMax);
 flag BitStream_DecodeBitString(BitStream* pBitStrm, byte* arr, int* pCount, asn1SccSint asn1SizeMin, asn1SccSint asn1SizeMax);
+void BitStream_EncodeGeneralLength(BitStream* pBitStrm, const byte* arr, int nCount, int nUnitBits);
+flag BitStream_DecodeGeneralLength(BitStream* pBitStrm, byte* arr, int* pCount, int nMax, int nUnitBits);
+flag BitStream_EncodeContainingOctets(BitStream* pBitStrm, const byte* arr, int nBits, int nMaxOctets);
+flag BitStream_DecodeContainingOctets(BitStream* pBitStrm, byte* arr, int* pCount, int nMaxOctets);
+flag BitStream_EncodeContainingBits(BitStream* pBitStrm, const byte* arr, int nBits, int nMaxBits);
+flag BitStream_DecodeContainingBits(BitStream* pBitStrm, byte* arr, int* pCount, int nMaxBits);
 flag BitStream_ReadByteArray(BitStream* pBitStrm, byte* arr, int arr_len);
 
 /*

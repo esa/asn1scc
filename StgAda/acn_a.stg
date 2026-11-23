@@ -142,7 +142,7 @@ with
       and then bs.Size_In_Bytes \< Positive'Last / 8
       and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING \<= bs.Size_In_Bytes * 8,
        Post =>
-         (result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING)
+         (result.Success and bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Old and bs.Current_Bit_Pos \<= bs.Current_Bit_Pos'Old + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING)
        or
          not result.Success
 >>
@@ -153,8 +153,8 @@ with
       and then bs.Size_In_Bytes \< Positive'Last / 8
       and then bs.Current_Bit_Pos \<= bs.Size_In_Bytes * 8,
     Post =>
-      (result.Success and then bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos
-       and then bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING
+      (result.Success and then bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Old
+       and then bs.Current_Bit_Pos \<= bs.Current_Bit_Pos'Old + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING
        and then bs.Current_Bit_Pos \<= bs.Size_In_Bytes * 8)
       or else not result.Success
 >>
@@ -165,7 +165,7 @@ with
       and then bs.Size_In_Bytes \< Positive'Last / 8
       and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING \<= bs.Size_In_Bytes * 8,
        Post =>
-         (result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING)
+         (result.Success and bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Old and bs.Current_Bit_Pos \<= bs.Current_Bit_Pos'Old + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING)
        or
          not result.Success
 >>
@@ -586,12 +586,12 @@ result.ErrorCode := <sErrCode>;
 ASCII_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes, sType) ::= "adaasn1rtl.encoding.acn.Acn_Enc_Int_ASCII_VarSize_NullTerminated(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=\", \">));"
 ASCII_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes, sType) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_VarSize_NullTerminated<sSsuffix>(bs, mapFuncIntVal, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_VarSize_NullTerminated<sSsuffix>(bs, mapFuncIntVal, Asn1Int'First, Asn1Int'Last, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_VarSize_NullTerminated<sSsuffix>(bs, <p>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
+adaasn1rtl.encoding.acn.Acn_Dec_Int_ASCII_VarSize_NullTerminated<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
@@ -601,12 +601,12 @@ result.ErrorCode := <sErrCode>;
 ASCII_UINT_VarSize_NullTerminated_encode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes, sType) ::= "adaasn1rtl.encoding.acn.Acn_Enc_UInt_ASCII_VarSize_NullTerminated(bs, <MFen(soMF=soMF, soMFM=soMFM, p=p)>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=\", \">));"
 ASCII_UINT_VarSize_NullTerminated_decode(p, sSsuffix, sErrCode, soMF, soMFM, nUperMin, nUperMax, arruNullBytes, sType) ::= <<
 <if(soMF)>
-adaasn1rtl.encoding.acn.Acn_Dec_UInt_ASCII_VarSize_NullTerminated<sSsuffix>(bs, mapFuncIntVal, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
+adaasn1rtl.encoding.acn.Acn_Dec_UInt_ASCII_VarSize_NullTerminated<sSsuffix>(bs, mapFuncIntVal, 0, Asn1UInt'Last, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
 result.ErrorCode := <sErrCode>;
 <MF(p=p, soMF=soMF, soMFM=soMFM, nUperMin=nUperMin, nUperMax=nUperMax)>
 
 <else>
-adaasn1rtl.encoding.acn.Acn_Dec_UInt_ASCII_VarSize_NullTerminated<sSsuffix>(bs, <p>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
+adaasn1rtl.encoding.acn.Acn_Dec_UInt_ASCII_VarSize_NullTerminated<sSsuffix>(bs, <p>, <nUperMin>, <nUperMax>, adaasn1rtl.OctetBuffer'(<arruNullBytes : {b|<i>=><b>}; separator=", ">), result);
 result.ErrorCode := <sErrCode>;
 
 <endif>
@@ -870,11 +870,9 @@ result.ErrorCode := <sErrCode>;
 
 
 Acn_String_Ascii_Internal_Field_Determinant_encode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits, sType) ::= <<
-result.ErrorCode := <sErrCode>;
-result.Success := <nAsn1Min> \<= <rtlModuleName()>.getStringSize(<p>);
-if result.Success then
-    adaasn1rtl.encoding.acn.Acn_Enc_String_Ascii_Internal_Field_Determinant(bs, <nAsn1Min>, <nInternalLengthDeterminantSizeInBits>, <p>);
-end if;
+-- no check: the validation at the entry of the encoder accepted the string (its IsConstraintValid checks its SIZE, at least <nAsn1Min>)
+pragma Assume (<nAsn1Min> \<= <rtlModuleName()>.getStringSize(<p>));
+adaasn1rtl.encoding.acn.Acn_Enc_String_Ascii_Internal_Field_Determinant(bs, <nAsn1Min>, <nInternalLengthDeterminantSizeInBits>, <p>);
 >>
 Acn_String_Ascii_Internal_Field_Determinant_decode(p, sErrCode, nAsn1Max, nAsn1Min, nInternalLengthDeterminantSizeInBits, sType) ::= <<
 adaasn1rtl.encoding.acn.Acn_Dec_String_Ascii_Internal_Field_Determinant(bs, <nAsn1Min>, <nAsn1Max>, <nInternalLengthDeterminantSizeInBits>, <p>, result);
@@ -963,12 +961,10 @@ pragma Assert (<p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>)
 adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
 <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize, bItemCannotFail=bItemCannotFail, bItemWritesResult=bItemWritesResult)>
 <else>
-result.Success := <p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>;
-result.errorCode := <sErrCode>;
-if result.Success then
-    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
-    <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize, bItemCannotFail=bItemCannotFail, bItemWritesResult=bItemWritesResult)>
-end if;
+-- no check: the validation at the entry of the encoder accepted the value (its IsConstraintValid checks SIZE (<nSizeMin> .. <nSizeMax>))
+pragma Assume (<p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>);
+adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
+<loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize, bItemCannotFail=bItemCannotFail, bItemWritesResult=bItemWritesResult)>
 <endif>
 >>
 
@@ -1106,6 +1102,44 @@ sequence_presence_optChild_pres_str_encode(p, sAcc, sChName, sExtFldName, sVal) 
 sequence_presence_optChild_pres_str_decode(p, sAcc, sChName, sExtFldName, sVal) ::= <<
 <p>.Exist.<sChName> := (if <sExtFldName> = "<nIntVal>" then 1 else 0);
 result.Success := true;
+>>
+
+/* q/issues.md Issue 106: the decoder of a dependent whose determinant field is in a component the stream may say absent (BackendAst/AbsentHolder.fs) */
+acn_dec_absent_holder_guard(arrsGuards, sBody, sErrCode, sFields, sHolders) ::= <<
+if <arrsGuards; separator=" and then "> then
+    <sBody>
+else
+    --  <sFields> is in <sHolders>, absent in this stream: the stream does not hold it
+    result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);
+end if;
+>>
+
+acn_dec_absent_holder_fail(sBody, sErrCode, sFields, sHolders) ::= <<
+--  <sFields> is in <sHolders>, which is always absent: the stream never holds it
+result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);
+>>
+
+acn_dec_absent_holder_reset(sLocal, sInitValue, sField, sHolders) ::= <<
+--  <sField> is in <sHolders>: False unless the stream holds it
+<sLocal> := <sInitValue>;
+>>
+
+/* q/issues.md Issue 108: the encoder of a dependent whose determinant field is in a component the value may leave absent (BackendAst/AbsentHolder.fs); bTestsCannotReach: no automatic test value can show the component absent with the dependent present (AbsentHolder.holderAbsentChecks) */
+acn_enc_absent_holder_guard(arrsGuards, sBody, sErrCode, sFields, sHolders, bTestsCannotReach) ::= <<
+if <arrsGuards; separator=" and then "> then
+    <sBody>
+else
+    --  <sFields> is in <sHolders>, absent in this value: the stream cannot hold the field
+    result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);<if(bTestsCannotReach)> -- COVERAGE_IGNORE<endif>
+end if;
+>>
+
+/* the body of a guarded dependent without bits (a NULL without pattern, an empty SEQUENCE) */
+acn_enc_absent_holder_no_bits() ::= "null;  --  no bits to encode"
+
+acn_enc_absent_holder_fail(sBody, sErrCode, sFields, sHolders, bTestsCannotReach) ::= <<
+--  <sFields> is in <sHolders>, which is always absent: the stream never holds the field
+result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);<if(bTestsCannotReach)> -- COVERAGE_IGNORE<endif>
 >>
 
 sequence_save_bitStream_start_encode(sBitStreamPositionsLocalVar) ::=<<
@@ -1370,18 +1404,23 @@ MultiAcnUpdate_checkEqual_pri0(p1,p2) ::= "(<p1> = <p2>)"
 MultiAcnUpdate_checkEqual_str0(p1,p2) ::= "(<p1> = <p2>)"
 
 MultiAcnUpdate_get_first_init_value_pri(sV0, sVi, sChPath, bIsFirst, bIsSingleElement) ::= <<
+<if(bIsSingleElement)>
+-- <sVi>: its update is not under a check of the path, so it is set (coverage step 14q)
+<sV0> := <sVi>;
+<else>
 <if(bIsFirst)>if<else>elsif<endif> <sVi>_is_initialized then		--COVERAGE_IGNORE
     <sV0> := <sVi>;													--COVERAGE_IGNORE
+<endif>
 >>
 
 MultiAcnUpdate_get_first_init_value_str(sV0, sVi, sChPath, bIsFirst, bIsSingleElement) ::= <<
 <MultiAcnUpdate_get_first_init_value_pri(sV0=sV0, sVi=sVi, sChPath=sChPath, bIsFirst=bIsFirst, bIsSingleElement=bIsSingleElement)>
 >>
 
-MultiAcnUpdate_checkEqual_pri(sV0, sVi, sChPath, bIsAlwaysInit) ::= "((<sVi>_is_initialized and <sV0> = <sVi>) or not <sVi>_is_initialized)"
-MultiAcnUpdate_checkEqual_str(sV0, sVi, sChPath, bIsAlwaysInit) ::= "((<sVi>_is_initialized and <sV0> = <sVi>) or not <sVi>_is_initialized)"
+MultiAcnUpdate_checkEqual_pri(sV0, sVi, sChPath, bIsAlwaysInit) ::= "((<sVi>_is_initialized and then <sV0> = <sVi>) or else not <sVi>_is_initialized)"
+MultiAcnUpdate_checkEqual_str(sV0, sVi, sChPath, bIsAlwaysInit) ::= "((<sVi>_is_initialized and then <sV0> = <sVi>) or else not <sVi>_is_initialized)"
 
-MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr, bSetInitFlag) ::= <<
+MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr, bSetInitFlag, bNoSourceDefault, bNoSourceLeavesUnset) ::= <<
 declare
     <arrsLocalDeclarations; separator="\n">
     -- a source whose update is unconditional makes its flag tests constant (GNAT -gnatwc)
@@ -1390,13 +1429,30 @@ begin
 
     <arrsLocalUpdateStatements; separator="\n">
 
+<if(bIsFirstIntValueSingle)>
+    <arrsGetFirstIntValue; separator="\n">
+<else>
+<if(bNoSourceLeavesUnset)>
+    <v>_is_initialized := True;<\n>
+<endif>
     <arrsGetFirstIntValue; separator="\n">
     else
-        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);		--COVERAGE_IGNORE
-    end if;
+<if(bNoSourceDefault)>
+        -- no source is set: no consumer of the determinant is in the value, it takes its default value
+        <v> := <sDefaultExpr>;		--COVERAGE_IGNORE<\n>
+<else>
+<if(bNoSourceLeavesUnset)>
+        -- no source is set: no consumer of <v> is in the value; it stays unset and its flag False, so the determinant it is a source of ignores it
+        <v>_is_initialized := False;<\n>
+<else>
+        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);		--COVERAGE_IGNORE<\n>
+<endif>
+<endif>
+    end if;<\n>
+<endif>
 
     result := <rtlModuleName()>.ASN1_RESULT'(Success => result.Success and (<arrsLocalCheckEquality; separator=" and ">), ErrorCode => <sErrCode>);
-<if(bSetInitFlag)>    <v>_is_initialized := result.Success;<\n><endif>    pragma Warnings (On, "condition is always*");
+<if(bSetInitFlag)><if(!bNoSourceLeavesUnset)>    <v>_is_initialized := result.Success;<\n><endif><endif>    pragma Warnings (On, "condition is always*");
 end;
 >>
 
@@ -1413,10 +1469,11 @@ PresenceDependency(v, sSeqPath, sAcc, sChildName, bSetInitFlag) ::= <<
 SizeDependency(v, sCount, nMin, nMax, bCheckRange, bCheckMin, sTypedefName, bSetInitFlag) ::= <<
 <if(bSetInitFlag)><v>_is_initialized := True;<\n><endif><v> := <sTypedefName>(<sCount>);
 <if(bCheckRange)>
+-- no check: the validation at the entry of the encoder accepted the string (its IsConstraintValid checks SIZE (<nMin> .. <nMax>))
 <if(bCheckMin)>
-result.success := <v> \>= <nMin> and <v> \<= <nMax>;
+pragma Assume (<v> \>= <nMin> and <v> \<= <nMax>);
 <else>
-result.success := <v> \<= <nMax>;
+pragma Assume (<v> \<= <nMax>);
 <endif>
 
 <endif>
@@ -1461,7 +1518,11 @@ case <sChPath><sAcc>kind is
 end case;
 >>
 
-checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr) ::= <<
+checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr, bDefaultWhenAbsent) ::= <<
+<if(bDefaultWhenAbsent)>
+-- the default value of <v>, kept when no consumer of it is in the value
+<v> := <sInitExpr>;<\n>
+<endif>
 if (<arrsCheckPaths; separator=" and then ">) then
     <sUpdateStatement>
 end if;
@@ -1469,7 +1530,7 @@ end if;
 
 
 
-SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner, sLocalVarType, bSetInitFlag) ::= <<
+SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner, sLocalVarType, bSetInitFlag, soNoCheckNote) ::= <<
 --first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string
 declare
     bs : adaasn1rtl.encoding.Bitstream := tmpBs;
@@ -1477,9 +1538,14 @@ begin
     <sInner>
     tmpBs := bs;
 end;
+<if(soNoCheckNote)>
+<soNoCheckNote>
+<v> := <sLocalVarType>(<if(bIsOctet)>adaasn1rtl.encoding.BitStream_current_length_in_bytes(tmpBs)<else>tmpBs.Current_Bit_Pos<endif>);<if(bSetInitFlag)><\n><v>_is_initialized := True;<endif>
+<else>
 if result.success then
 	<v> := <sLocalVarType>(<if(bIsOctet)>adaasn1rtl.encoding.BitStream_current_length_in_bytes(tmpBs)<else>tmpBs.Current_Bit_Pos<endif>);<if(bSetInitFlag)><\n>	<v>_is_initialized := True;<endif>
 end if;
+<endif>
 >>
 
 
@@ -1542,18 +1608,25 @@ end if;
 
 /* soFixedOctets (also in the _embedded_ and _wrapper_ variants): every encoding of the contents takes that many whole
    octets, so the zero padding to whole octets is never needed and is omitted (coverage step 14e, E3). */
-octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt) ::= <<
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
     acn_nCount : adaasn1rtl.Asn1UInt;
 begin
     <sFuncName>_aux(<p>, bs, result);
+<if(soNoCheckNote)>
+    <soNoCheckNote><if(soFixedOctets)><\n>    --  no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)<else><\n>    --  OCTET STRING contents occupy whole octets: write zero padding up to a<\n>    --  whole number of octets from the region start (as legacy writes it, also<\n>    --  off a byte boundary), so the decoder resumes right after it<\n>    if (bs.Current_Bit_Pos - acn_data_start.Bit_Pos) mod 8 /= 0 then<\n>        adaasn1rtl.encoding.BitStream_AppendPartialByte(bs, 0, 8 - (bs.Current_Bit_Pos - acn_data_start.Bit_Pos) mod 8, False); -- COVERAGE_IGNORE<\n>    end if;<endif>
+    acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
+    <sPatchFuncName>(<sValue>, bs, <sDetParamName><if(soNBits)>, <soNBits><endif>, result);<if(bCannotFail)><\n>    -- cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value)<\n>    pragma Assume (result.Success);<else><\n>    if not result.Success then<\n>        result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE<\n>        return; -- COVERAGE_IGNORE<\n>    end if;<endif><\n>
+<else>
     if result.Success then<if(soFixedOctets)><\n>        --  no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)<else><\n>        --  OCTET STRING contents occupy whole octets: write zero padding up to a<\n>        --  whole number of octets from the region start (as legacy writes it, also<\n>        --  off a byte boundary), so the decoder resumes right after it<\n>        if (bs.Current_Bit_Pos - acn_data_start.Bit_Pos) mod 8 /= 0 then<\n>            adaasn1rtl.encoding.BitStream_AppendPartialByte(bs, 0, 8 - (bs.Current_Bit_Pos - acn_data_start.Bit_Pos) mod 8, False); -- COVERAGE_IGNORE<\n>        end if;<endif>
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
         <sPatchFuncName>(<sValue>, bs, <sDetParamName><if(soNBits)>, <soNBits><endif>, result);<if(bCannotFail)><\n>        -- cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value)<\n>        pragma Assume (result.Success);<else><\n>        if not result.Success then<\n>            result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE<\n>            return; -- COVERAGE_IGNORE<\n>        end if;<endif>
-    end if;
+    end if;<\n>
+<endif>
 end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
 >>
 
@@ -1561,8 +1634,10 @@ end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
    When the contents use 'size deduced', they must see the end of the region (the
    deduced templates read bs.End_Bit_Pos): it is set to the region end, which is not
    on a byte boundary when the region does not start on one, and restored after. */
-octet_string_containing_deferred_region_decode(sBody, sDetParamName, sErrCode, bDeducedContent, soCovExempt) /*nogen*/ ::= <<
+octet_string_containing_deferred_region_decode(sBody, sDetParamName, sErrCode, bDeducedContent, soCovExempt, nMaxRegion) /*nogen*/ ::= <<
+--  the region holds at most the largest encoding of its contents (<nMaxRegion> octets) and fits the stream
 if bs.Current_Bit_Pos \<= bs.Size_In_Bytes * 8 and then
+   <sDetParamName>.Value \<= <nMaxRegion> and then
    <sDetParamName>.Value \<= adaasn1rtl.Asn1UInt((bs.Size_In_Bytes * 8 - bs.Current_Bit_Pos) / 8)
 then
     declare --COVERAGE_IGNORE
@@ -1580,11 +1655,11 @@ else
 end if;
 >>
 
-octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt) ::= <<
-<octet_string_containing_deferred_region_decode(sBody={<sFuncName>_aux(<p>, bs, result);}, sDetParamName=sDetParamName, sErrCode=sErrCode, bDeducedContent=bDeducedContent, soCovExempt=soCovExempt)>
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
+<octet_string_containing_deferred_region_decode(sBody={<sFuncName>_aux(<p>, bs, result);}, sDetParamName=sDetParamName, sErrCode=sErrCode, bDeducedContent=bDeducedContent, soCovExempt=soCovExempt, nMaxRegion=nMaxRegion)>
 >>
 
-octet_string_containing_deferred_fixed_func_encode(p, sFuncName, nOctets, sErrCode, soFixedOctets) ::= <<
+octet_string_containing_deferred_fixed_func_encode(p, sFuncName, nOctets, sErrCode, soFixedOctets, soNoCheckNote) ::= <<
 declare
     acn_data_start : constant Natural := bs.Current_Bit_Pos;
 begin
@@ -1594,7 +1669,7 @@ begin
 end;
 >>
 
-octet_string_containing_deferred_fixed_func_decode(p, sFuncName, nOctets, sErrCode, soFixedOctets) ::= <<
+octet_string_containing_deferred_fixed_func_decode(p, sFuncName, nOctets, sErrCode, soFixedOctets, soNoCheckNote) ::= <<
 declare
     acn_data_start : constant Natural := bs.Current_Bit_Pos;
 begin
@@ -1604,7 +1679,7 @@ begin
 end;
 >>
 
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits) ::= <<
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits, soNoCheckNote) ::= <<
 declare
     acn_len_pos : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_start : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1614,17 +1689,26 @@ begin
     adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, adaasn1rtl.Asn1Int(<nMinSize>), adaasn1rtl.Asn1Int(<nMinSize>), <nBits>);
     acn_data_start := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     <sFuncName>_aux(<p>, bs, result);
+<if(soNoCheckNote)>
+    <soNoCheckNote><if(soFixedOctets)><\n>    --  no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)<else><\n>    --  OCTET STRING contents occupy whole octets from the region start, including final padding.<\n>    if (bs.Current_Bit_Pos - acn_data_start.Bit_Pos) mod 8 /= 0 then<\n>        adaasn1rtl.encoding.BitStream_AppendPartialByte(bs, 0, 8 - (bs.Current_Bit_Pos - acn_data_start.Bit_Pos) mod 8, False); -- COVERAGE_IGNORE<\n>    end if;<endif>
+    acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
+    adaasn1rtl.encoding.acn.Acn_BitStream_SetPos(bs, acn_len_pos);
+    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, adaasn1rtl.Asn1Int(acn_nCount), adaasn1rtl.Asn1Int(<nMinSize>), <nBits>);
+    adaasn1rtl.encoding.acn.Acn_BitStream_SetPos(bs, acn_data_end);<\n>
+<else>
     if result.Success then<if(soFixedOctets)><\n>        --  no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)<else><\n>        --  OCTET STRING contents occupy whole octets from the region start, including final padding.<\n>        if (bs.Current_Bit_Pos - acn_data_start.Bit_Pos) mod 8 /= 0 then<\n>            adaasn1rtl.encoding.BitStream_AppendPartialByte(bs, 0, 8 - (bs.Current_Bit_Pos - acn_data_start.Bit_Pos) mod 8, False); -- COVERAGE_IGNORE<\n>        end if;<endif>
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
         adaasn1rtl.encoding.acn.Acn_BitStream_SetPos(bs, acn_len_pos);
         adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, adaasn1rtl.Asn1Int(acn_nCount), adaasn1rtl.Asn1Int(<nMinSize>), <nBits>);
         adaasn1rtl.encoding.acn.Acn_BitStream_SetPos(bs, acn_data_end);
-    end if;
+    end if;<\n>
+<endif>
 end;
 >>
 
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits) ::= <<
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits, soNoCheckNote) ::= <<
 declare
     acn_nCount : Integer;
 begin
@@ -1652,37 +1736,51 @@ begin
 end;
 >>
 
-octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt) ::= <<
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
     acn_nCount : adaasn1rtl.Asn1UInt;
 begin
     <sBody>
+<if(soNoCheckNote)>
+    <soNoCheckNote><if(soFixedOctets)><\n>    --  no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)<else><\n>    --  OCTET STRING contents occupy whole octets: write zero padding up to a<\n>    --  whole number of octets from the region start (as legacy writes it, also<\n>    --  off a byte boundary), so the decoder resumes right after it<\n>    if (bs.Current_Bit_Pos - acn_data_start.Bit_Pos) mod 8 /= 0 then<\n>        adaasn1rtl.encoding.BitStream_AppendPartialByte(bs, 0, 8 - (bs.Current_Bit_Pos - acn_data_start.Bit_Pos) mod 8, False); -- COVERAGE_IGNORE<\n>    end if;<endif>
+    acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
+    <sPatchFuncName>(<sValue>, bs, <sDetParamName><if(soNBits)>, <soNBits><endif>, result);<if(bCannotFail)><\n>    -- cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value)<\n>    pragma Assume (result.Success);<else><\n>    if not result.Success then<\n>        result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE<\n>        return; -- COVERAGE_IGNORE<\n>    end if;<endif><\n>
+<else>
     if result.Success then<if(soFixedOctets)><\n>        --  no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)<else><\n>        --  OCTET STRING contents occupy whole octets: write zero padding up to a<\n>        --  whole number of octets from the region start (as legacy writes it, also<\n>        --  off a byte boundary), so the decoder resumes right after it<\n>        if (bs.Current_Bit_Pos - acn_data_start.Bit_Pos) mod 8 /= 0 then<\n>            adaasn1rtl.encoding.BitStream_AppendPartialByte(bs, 0, 8 - (bs.Current_Bit_Pos - acn_data_start.Bit_Pos) mod 8, False); -- COVERAGE_IGNORE<\n>        end if;<endif>
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
         <sPatchFuncName>(<sValue>, bs, <sDetParamName><if(soNBits)>, <soNBits><endif>, result);<if(bCannotFail)><\n>        -- cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value)<\n>        pragma Assume (result.Success);<else><\n>        if not result.Success then<\n>            result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE<\n>            return; -- COVERAGE_IGNORE<\n>        end if;<endif>
-    end if;
+    end if;<\n>
+<endif>
 end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
 >>
 
-octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt) ::= <<
-<octet_string_containing_deferred_region_decode(sBody=sBody, sDetParamName=sDetParamName, sErrCode=sErrCode, bDeducedContent=bDeducedContent, soCovExempt=soCovExempt)>
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
+<octet_string_containing_deferred_region_decode(sBody=sBody, sDetParamName=sDetParamName, sErrCode=sErrCode, bDeducedContent=bDeducedContent, soCovExempt=soCovExempt, nMaxRegion=nMaxRegion)>
 >>
 
-bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt) ::= <<
+bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
     acn_nCount : adaasn1rtl.Asn1UInt;
 begin
     <sFuncName>_aux(<p>, bs, result);
+<if(soNoCheckNote)>
+    <soNoCheckNote>
+    acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
+    <sPatchFuncName>(<sValue>, bs, <sDetParamName><if(soNBits)>, <soNBits><endif>, result);<if(bCannotFail)><\n>    -- cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value)<\n>    pragma Assume (result.Success);<else><\n>    if not result.Success then<\n>        result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE<\n>        return; -- COVERAGE_IGNORE<\n>    end if;<endif><\n>
+<else>
     if result.Success then
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
         <sPatchFuncName>(<sValue>, bs, <sDetParamName><if(soNBits)>, <soNBits><endif>, result);<if(bCannotFail)><\n>        -- cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value)<\n>        pragma Assume (result.Success);<else><\n>        if not result.Success then<\n>            result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE<\n>            return; -- COVERAGE_IGNORE<\n>        end if;<endif>
-    end if;
+    end if;<\n>
+<endif>
 end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
 >>
 
@@ -1690,8 +1788,10 @@ end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
    the rest of the stream before it is converted (q/issues.md Issue 64: Natural (<det>.Value) of a huge value raised
    Constraint_Error, and with -gnatp set the stream position to a value taken from the stream); the contents must not
    read past the region (as octet_string_containing_deferred_region_decode). */
-bit_string_containing_deferred_region_decode(sBody, sDetParamName, sErrCode, soCovExempt) /*nogen*/ ::= <<
+bit_string_containing_deferred_region_decode(sBody, sDetParamName, sErrCode, soCovExempt, nMaxRegion) /*nogen*/ ::= <<
+--  the region holds at most the largest encoding of its contents (<nMaxRegion> bits) and fits the stream
 if bs.Current_Bit_Pos \<= bs.Size_In_Bytes * 8 and then
+   <sDetParamName>.Value \<= <nMaxRegion> and then
    <sDetParamName>.Value \<= adaasn1rtl.Asn1UInt(bs.Size_In_Bytes * 8 - bs.Current_Bit_Pos)
 then
     declare --COVERAGE_IGNORE
@@ -1713,8 +1813,8 @@ else
 end if;
 >>
 
-bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt) ::= <<
-<bit_string_containing_deferred_region_decode(sBody={<sFuncName>_aux(<p>, bs, result);}, sDetParamName=sDetParamName, sErrCode=sErrCode, soCovExempt=soCovExempt)>
+bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
+<bit_string_containing_deferred_region_decode(sBody={<sFuncName>_aux(<p>, bs, result);}, sDetParamName=sDetParamName, sErrCode=sErrCode, soCovExempt=soCovExempt, nMaxRegion=nMaxRegion)>
 >>
 
 bit_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
@@ -1725,7 +1825,7 @@ bit_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
 <sFuncName>_aux(<p>, bs, result);
 >>
 
-bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
+bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, soNoCheckNote) ::= <<
 declare
     acn_len_pos : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_start : adaasn1rtl.encoding.acn.AcnBitStreamPos;
@@ -1735,17 +1835,26 @@ begin
     adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, adaasn1rtl.Asn1Int(<nMinSize>), adaasn1rtl.Asn1Int(<nMinSize>), <nBits>);
     acn_data_start := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     <sFuncName>_aux(<p>, bs, result);
+<if(soNoCheckNote)>
+    <soNoCheckNote>
+    acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
+    adaasn1rtl.encoding.acn.Acn_BitStream_SetPos(bs, acn_len_pos);
+    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, adaasn1rtl.Asn1Int(acn_nCount), adaasn1rtl.Asn1Int(<nMinSize>), <nBits>);
+    adaasn1rtl.encoding.acn.Acn_BitStream_SetPos(bs, acn_data_end);<\n>
+<else>
     if result.Success then
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
         adaasn1rtl.encoding.acn.Acn_BitStream_SetPos(bs, acn_len_pos);
         adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, adaasn1rtl.Asn1Int(acn_nCount), adaasn1rtl.Asn1Int(<nMinSize>), <nBits>);
         adaasn1rtl.encoding.acn.Acn_BitStream_SetPos(bs, acn_data_end);
-    end if;
+    end if;<\n>
+<endif>
 end;
 >>
 
-bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
+bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, soNoCheckNote) ::= <<
 declare
     acn_nCount : Integer;
     acn_expected_end : Natural;
@@ -1755,28 +1864,39 @@ begin
     if result.Success then
         acn_expected_end := bs.Current_Bit_Pos + acn_nCount;
         <sFuncName>_aux(<p>, bs, result);
+        --  the contents must not have read past their region
+        if result.Success and then bs.Current_Bit_Pos > acn_expected_end then
+            result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+        end if;
         bs.Current_Bit_Pos := acn_expected_end;
     end if;
 end;
 >>
 
-bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt) ::= <<
+bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 declare
     acn_data_start : constant adaasn1rtl.encoding.acn.AcnBitStreamPos := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
     acn_data_end : adaasn1rtl.encoding.acn.AcnBitStreamPos;
     acn_nCount : adaasn1rtl.Asn1UInt;
 begin
     <sBody>
+<if(soNoCheckNote)>
+    <soNoCheckNote>
+    acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
+    acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
+    <sPatchFuncName>(<sValue>, bs, <sDetParamName><if(soNBits)>, <soNBits><endif>, result);<if(bCannotFail)><\n>    -- cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value)<\n>    pragma Assume (result.Success);<else><\n>    if not result.Success then<\n>        result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE<\n>        return; -- COVERAGE_IGNORE<\n>    end if;<endif><\n>
+<else>
     if result.Success then
         acn_data_end := adaasn1rtl.encoding.acn.Acn_BitStream_GetPos(bs);
         acn_nCount := adaasn1rtl.encoding.acn.Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
         <sPatchFuncName>(<sValue>, bs, <sDetParamName><if(soNBits)>, <soNBits><endif>, result);<if(bCannotFail)><\n>        -- cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value)<\n>        pragma Assume (result.Success);<else><\n>        if not result.Success then<\n>            result.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE<\n>            return; -- COVERAGE_IGNORE<\n>        end if;<endif>
-    end if;
+    end if;<\n>
+<endif>
 end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a block with a return)
 >>
 
-bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt) ::= <<
-<bit_string_containing_deferred_region_decode(sBody=sBody, sDetParamName=sDetParamName, sErrCode=sErrCode, soCovExempt=soCovExempt)>
+bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
+<bit_string_containing_deferred_region_decode(sBody=sBody, sDetParamName=sDetParamName, sErrCode=sErrCode, soCovExempt=soCovExempt, nMaxRegion=nMaxRegion)>
 >>
 
 bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nReqBits, sExtField, sErrCode) ::= <<
@@ -1797,6 +1917,10 @@ begin
 			--  the contents end with the region ('size deduced' contents read up to End_Bit_Pos)
 			tmpBs.End_Bit_Pos := Integer(<sExtField>);
 			<sFuncName>_aux(<p>, tmpBs, result);
+			--  the contents must not have read past their region
+			if result.Success and then tmpBs.Current_Bit_Pos > Integer(<sExtField>) then
+				result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+			end if;
 		end if;
 	end if;
 
@@ -1990,7 +2114,7 @@ end if;
 >>
 
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent, soNoCheckNote) ::= <<
 --open new scope to declare some variables
 declare --COVERAGE_IGNORE
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForAcnEncoding>);
@@ -1998,6 +2122,11 @@ declare --COVERAGE_IGNORE
 begin
 	--encode value to a temporary bit stream
 	<sFuncName>_aux(<p>, tmpBs, result);
+<if(soNoCheckNote)>
+	<soNoCheckNote>
+	data_length := adaasn1rtl.encoding.BitStream_current_length_in_bytes(tmpBs);<if(bFixedSize)><else><\n>	adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, Asn1Int (data_length), Asn1Int (<nMinSize>), <nBits>);<endif>
+	adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length (bs, tmpBs.Buffer, data_length);<\n>
+<else>
 	if result.success then
 		data_length := adaasn1rtl.encoding.BitStream_current_length_in_bytes(tmpBs);
 		<if(bFixedSize)>
@@ -2008,11 +2137,12 @@ begin
         adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length (bs, tmpBs.Buffer, data_length);
 
 		<endif>
-	end if;
+	end if;<\n>
+<endif>
 end;
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent, soNoCheckNote) ::= <<
 --open new scope to declare some variables
 <if(bFixedSize)>
 declare --COVERAGE_IGNORE
@@ -2078,7 +2208,7 @@ end;
 >>
 
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, soNoCheckNote) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForAcnEncoding>);
@@ -2086,6 +2216,11 @@ declare
 begin
 	--encode value to a temporary bit stream
 	<sFuncName>_aux(<p>, tmpBs, result);
+<if(soNoCheckNote)>
+	<soNoCheckNote>
+	data_length := tmpBs.Current_Bit_Pos;<if(bFixedSize)><else><\n>	adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, Asn1Int (data_length), Asn1Int (<nMinSize>), <nBits>);<endif>
+	adaasn1rtl.encoding.BitStream_AppendBits (bs, tmpBs.Buffer, data_length);<\n>
+<else>
 	if result.success then
 		data_length := tmpBs.Current_Bit_Pos;
 		<if(bFixedSize)>
@@ -2096,11 +2231,12 @@ begin
         adaasn1rtl.encoding.BitStream_AppendBits (bs, tmpBs.Buffer, data_length);
 
 		<endif>
-	end if;
+	end if;<\n>
+<endif>
 end;
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, soNoCheckNote) ::= <<
 --open new scope to declare some variables
 declare
     tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForAcnEncoding>);
@@ -2124,6 +2260,10 @@ begin
         adaasn1rtl.encoding.BitStream_ReadBits (bs, tmpBs.Buffer, data_length, result.success);
 	    if result.success then
 		    <sFuncName>_aux(<p>, tmpBs, result);
+		    --  the contents must not have read past their region
+		    if result.Success and then tmpBs.Current_Bit_Pos > data_length then
+		        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCode>);  --COVERAGE_IGNORE (corrupted input only)
+		    end if;
 	    else
 		    result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
 	    end if;
@@ -2472,6 +2612,16 @@ begin
 end;
 >>
 
+/* q/issues.md Issue 124: the patch of a consumer inside the elements of a SEQUENCE OF, once per element (every element
+   is encoded with the value of the determinant, so all of them must agree) */
+acn_deferred_det_patch_loop(sIdx, sLength, sBody) ::= <<
+<sIdx> := 1;
+while <sIdx> \<= <sLength> loop
+    <sBody>
+    <sIdx> := <sIdx> + 1;
+end loop;
+>>
+
 acn_deferred_det_optional_producer_check(sParent, sAcc, sProducer, sConsumer, sErrCode) ::= <<
 if <sParent>.Exist.<sProducer> = 0<if(sConsumer)> and then <sParent>.Exist.<sConsumer> = 1<endif> then
     result := (Success => False, ErrorCode => <sErrCode>); -- COVERAGE_IGNORE
@@ -2492,6 +2642,24 @@ acn_deferred_det_type_name() ::= "adaasn1rtl.encoding.acn.AcnInsertedFieldRef"
    components auto-zero without an explicit aggregate, but the LocalVariable template
    always emits ":= <init>;", so we supply an aggregate that picks up every default). */
 acn_deferred_det_init_expr() ::= "(others =\> \<\>)"
+
+/* q/issues.md Issue 107: whether the field of an AcnInsertedFieldRef is in the stream (InitDet sets it when encoding,
+   the decoder where it reads the field); a PatchDet of a ref whose field is not in the stream writes nothing */
+acn_deferred_det_in_stream_value(sDetName) ::= "<sDetName>.In_Stream"
+
+acn_deferred_det_in_stream_ptr(sDetName) ::= "<sDetName>.In_Stream"
+
+acn_deferred_det_mark_in_stream(sInStream, sField) ::= <<
+<sInStream> := True;  --  <sField> is in the stream
+>>
+
+/* Issue 107: a ref declared before a SEQUENCE OF loop starts every element unset (its field's holder may be absent) */
+acn_deferred_det_reset(sDetName, sField, sHolders) ::= <<
+--  <sField> is in <sHolders>: not in the stream unless this element holds it
+<sDetName>.In_Stream := False;
+<sDetName>.Is_Set := False;
+<sDetName>.Value := 0;
+>>
 
 
 /* ------------------------------------------------------------------------- */
@@ -2631,7 +2799,7 @@ with
       and then bs.Size_In_Bytes \< Positive'Last / 8
       and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING \<= bs.Size_In_Bytes * 8,
        Post =>
-         result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING
+         result.Success and bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Old and bs.Current_Bit_Pos \<= bs.Current_Bit_Pos'Old + <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING
 >>
 
 

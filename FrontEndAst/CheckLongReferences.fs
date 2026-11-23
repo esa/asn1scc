@@ -661,6 +661,192 @@ let checkLegacySequenceOfArguments (deps:AcnInsertedFieldDependencies) =
             | AcnDepPresenceStr _
             | AcnDepChoiceDeterminant _ -> ())
 
+/// What a dependency does with its determinant, for the SEQUENCE OF consumer checks (q/issues.md Issues 122 / 124).
+type private LoopDependencyKind =
+    /// The value of every consumer is the same constant (SIZE min = max): no element has to be read.
+    | ConstantConsumer
+    /// A size (also of a CONTAINING) / presence / CHOICE determinant consumer: the encoder takes the value from it.
+    | ValueConsumer
+    /// A CONTAINING's measured length: --acn-v2 encodes every element's region in a function of its own.
+    | ContainingConsumer
+    /// The determinant is passed on as an ACN argument.
+    | ArgumentLink of AcnParameter
+
+let private loopDependencyKind (d: AcnDependency) =
+    match d.dependencyKind with
+    | AcnDepSizeDeterminant (minSize, maxSize, _) ->
+        match minSize.acn = maxSize.acn with
+        | true  -> ConstantConsumer
+        | false -> ValueConsumer
+    | AcnDepSizeDeterminant_bit_oct_str_contain _ -> ContainingConsumer
+    | AcnDepRefTypeArgument prm -> ArgumentLink prm
+    | AcnDepIA5StringSizeDeterminant _
+    | AcnDepPresenceBool
+    | AcnDepPresence _
+    | AcnDepPresenceStr _
+    | AcnDepChoiceDeterminant _ -> ValueConsumer
+
+/// The type at a path (MD, TA, then component / alternative / element nodes; references followed), None when the path
+/// leaves the type.
+let private typeAtPath (r: AstRoot) (nodes: ScopeNode list) : Asn1Type option =
+    let rec walk (t: Asn1Type) (nodes: ScopeNode list) =
+        match nodes with
+        | [] -> Some t
+        | n :: rest ->
+            let child =
+                match n, t.ActualType.Kind with
+                | SEQ_CHILD (name, _), Sequence s ->
+                    s.children |> List.tryPick (fun c -> match c with Asn1Child c when c.Name.Value = name -> Some c.Type | Asn1Child _ | AcnChild _ -> None)
+                | CH_CHILD (name, _, _), Choice ch -> ch.children |> List.tryFind (fun c -> c.Name.Value = name) |> Option.map (fun c -> c.Type)
+                | SQF, SequenceOf sqf -> Some sqf.child
+                | _ -> None
+            child |> Option.bind (fun c -> walk c rest)
+    match nodes with
+    | (MD md) :: (TA tas) :: rest -> r.typeAssignmentsMap.TryFind (md, tas) |> Option.bind (fun ts -> walk ts.Type rest)
+    | _ -> None
+
+/// The name of the type a parameter belongs to: the type assignment a reference site refers to (the dependencies are
+/// built per reference site, so a parameter's id is the site's path + the parameter).
+let private parameterTypeName (r: AstRoot) (prm: AcnParameter) =
+    let sitePath = prm.id.ToScopeNodeList |> List.take (prm.id.ToScopeNodeList.Length - 1)
+    match typeAtPath r sitePath |> Option.map (fun t -> t.Kind) with
+    | Some (ReferenceType rf) -> rf.tasName.Value
+    | Some _ | None -> (List.last sitePath).StrValue
+
+/// A dependency whose dependent lies inside the elements of a SEQUENCE OF that does not hold its determinant: one
+/// determinant for every element. The holder of a field is the deepest node its path shares with the dependent's (a
+/// field of an element consumed in the same element is not such a case); the holder of a parameter is its reference
+/// site. Gives the SEQUENCE OF's name (the parameterized type's when the type is the SEQUENCE OF), the dependent's
+/// path below the holder and the holder's length.
+let private sequenceOfBetween (r: AstRoot) (d: AcnDependency) : (string * ScopeNode list * int) option =
+    let depPath = d.asn1Type.ToScopeNodeList
+    let holderLength =
+        match d.determinant with
+        | AcnChildDeterminant ac      -> Seq.zip ac.id.ToScopeNodeList depPath |> Seq.takeWhile (fun (a, b) -> a = b) |> Seq.length
+        | AcnParameterDeterminant prm -> prm.id.ToScopeNodeList.Length - 1
+    let below = depPath |> List.skip (min holderLength depPath.Length)
+    match below |> List.tryFindIndex (fun n -> match n with SQF -> true | _ -> false) with
+    | None   -> None
+    | Some i ->
+        let seqOf =
+            match i, d.determinant with
+            | 0, AcnParameterDeterminant prm -> parameterTypeName r prm
+            | 0, AcnChildDeterminant _       -> (List.item (holderLength - 1) depPath).StrValue
+            | _, _                           -> (List.item (i - 1) below).StrValue
+        Some (seqOf, below, holderLength)
+
+/// Whether the dependent's path, below its first `fromLength` nodes, passes an OPTIONAL component or a CHOICE
+/// alternative: a check that the update / patch evaluates on that part of the path (getAccessFromScopeNodeList emits one
+/// for every SEQ_CHILD marked optional and every CH_CHILD).
+let private checksBelow (d: AcnDependency) (fromLength: int) =
+    d.asn1Type.ToScopeNodeList |> List.skip fromLength |> List.exists (fun n ->
+        match n with
+        | SEQ_CHILD (_, isOptional) -> isOptional
+        | CH_CHILD _                -> true
+        | SQF | MD _ | TA _ | PRM _ | VA _ -> false)
+
+/// loopDependencyKind for a dependency inside the elements of a SEQUENCE OF (q/issues.md Issue 124, Codex i124a F3): a
+/// constant consumer whose path below the first SEQUENCE OF passes an OPTIONAL component or a CHOICE alternative reads
+/// the element (its exist flag / kind) to know whether it is encoded, so it is a value consumer there; checks above the
+/// SEQUENCE OF need no element and keep it constant.
+let private loopKind (r: AstRoot) (d: AcnDependency) =
+    match loopDependencyKind d, sequenceOfBetween r d with
+    | ConstantConsumer, Some (_, below, holderLength) ->
+        let firstSqf = below |> List.findIndex (fun n -> match n with SQF -> true | SEQ_CHILD _ | CH_CHILD _ | MD _ | TA _ | PRM _ | VA _ -> false)
+        match checksBelow d (holderLength + firstSqf) with
+        | true  -> ValueConsumer
+        | false -> ConstantConsumer
+    | ConstantConsumer, None
+    | (ValueConsumer | ContainingConsumer | ArgumentLink _), _ -> loopDependencyKind d
+
+let private pathText (nodes: ScopeNode list) = nodes |> List.map (fun n -> n.StrValue) |> String.concat "."
+
+/// Whether a type assignment (ReferenceType) lies on the dependent's path below the determinant's holder: --acn-v2
+/// closure conversion makes every such reference a function of its own that receives the field as a parameter
+/// (AcnClosureConversion.transformType), and the consumer inside it a consumer of that parameter, which the
+/// specialised encoder patches from every element (DAstACNDeferred patchLoopBlock). Unknown paths count as references.
+let private referenceBelowHolder (r: AstRoot) (d: AcnDependency) (holderLength: int) : bool =
+    let depPath = d.asn1Type.ToScopeNodeList
+    [holderLength + 1 .. depPath.Length] |> List.exists (fun n ->
+        match typeAtPath r (List.take n depPath) |> Option.map (fun t -> t.Kind) with
+        | None                    -> true
+        | Some (ReferenceType _)  -> true
+        | Some _                  -> false)
+
+/// A field consumed inside the elements of a SEQUENCE OF by a consumer that no type assignment separates from it
+/// (`items SEQUENCE OF OCTET STRING [size n]`, a present-when / CHOICE determinant in an inline element): --acn-v2
+/// encodes the field in the same function as the elements and has no per-element patch for it yet (cycle i124b);
+/// constant and CONTAINING consumers excepted (handled in both shapes). `exemptReferences` = false after closure
+/// conversion, where such a consumer can no longer be inside a reference.
+let private sameFunctionLoopConsumer (r: AstRoot) (exemptReferences: bool) (d: AcnDependency) : (AcnChild * string * ScopeNode list) option =
+    match d.determinant, loopKind r d, sequenceOfBetween r d with
+    | AcnChildDeterminant ac, ValueConsumer, Some (seqOf, below, holderLength) ->
+        match exemptReferences && referenceBelowHolder r d holderLength with
+        | true  -> None
+        | false -> Some (ac, seqOf, below)
+    | AcnChildDeterminant _, (ConstantConsumer | ContainingConsumer | ArgumentLink _), _
+    | AcnChildDeterminant _, ValueConsumer, None
+    | AcnParameterDeterminant _, _, _ -> None
+
+let private sameFunctionLoopConsumerMessage (ac: AcnChild) (seqOf: string) (below: ScopeNode list) (bAcnV2: bool) =
+    match bAcnV2 with
+    | true ->
+        sprintf "ACN field '%s' is consumed inside the elements of SEQUENCE OF '%s' (by '%s') with no type assignment between them. This is not supported yet: make the consumer, or a component that contains it inside the elements, a reference to a type assignment." ac.Name.Value seqOf (pathText below)
+    | false ->
+        sprintf "ACN field '%s' is consumed inside the elements of SEQUENCE OF '%s' (by '%s'). Legacy ACN does not support this; --acn-v2 supports it when the consumer, or a component that contains it inside the elements, is a reference to a type assignment." ac.Name.Value seqOf (pathText below)
+
+/// --acn-v2 (q/issues.md Issue 124, cycle i124a): reject a field consumed inside the elements of a SEQUENCE OF of the
+/// same encoding function (sameFunctionLoopConsumer). Run before closure conversion with references exempt, and after
+/// it without (the dependencies it left to the encoding function of the field; the same message).
+let checkSameFunctionLoopConsumers (r: AstRoot) (deps: AcnInsertedFieldDependencies) (exemptReferences: bool) =
+    deps.acnDependencies |> List.iter (fun d ->
+        match sameFunctionLoopConsumer r exemptReferences d with
+        | None -> ()
+        | Some (ac, seqOf, below) -> raise (SemanticError (ac.Name.Location, sameFunctionLoopConsumerMessage ac seqOf below true)))
+
+/// Legacy ACN only (without --acn-v2), q/issues.md Issues 122 / 124 (cycle i124a): a determinant consumed inside the
+/// elements of a SEQUENCE OF that does not hold it would have to be written from every element; the legacy update
+/// reads one element, before the loop, with an index that is not set (or the index of an outer SEQUENCE OF on the
+/// inner array, Issue 122). Rejected: a consumer, a CONTAINING length, an argument passed to the elements; a field or
+/// a parameter (the consumer inside a parameterized type). Constant consumers (SIZE min = max) are right and stay; an
+/// argument whose consumers are all constant too. Runs after checkLegacySequenceOfArguments (its message first).
+let checkLegacySequenceOfConsumers (r: AstRoot) (deps: AcnInsertedFieldDependencies) =
+    // whether a parameter reaches a consumer that is not a constant, or a constant one behind an OPTIONAL component /
+    // CHOICE alternative of the element the argument is passed to (F3; R2-1: the check may also lie on the path of an
+    // argument link, between the SEQUENCE OF and the reference site or between two sites of a chain, behindCheck)
+    let rec readsValue (seen: Set<ReferenceToType>) (behindCheck: bool) (prm: AcnParameter) =
+        match seen.Contains prm.id with
+        | true  -> false
+        | false ->
+            deps.acnDependencies |> List.exists (fun d ->
+                d.determinant.id = prm.id &&
+                (let behindCheck = behindCheck || checksBelow d (prm.id.ToScopeNodeList.Length - 1)
+                 match loopDependencyKind d with
+                 | ConstantConsumer          -> behindCheck
+                 | ValueConsumer
+                 | ContainingConsumer        -> true
+                 | ArgumentLink calleePrm    -> readsValue (seen.Add prm.id) behindCheck calleePrm))
+    let determinantText (d: AcnDependency) =
+        match d.determinant with
+        | AcnChildDeterminant ac      -> sprintf "ACN field '%s'" ac.Name.Value, ac.Name.Location
+        | AcnParameterDeterminant prm -> sprintf "ACN parameter '%s' of type '%s'" prm.name (parameterTypeName r prm), prm.loc
+    deps.acnDependencies |> List.iter (fun d ->
+        match sequenceOfBetween r d, loopKind r d with
+        | None, _ | Some _, ConstantConsumer -> ()
+        | Some (seqOf, below, holderLength), ArgumentLink prm ->
+            let firstSqf = below |> List.findIndex (fun n -> match n with SQF -> true | SEQ_CHILD _ | CH_CHILD _ | MD _ | TA _ | PRM _ | VA _ -> false)
+            match readsValue Set.empty (checksBelow d (holderLength + firstSqf)) prm with
+            | false -> ()
+            | true  ->
+                let what, loc = determinantText d
+                raise (SemanticError (loc, sprintf "%s is passed as an argument to the elements of SEQUENCE OF '%s' (to '%s'). This is supported only with --acn-v2." what seqOf (pathText below)))
+        | Some (seqOf, below, _), (ValueConsumer | ContainingConsumer) ->
+            match sameFunctionLoopConsumer r true d with
+            | Some (ac, seqOf, below) -> raise (SemanticError (ac.Name.Location, sameFunctionLoopConsumerMessage ac seqOf below false))
+            | None ->
+                let what, loc = determinantText d
+                raise (SemanticError (loc, sprintf "%s is consumed inside the elements of SEQUENCE OF '%s' (by '%s'). This is supported only with --acn-v2." what seqOf (pathText below))))
+
 /// A size determinant passed as an ACN argument (`Inner <INTEGER:len> [] { p [size len] }`, `Outer [] { len INTEGER
 /// [size 8], w <len> [] }`) must hold the sizes of the dependent like a size field of the same SEQUENCE
 /// (`checkIntHasEnoughSpace` in sizeReference): every ACN field that reaches the parameter through RefTypeArgument links

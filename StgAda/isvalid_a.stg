@@ -356,6 +356,13 @@ JoinItemsNoWrite(sPart, sNestedPart, bComment) ::= <<
 <sNestedPart>
 >>
 
+/* Coverage step 14q (DAstUtilFunctions.encodeNoCheckNote): a template whose part cannot fail does not check result after
+   it; the note says why and states the result where the part writes it (the text of JoinItemsCannotFail /
+   JoinItemsNoWrite). */
+EncodeNoCheckNote(soCallee, bAssumed, bWritesResult) ::= <<
+<if(bWritesResult)><if(bAssumed)><if(soCallee)>-- no check: <soCallee> cannot fail (compiler analysis of the specialised body, no contract)<else>-- no check: the part above cannot fail (compiler analysis of this specialised body, no contract)<endif><\n>pragma Assume (result.Success);<else><if(soCallee)>-- no check: <soCallee> cannot fail (Post => result.Success)<else>-- no check: the part above cannot fail<endif><\n>pragma Assert (result.Success);<endif><else>-- no check of result after a part that does not write it<endif>
+>>
+
 
 
 

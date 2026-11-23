@@ -570,6 +570,49 @@ class Encoder(Codec, ABC):
         """
         return self.encode_integer(value, min_val=min_val, max_val=max_val)
 
+    def encode_general_length(self, data: bytearray, n_count: int, n_unit_bits: int) -> EncodeResult:
+        """
+        X.691 10.9.3.8 general length of n_count units (n_unit_bits: 8 for octets, 1 for bits) in parts of 64K, 48K,
+        32K or 16K units while 16K or more remain, then the length of the last part and its units.
+
+        Matches C: BitStream_EncodeGeneralLength
+        """
+        n_offset = 0
+        n_remaining = n_count
+        while n_remaining >= 0x4000:
+            n_blocks = 4 if n_remaining >= 0x10000 else n_remaining // 0x4000
+            n_part = n_blocks * 0x4000
+            res = self.encode_constrained_whole_number(0xC0 + n_blocks, 0, 0xFF)
+            if not res:
+                return res
+            res = self.append_bits(data[(n_offset * n_unit_bits) // 8:], n_part * n_unit_bits)
+            if not res:
+                return res
+            n_offset += n_part
+            n_remaining -= n_part
+        if n_remaining <= 0x7F:
+            res = self.encode_constrained_whole_number(n_remaining, 0, 0xFF)
+        else:
+            res = self.encode_constrained_whole_number(0x8000 + n_remaining, 0, 0xFFFF)
+        if not res:
+            return res
+        return self.append_bits(data[(n_offset * n_unit_bits) // 8:], n_remaining * n_unit_bits)
+
+    def encode_containing(self, data: bytearray, n_bits: int, n_max_units: int, n_unit_bits: int) -> EncodeResult:
+        """
+        OCTET (n_unit_bits = 8) / BIT (1) STRING (CONTAINING X), X.691 10.1.3: the n_bits of the encoding of X padded
+        to whole octets, an empty encoding as one zero octet; general length in octets / bits.
+
+        Matches C: BitStream_EncodeContainingOctets / BitStream_EncodeContainingBits
+        """
+        n_octets = (n_bits + 7) // 8 if n_bits > 0 else 1
+        n_count = n_octets * 8 // n_unit_bits
+        if n_bits < 0 or n_count > n_max_units:
+            return EncodeResult(success=False, error_code=ERROR_INVALID_VALUE,
+                                error_message=f"CONTAINING: {n_count} units above the maximum {n_max_units}")
+        padded = bytearray(data[:n_octets]) + bytearray(max(0, n_octets - len(data)))
+        return self.encode_general_length(padded, n_count, n_unit_bits)
+
     def encode_constrained_whole_number(self, value: int, min_val: int, max_val: int) -> EncodeResult:
         """
         Encode constrained whole number (signed).

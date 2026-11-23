@@ -29,6 +29,30 @@ let deferredDetRefName (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (identity: R
     AcnExternalField.deferredDetRefName r lm identity
 
 
+/// Which checks of the consumer's path (exist of an OPTIONAL component, kind of a CHOICE alternative) the PatchDet of a
+/// fixed-size size consumer (SIZE min = max: the value is a constant) runs under. Never none (q/issues.md Issue 125):
+/// an absent consumer must not write its constant, which rejected a valid value when another consumer was present with
+/// another size (203) and replaced the field's default (the fallback, = legacy) when it was alone. Inside SEQUENCE OF
+/// elements the constant is patched once only when nothing below the SEQUENCE OF can make the consumer absent
+/// (appendPatchDetCalls placementOf); an empty list then keeps the constant.
+type FixedSizePatchGuard =
+    /// Patched once, not per element: under the checks of its path down to the first SEQUENCE OF on it (the whole path
+    /// when there is none). Every element of that SEQUENCE OF needs the constant, and an empty list keeps it too, as
+    /// legacy does, which updates the constant under the checks above the SEQUENCE OF (cycle i108, Fable C3: the same
+    /// bytes in both modes).
+    | FixedSizeAboveSequenceOf
+    /// Patched per element (LoopConsumer, Issue 124): under the checks of its whole path, which patchLoopBlock places
+    /// around and inside the loops.
+    | FixedSizeWholePath
+
+/// How many formal parameters of one specialised function stand for an ACN field (AcnExternalField.paramIdentity).
+type private FieldBinding =
+    /// One formal parameter: the per-consumer patches of Issue 121.
+    | SingleFormal
+    /// Two or more formal parameters bound to the same field (`pl <n, n>`): the patches of before Issue 121 (one per
+    /// parameter, per-parameter first-patch rule); the fix is one ref per field, q/issues.md Issue 126.
+    | AliasedField
+
 /// Compute the value expression for a PatchDet call, based on the
 /// dependency kind.  Returns (preBlock option, valueExpr) where preBlock
 /// is an optional block of code to prepend (e.g., a switch/case that
@@ -57,6 +81,7 @@ let computePatchDetValueExpr
     (boundaryPath: ScopeNode list)
     (specP: CodegenScope)
     (bAfterCheckedBody: bool)
+    (fixedSizeGuard: FixedSizePatchGuard)
     : (string option * string * string list) =
     // backend names of the children (fields renamed by -fp AUTO)
     let backendType = withBackendChildNames r lm dep.asn1Type
@@ -81,7 +106,13 @@ let computePatchDetValueExpr
     match dep.dependencyKind with
     | Asn1AcnAst.AcnDepSizeDeterminant (minSize, maxSize, _) ->
         if minSize.acn = maxSize.acn then
-            (None, minSize.acn.ToString(), [])
+            match fixedSizeGuard with
+            | FixedSizeAboveSequenceOf ->
+                let _, checks = relAccess (relParts |> List.takeWhile (function SQF -> false | _ -> true)) false
+                (None, minSize.acn.ToString(), checks)
+            | FixedSizeWholePath ->
+                let _, checks = relAccess relParts false
+                (None, minSize.acn.ToString(), checks)
         else
             let (fieldExpr, acc), checks = relAccess relParts false
             (None, lm.acn.getSizeableSize fieldExpr acc false, checks)
@@ -157,7 +188,78 @@ let guardPatchBlock (lm: LanguageMacros) (checks: string list) (preBlock: string
         | Some pre -> lm.acn.acn_deferred_det_preblock_wrap pre patchCall
     match checks with
     | []    -> block
-    | _     -> lm.acn.checkAccessPath checks block "" ""
+    | _     -> lm.acn.checkAccessPath checks block "" "" false
+
+/// Where the PatchDet of a consumer of a specialised encoder's ACN parameter runs (q/issues.md Issue 124).
+type private ConsumerPlacement =
+    /// Once, after the body, under the checks of the consumer's path.
+    | DirectConsumer
+    /// Below one or more SEQUENCE OFs of the specialised type: once per element (every element is encoded with the
+    /// value the field holds, so all of them must agree: the patches are checked), in a loop over the elements of each
+    /// SEQUENCE OF, each loop under the checks of the path above it. An empty list patches nothing (the fallback of
+    /// the field's owner writes the default; no element reads the field).
+    | LoopConsumer
+
+/// q/issues.md Issue 124: the patch block of a consumer below SEQUENCE OFs of the specialised type (LoopConsumer).
+/// `checks` are the checks of the consumer's whole path (computePatchDetValueExpr). The checks of a path prefix are a
+/// list prefix of the checks of the whole path (getAccessFromScopeNodeList emits the outer nodes first), so each loop
+/// goes under the checks of the nodes above its SEQUENCE OF: the bound (C nCount / Ada Length) of a SEQUENCE OF in an
+/// absent OPTIONAL component or an unselected CHOICE alternative must not be read (Ada: discriminant check). The index
+/// of the n-th SEQUENCE OF on the path is i<n>, the name getAccessFromScopeNodeList gives it in the value expression
+/// and the body's own loops declare (returned for the declarations, in case a SEQUENCE OF of the path has no loop in
+/// the body). A SEQUENCE OF whose typedef is fixed-size has no length field: its bound is the size.
+let private patchLoopBlock
+        (r: Asn1AcnAst.AstRoot)
+        (lm: LanguageMacros)
+        (rootType: Asn1AcnAst.Asn1Type)
+        (dep: Asn1AcnAst.AcnDependency)
+        (boundaryPath: ScopeNode list)
+        (specP: CodegenScope)
+        (checks: string list)
+        (preBlock: string option)
+        (patchCall: string) : string * LocalVariable list =
+    let backendParts = (withBackendChildNames r lm dep.asn1Type).ToScopeNodeList |> List.skip boundaryPath.Length
+    let asn1Parts = dep.asn1Type.ToScopeNodeList |> List.skip boundaryPath.Length
+    let rec typeAt (t: Asn1AcnAst.Asn1Type) (nodes: ScopeNode list) : Asn1AcnAst.Asn1Type =
+        match nodes with
+        | [] -> t
+        | n :: rest ->
+            match n, t.ActualType.Kind with
+            | SEQ_CHILD (name, _), Asn1AcnAst.Sequence s ->
+                let child = s.children |> List.pick (fun c -> match c with Asn1AcnAst.Asn1Child c when c.Name.Value = name -> Some c.Type | _ -> None)
+                typeAt child rest
+            | CH_CHILD (name, _, _), Asn1AcnAst.Choice ch ->
+                let child = ch.children |> List.find (fun (c: Asn1AcnAst.ChChildInfo) -> c.Name.Value = name)
+                typeAt child.Type rest
+            | SQF, Asn1AcnAst.SequenceOf sqf -> typeAt sqf.child rest
+            | _ -> raise (BugErrorException (sprintf "patchLoopBlock: no type at %A of %s" n dep.asn1Type.AsString))
+    // (level of the index, bound, number of checks of the path above the SEQUENCE OF), outermost first
+    let levels =
+        backendParts |> List.indexed |> List.choose (fun (pos, n) -> match n with SQF -> Some pos | _ -> None)
+        |> List.mapi (fun level pos ->
+            let prefix = List.take pos backendParts
+            let (seqOfExpr, seqOfAcc), prefixChecks =
+                match prefix with
+                | [] -> (specP.accessPath.rootId, lm.lg.getAccess specP.accessPath), []
+                | _  ->
+                    let p, prefixChecks = getAccessFromScopeNodeList (ReferenceToType (MD "" :: TA "" :: prefix)) false lm specP
+                    (p.accessPath.joined lm.lg, lm.lg.getAccess p.accessPath), prefixChecks
+            let seqOfType = (typeAt rootType (List.take pos asn1Parts)).ActualType
+            let bound =
+                match typedefIsFixedSize r seqOfType with
+                | true  -> (typedefSizeableMaxSize r seqOfType).ToString()
+                | false -> lm.acn.getSizeableSize seqOfExpr seqOfAcc false
+            (level + 1, bound, prefixChecks.Length))
+    let checksFrom n = checks |> List.skip (min n checks.Length)
+    let nInnermost = levels |> List.last |> fun (_, _, n) -> n
+    let inner = guardPatchBlock lm (checksFrom nInnermost) preBlock patchCall
+    let outerCounts = 0 :: (levels |> List.map (fun (_, _, n) -> n)) |> List.truncate levels.Length
+    let code =
+        List.foldBack2 (fun (level, bound, nPrefix) nOuter body ->
+            let loop = lm.acn.acn_deferred_det_patch_loop (sprintf "i%d" level) bound body
+            guardPatchBlock lm (checksFrom nOuter |> List.truncate (nPrefix - nOuter)) None loop)
+            levels outerCounts inner
+    code, levels |> List.map (fun (level, _, _) -> SequenceOfIndex (level, None))
 
 /// Follow the RefTypeArgumentDependency chain from a parameter upward
 /// through intermediate boundaries until reaching the original
@@ -691,6 +793,18 @@ let private createDeferredSequenceFunction
                                     // the AST root's arguments, for the integer class of the determinant
                                     // below (r is shadowed by the function body result there)
                                     let astArgs = r.args
+                                    // q/issues.md Issue 107: a dependent that reads this field through a ref while
+                                    // the component holding it may be absent tests the ref's in_stream (AbsentHolder,
+                                    // the same list decides the guards): set it where the field is read
+                                    let markInStream (body: string) =
+                                        match lm.lg.deferredRefTracksStream && (AbsentHolder.fieldsReadThroughRef astRoot deps (fun ft -> (lm.lg.getDeferredDetFunctions ft).IsSome)).Contains ac.id with
+                                        | false -> body
+                                        | true  ->
+                                            let inStream =
+                                                if isOwnParam then lm.acn.acn_deferred_det_in_stream_ptr detVarName
+                                                else lm.acn.acn_deferred_det_in_stream_value detVarName
+                                            let fieldText = (ac.id.AcnAbsPath |> List.skip 2 |> String.concat ".").Replace("#", "elm")
+                                            lm.acn.acn_deferred_det_mark_in_stream inStream fieldText + "\n" + body
                                     match redirectKind with
                                     | "direct_value" ->
                                         let valueTarget =
@@ -703,7 +817,7 @@ let private createDeferredSequenceFunction
                                             let extraLvars =
                                                 if isOwnParam then []
                                                 else [GenericLocalVariable { name = detVarName; varType = lm.acn.acn_deferred_det_type_name(); arrSize = None; isStatic = false; initExp = Some (lm.acn.acn_deferred_det_init_expr()) }]
-                                            Some { r with localVariables = extraLvars @ r.localVariables }
+                                            Some { r with funcBody = markInStream r.funcBody; localVariables = extraLvars @ r.localVariables }
                                         | None -> None
                                     | "direct_str_value" ->
                                         // IA5String: decode directly into det.str_value / det->str_value
@@ -717,7 +831,7 @@ let private createDeferredSequenceFunction
                                             let extraLvars =
                                                 if isOwnParam then []
                                                 else [GenericLocalVariable { name = detVarName; varType = lm.acn.acn_deferred_det_type_name(); arrSize = None; isStatic = false; initExp = Some (lm.acn.acn_deferred_det_init_expr()) }]
-                                            Some { r with localVariables = extraLvars @ r.localVariables }
+                                            Some { r with funcBody = markInStream r.funcBody; localVariables = extraLvars @ r.localVariables }
                                         | None -> None
                                     | _ ->
                                         // Decode to a clean temp variable, then copy to det.value
@@ -734,7 +848,15 @@ let private createDeferredSequenceFunction
                                                 // which both decoders accept.
                                                 BooleanLocalVariable (tmpName, None)
                                             | _ ->
-                                                GenericLocalVariable { name = tmpName; varType = ac.typeDefinitionBodyWithinSeq; arrSize = None; isStatic = false; initExp = None }
+                                                // q/issues.md Issue 106: a dependent may read this local while the component
+                                                // holding the field is absent (its guard makes the read exact): initial value
+                                                // for gnatprove flow (AcnSequence does the same for the other fields; a
+                                                // BOOLEAN read by a present-when is set at the start of the enclosing SEQUENCE)
+                                                let initExp =
+                                                    match lm.lg.decodeFailsWhenHolderAbsent && (AbsentHolder.fieldsReadWhenHolderAbsent astRoot deps).Contains ac.id with
+                                                    | true  -> Some (AcnHelpers.decodeLocalInitExpr lm ac)
+                                                    | false -> None
+                                                GenericLocalVariable { name = tmpName; varType = ac.typeDefinitionBodyWithinSeq; arrSize = None; isStatic = false; initExp = initExp }
                                         let modifiedP = {p with accessPath = AccessPath.valueEmptyPath tmpName}
                                         let result = originalFuncBody innerCodec acnArgs nestingScope modifiedP bsPos
                                         match result with
@@ -792,7 +914,7 @@ let private createDeferredSequenceFunction
                                                 (if isOwnParam then []
                                                  else [GenericLocalVariable { name = detVarName; varType = lm.acn.acn_deferred_det_type_name(); arrSize = None; isStatic = false; initExp = Some (lm.acn.acn_deferred_det_init_expr()) }])
                                             Some { r with
-                                                        funcBody = r.funcBody + "\n" + assignStmt
+                                                        funcBody = markInStream (r.funcBody + "\n" + assignStmt)
                                                         localVariables = extraLvars @ r.localVariables }
                                         | None -> None
                         let dummyNullType = Asn1AcnAst.AcnInsertedType.AcnNullType {
@@ -864,7 +986,7 @@ let private createDeferredSequenceFunction
                                 match lm.lg.getDeferredDetFunctions determinant.Type with
                                 | None -> None
                                 | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
-                                    let preBlock, rawValueExpr, checks = computePatchDetValueExpr r lm deps dep parentPath root true
+                                    let preBlock, rawValueExpr, checks = computePatchDetValueExpr r lm deps dep parentPath root true FixedSizeAboveSequenceOf
                                     let valueExpr = patchDetWireValue r lm (Some determinant) uperMinOffset rawValueExpr
                                     let detName = deferredDetRefName r lm determinant.id
                                     let errCode = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
@@ -921,7 +1043,7 @@ let private createDeferredSequenceFunction
                             | None -> []
                             | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
                                 siblingConsumers acId |> List.map (fun dep root ->
-                                    let preBlock, rawValueExpr, checks = computePatchDetValueExpr r lm deps dep parentPath root true
+                                    let preBlock, rawValueExpr, checks = computePatchDetValueExpr r lm deps dep parentPath root true FixedSizeAboveSequenceOf
                                     let valueExpr = patchDetWireValue r lm (localPatchedField acId) uperMinOffset rawValueExpr
                                     let detName = deferredDetRefName r lm acId
                                     let errCode = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
@@ -975,13 +1097,21 @@ let private createDeferredSequenceFunction
                             | None, Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
                                 let detVarName = deferredDetRefName r lm acId
                                 let defaultVal =
-                                    let value = lm.lg.computeDeferredFallbackValue acType uperMinOffset
-                                    // a field with a mapping-function carries the mapped value of its default (Issue 59)
+                                    // a field with a mapping-function (an INTEGER) carries the mapped value of its default
+                                    // (Issue 59)
                                     let field = localPatchedField acId
                                     match field |> Option.bind (fieldMappingFunction r lm codec), boolPatternWireValues field with
-                                    | Some _, _            -> patchDetWireValue r lm field uperMinOffset value
+                                    | Some _, _            ->
+                                        let fieldDefault =
+                                            match acType with
+                                            | Asn1AcnAst.AcnInsertedType.AcnInteger ai -> acnIntegerDefaultValue ai
+                                            | Asn1AcnAst.AcnInsertedType.AcnBoolean _ | Asn1AcnAst.AcnInsertedType.AcnNullType _
+                                            | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated _
+                                            | Asn1AcnAst.AcnInsertedType.AcnReferenceToIA5String _ -> 0I
+                                        patchDetWireValue r lm field uperMinOffset (fieldDefault.ToString())
                                     | None, Some (_, vFalse) -> vFalse.ToString()    // Issue 65: the false-pattern
-                                    | None, None           -> value
+                                    // Issue 142: the wire value of the field's default (a uPER-encoded field: less its minimum)
+                                    | None, None           -> lm.lg.computeDeferredFallbackValue acType uperMinOffset
                                 Some (detVarName, patchFn, nBitsOpt, defaultVal, acType)
                             | Some _, _
                             | None, None -> None)
@@ -1049,7 +1179,9 @@ let private createDeferredSequenceFunction
                 || checkedConsumers |> List.forall (function
                     | None   -> false
                     | Some c -> not (atc.testCaseTypeIDsMap.ContainsKey c.Type.id)))
-        {acnFunction with isTestVaseValid = fun atc -> DAstACN.isTestCaseValidForAcnChildren children atc && nestedDeferredFieldsValid children atc && producersConsistent atc}, ns
+        // q/issues.md Issue 108: a dependent present while a holder of its field is absent (AcnSequence.holderAbsentValid)
+        let holdersPresent = AcnSequence.holderAbsentValid r deps lm t.id
+        {acnFunction with isTestVaseValid = fun atc -> DAstACN.isTestCaseValidForAcnChildren children atc && nestedDeferredFieldsValid children atc && producersConsistent atc && holdersPresent atc}, ns
 
 
 // ---------------------------------------------------------------------------
@@ -1130,6 +1262,8 @@ type private DeferredRefCtx = {
     // --acn-v2 mode; without it every closure-converted reference (and
     // everything reachable only through one) disappears from the document.
     refIcd:         IcdArgAux option
+    // cycle 15a2: State.emittedValidatorOutcomes when the context is built (DAstUtilFunctions.encoderSkipsValidation)
+    emittedValidatorOutcomes: Map<string, ValidationOutcome>
 }
 
 /// Coverage step 14e (E3): the PatchDet of the size field of a CONTAINING region cannot fail when it is the field's only
@@ -1188,6 +1322,23 @@ let private cov010Justification =
 let private cov011Justification =
     "ASN1SCC-COV-011: an embedded region length within the SIZE range fits the stream of the decoder precondition, see Docs/statement-coverage-exemptions.md"
 
+/// Issue 132: the largest region of a CONTAINING (octets for OCTET STRING, bits for BIT STRING) = the maximum the
+/// enclosing REQUIRED_BITS counts for it; a longer region is rejected by the decoders.
+let private containingRegionMax (o: Asn1AcnAst.ReferenceType) : BigInteger =
+    match o.encodingOptions with
+    | Some eo -> eo.maxSize.acn
+    | None    -> failwith "BUG: containingRegionMax of a reference without encoding options"
+
+/// Issue 132: the region around a CHOICE whose alternatives share one size parameter holds the whole CHOICE body (an
+/// index of its own, alignment, alternatives that are not CONTAINING), so its largest region is the CHOICE's own maximum,
+/// which the enclosing REQUIRED_BITS counts (octets: rounded up, the region is padded to whole octets). The largest
+/// CONTAINING alternative would reject valid encodings. A region longer than the selected alternative needs but within
+/// this maximum stays accepted (known limit: the bound is not per alternative).
+let private choiceRegionMax (choiceType: Asn1AcnAst.Asn1Type) (octOrBitStr: CommonTypes.ContainedInOctOrBitString) : BigInteger =
+    match octOrBitStr with
+    | CommonTypes.ContainedInOctString -> (choiceType.acnMaxSizeInBits + 7I) / 8I
+    | CommonTypes.ContainedInBitString -> choiceType.acnMaxSizeInBits
+
 let private pastRegionExemption (contentsEndWithRegion: bool) : string option =
     match contentsEndWithRegion with
     | true  -> Some cov010Justification
@@ -1199,6 +1350,14 @@ let private containingWrapperOutcome (ctx: DeferredRefCtx) (sizePrm: AcnGenericT
     match containingSizePatchCannotFail ctx sizePrm with
     | true  -> ctx.lm.lg.encodeTemplateOutcome (EncContainingDeferredWrapper PatchUnchecked)
     | false -> ctx.lm.lg.encodeTemplateOutcome (EncContainingDeferredWrapper PatchChecked)
+
+/// Coverage step 14q: the end of a CONTAINING region after its contents (soNoCheckNote = encodeNoCheckNote of what the
+/// contents do): with the check of their result (None) as before, else without it (EncContainingRegionEnd).
+let private containingRegionEndOutcome (ctx: DeferredRefCtx) (sizePrm: AcnGenericTypes.AcnParameter) (soNoCheckNote: string option) : EncodeOutcome =
+    match soNoCheckNote, containingSizePatchCannotFail ctx sizePrm with
+    | None, _       -> containingWrapperOutcome ctx sizePrm
+    | Some _, true  -> ctx.lm.lg.encodeTemplateOutcome (EncContainingRegionEnd PatchUnchecked)
+    | Some _, false -> ctx.lm.lg.encodeTemplateOutcome (EncContainingRegionEnd PatchChecked)
 
 
 /// CONTAINING ExternalField, base type has NO standalone function (parameterized
@@ -1222,6 +1381,8 @@ let private buildContainingClosureBody
     match bodyContent with
     | None -> emptyBody ctx.lm, ns2
     | Some br ->
+        // coverage step 14q: no check of the body's result when it cannot fail
+        let soNoCheckNote = encodeNoCheckNote ctx.lm ctx.codec br.encOutcome
         let wrappedBody =
             match containingSizePrm with
             | Some sizePrm ->
@@ -1230,9 +1391,9 @@ let private buildContainingClosureBody
                     containingSizePatchDet ctx.r ctx.lm ctx.deps ctx.codec sizePrm.id (fun () -> "")
                 match ctx.o.encodingOptions.Value.octOrBitStr with
                 | CommonTypes.ContainedInOctString ->
-                    ctx.lm.acn.octet_string_containing_deferred_wrapper br.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) (containingSizePatchCannotFail ctx sizePrm) (containingFixedOctets ctx.o.resolvedType |> Option.map string) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) ctx.codec
+                    ctx.lm.acn.octet_string_containing_deferred_wrapper br.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) (containingSizePatchCannotFail ctx sizePrm) (containingFixedOctets ctx.o.resolvedType |> Option.map string) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote (containingRegionMax ctx.o) ctx.codec
                 | CommonTypes.ContainedInBitString ->
-                    ctx.lm.acn.bit_string_containing_deferred_wrapper br.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) ctx.codec
+                    ctx.lm.acn.bit_string_containing_deferred_wrapper br.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote (containingRegionMax ctx.o) ctx.codec
             | None ->
                 br.funcBody  // fallback: no wrapping if size param not found
         let mappingDeclarations =
@@ -1245,7 +1406,7 @@ let private buildContainingClosureBody
         // the end of the region reads the body's result (q/issues.md Issue 63: a body that cannot fail writes none)
         let encOutcome =
             match containingSizePrm with
-            | Some sizePrm -> EncodeOutcome.seq2 br.encOutcome (containingWrapperOutcome ctx sizePrm)
+            | Some sizePrm -> EncodeOutcome.seq2 br.encOutcome (containingRegionEndOutcome ctx sizePrm soNoCheckNote)
             | None   -> br.encOutcome
         { br with
             funcBody = wrappedBody
@@ -1273,14 +1434,18 @@ let private buildContainingStandaloneBody
     let detParamName = DAstACN.getAcnDeterminantName sizePrm.id
     let patchFnName, soNBits, sValue, mappingDeclarations =
         containingSizePatchDet ctx.r ctx.lm ctx.deps ctx.codec sizePrm.id (fun () -> "")
+    // coverage step 14q: the call of the contents' encoder; when it cannot fail the end of the region does not check it
+    let callTarget, callOutcome = encodeCallTarget ctx.lm ctx.t.id.ModName ns1 ctx.codec ctx.t.id baseFncName
+    let soNoCheckNote = encodeNoCheckNote ctx.lm ctx.codec callOutcome
     let fncBody =
         match ctx.o.encodingOptions.Value.octOrBitStr with
         | CommonTypes.ContainedInOctString ->
-            ctx.lm.acn.octet_string_containing_deferred_func pp baseFncName detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) (containingSizePatchCannotFail ctx sizePrm) (containingFixedOctets ctx.o.resolvedType |> Option.map string) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) ctx.codec
+            ctx.lm.acn.octet_string_containing_deferred_func pp callTarget detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) (containingSizePatchCannotFail ctx sizePrm) (containingFixedOctets ctx.o.resolvedType |> Option.map string) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote (containingRegionMax ctx.o) ctx.codec
         | CommonTypes.ContainedInBitString ->
-            ctx.lm.acn.bit_string_containing_deferred_func pp baseFncName detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) ctx.codec
+            ctx.lm.acn.bit_string_containing_deferred_func pp callTarget detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote (containingRegionMax ctx.o) ctx.codec
     { emptyBody ctx.lm with
         funcBody = fncBody
+        encOutcome = encodeOutcomeOf ctx.codec (EncodeOutcome.sequence [callOutcome; containingRegionEndOutcome ctx sizePrm soNoCheckNote])
         errCodes = [errCode]
         userDefinedFunctions = mappingDeclarations
         bValIsUnReferenced = false
@@ -1321,12 +1486,12 @@ let private appendPatchDetCalls
         (isContainingExternalField: bool)
         (baseHasStandaloneFunc: bool)
         (bodyOutcome: EncodeOutcome)
-        (body: string) : string * bool * UserDefinedFunction list * DeferredPatchCheck =
+        (body: string) : string * bool * UserDefinedFunction list * DeferredPatchCheck * LocalVariable list =
     match isContainingExternalField, not baseHasStandaloneFunc with
-    | true, false -> body, false, [], PatchChecked  // old approach: PatchDet is in STG template
+    | true, false -> body, false, [], PatchChecked, []  // old approach: PatchDet is in STG template
     | _ ->
         match ctx.codec with
-        | CommonTypes.Codec.Decode -> body, false, [], PatchChecked
+        | CommonTypes.Codec.Decode -> body, false, [], PatchChecked, []
         | CommonTypes.Codec.Encode ->
             // Identify CONTAINING size param to exclude from step 2b.  Always
             // check (not just when isContainingExternalField) because named
@@ -1335,16 +1500,23 @@ let private appendPatchDetCalls
             let containingSizePrmId =
                 findContainingSizeParam ctx.deps ctx.o
                 |> Option.map (fun prm -> prm.id)
-            let patchCalls =
-                ctx.o.resolvedType.acnParameters |> List.choose (fun prm ->
+            let boundaryPath = ctx.o.resolvedType.id.ToScopeNodeList
+            let fieldOf (prm: AcnGenericTypes.AcnParameter) = AcnExternalField.paramIdentity ctx.r ctx.deps prm
+            let bindingOf (prm: AcnGenericTypes.AcnParameter) =
+                match ctx.o.resolvedType.acnParameters |> List.filter (fun p -> fieldOf p = fieldOf prm) with
+                | [] | [_]      -> SingleFormal
+                | _ :: _ :: _   -> AliasedField
+            // The patches of the block, in emission order: (parameter, field binding, consumer dependency, fixed-size
+            // guard, PatchDet functions of the parameter)
+            let patchedConsumers =
+                ctx.o.resolvedType.acnParameters |> List.collect (fun prm ->
                     match containingSizePrmId with
-                    | Some csId when csId = prm.id -> None
+                    | Some csId when csId = prm.id -> []
                     | _ ->
-                    // Find the dep inside this boundary where the determinant
-                    // is this parameter (consumer-side dependency)
-                    let boundaryPath = ctx.o.resolvedType.id.ToScopeNodeList
-                    let consumerDep =
-                        ctx.deps.acnDependencies |> List.tryFind (fun d ->
+                    // The deps inside this boundary where the determinant
+                    // is this parameter (consumer-side dependencies)
+                    let allConsumerDeps =
+                        ctx.deps.acnDependencies |> List.filter (fun d ->
                             let dependentPath = d.asn1Type.ToScopeNodeList
                             d.determinant.id = prm.id
                             && boundaryPath.Length <= dependentPath.Length
@@ -1358,17 +1530,68 @@ let private appendPatchDetCalls
                             && (match d.dependencyKind with
                                 | AcnDepRefTypeArgument _ -> false
                                 | _ -> true))
-                    match consumerDep with
-                    | None -> None
-                    | Some dep ->
-                        // Skip CONTAINING size deps — handled by CONTAINING wrapper
-                        match dep.dependencyKind with
-                        | Asn1AcnAst.AcnDepSizeDeterminant_bit_oct_str_contain _ -> None
-                        | _ ->
-                        match findDetFunctionsForParam ctx.lm ctx.deps prm.id with
-                        | None -> None
-                        | Some (_initFn, patchFn, nBitsOpt, uperMinOffset) ->
-                            let (preBlock, rawValueExpr, checks) = computePatchDetValueExpr ctx.r ctx.lm ctx.deps dep boundaryPath specP bodyOutcome.canFail
+                    // q/issues.md Issue 121: every consumer of the parameter gets its patch (one tryFind used to patch
+                    // only the first dependency, i.e. the last consumer in the type, and lost the others: a valid
+                    // value with that consumer absent and another one present encoded a wrong determinant), like the
+                    // SEQUENCE epilogues (localSiblingEpilogue, producerPatchEpilogue). Issue 124: a consumer under a
+                    // SEQUENCE OF inside the callee is patched once per element (LoopConsumer), also next to direct
+                    // consumers.
+                    // An aliased field (Issue 126) keeps the code of before: one patch per parameter
+                    let binding = bindingOf prm
+                    let consumerDeps =
+                        match binding with
+                        | AliasedField -> allConsumerDeps |> List.truncate 1
+                        | SingleFormal -> allConsumerDeps
+                    // Issue 124: a consumer below a SEQUENCE OF of the specialised type is patched from every element,
+                    // except a single fixed-size one: its constant needs no element and is patched once, under the
+                    // checks above the SEQUENCE OF (Issue 125, FixedSizeAboveSequenceOf)
+                    // i108a (Fable F4): only when nothing below the first SEQUENCE OF can make the consumer absent (no
+                    // OPTIONAL component, no CHOICE alternative on the way): else per element, so that a list with no
+                    // such consumer leaves the fallback
+                    let placementOf (dep: Asn1AcnAst.AcnDependency) =
+                        let relNodes = dep.asn1Type.ToScopeNodeList |> List.skip boundaryPath.Length
+                        let belowSequenceOf = relNodes |> List.exists (function SQF -> true | _ -> false)
+                        let checkedBelowSequenceOf =
+                            relNodes |> List.skipWhile (function SQF -> false | _ -> true)
+                            |> List.exists (function SEQ_CHILD (_, true) | CH_CHILD _ -> true | _ -> false)
+                        match belowSequenceOf, dep.dependencyKind, consumerDeps with
+                        | false, _, _ -> DirectConsumer
+                        | true, Asn1AcnAst.AcnDepSizeDeterminant (minSize, maxSize, _), [_] when minSize.acn = maxSize.acn && not checkedBelowSequenceOf -> DirectConsumer
+                        | true, _, _ -> LoopConsumer
+                    // Issue 125: every patch runs only when its consumer is encoded, also a fixed-size one (an
+                    // unguarded constant collided with another consumer that is present, or replaced the default)
+                    let fixedSizeGuard (placement: ConsumerPlacement) =
+                        match placement with
+                        | DirectConsumer -> FixedSizeAboveSequenceOf
+                        | LoopConsumer   -> FixedSizeWholePath
+                    match findDetFunctionsForParam ctx.lm ctx.deps prm.id with
+                    | None -> []
+                    | Some detFns ->
+                        consumerDeps |> List.choose (fun dep ->
+                            // Skip CONTAINING size deps — handled by CONTAINING wrapper
+                            match dep.dependencyKind with
+                            | Asn1AcnAst.AcnDepSizeDeterminant_bit_oct_str_contain _ -> None
+                            | _ ->
+                                let placement = placementOf dep
+                                Some (prm, binding, dep, fixedSizeGuard placement, placement, detFns)))
+            // coverage step 14d: only the first patch of a field in this block can be its first patch since the
+            // InitDet. Counted per field (paramIdentity); an aliased field (two formal parameters standing for it,
+            // `pl <n, n>`) keeps the per-parameter rule of before (Issue 126).
+            let indexedConsumers, _ =
+                patchedConsumers |> List.mapFold (fun (seen: Map<ReferenceToType, int>) (prm, binding, dep, guard, placement, detFns) ->
+                    let fieldId = fieldOf prm
+                    let k = seen.TryFind fieldId |> Option.defaultValue 0
+                    (prm, binding, fieldId, k, dep, guard, placement, detFns), seen.Add (fieldId, k + 1)) Map.empty
+            // the fields patched in a loop: every other patch of such a field may find the ref set by an element
+            let fieldsWithLoopPatch =
+                indexedConsumers |> List.choose (fun (_, _, fieldId, _, _, _, placement, _) ->
+                    match placement with
+                    | LoopConsumer   -> Some fieldId
+                    | DirectConsumer -> None) |> Set.ofList
+            let patchCalls =
+                indexedConsumers |> List.map (fun (prm, binding, fieldId, k, dep, fixedSizeGuard, placement, (_initFn, patchFn, nBitsOpt, uperMinOffset)) ->
+                            let (preBlock, rawValueExpr, checks) =
+                                computePatchDetValueExpr ctx.r ctx.lm ctx.deps dep boundaryPath specP bodyOutcome.canFail fixedSizeGuard
                             // For Integer_uPER with min > 0, UPER encodes (value - min)
                             // but ConstSize encodes value directly, so subtract the offset.
                             let field = findOriginalDeterminantForParam ctx.deps prm.id
@@ -1376,11 +1599,31 @@ let private appendPatchDetCalls
                             let detParamName = DAstACN.getAcnDeterminantName prm.id
                             let errCodePatch = "ERR_ACN_DET_CONSISTENCY_MISMATCH"
                             // coverage step 13b: the only patch of the field cannot fail; 14d: nor the first one; E6-C: nor
-                            // one of a field whose consumers all write the same value
-                            let fieldId = AcnExternalField.paramIdentity ctx.r ctx.deps prm
+                            // one of a field whose consumers all write the same value. With several consumers here (Issue
+                            // 121) only the first patch of the field emitted here (k = 0) can be its first (a later one
+                            // runs on a ref the earlier set when both consumers are present: checked, the consistency
+                            // check of legacy), and only when no parameter standing for the field is passed on (the
+                            // callee it is passed to patches first). isOnlyPatchOfField holds only for consumers in
+                            // different CHOICE alternatives, whose patches are all under their path checks
+                            // (fixed-size ones too since Issue 125), so at most one runs
+                            // Issue 124: a patch in a loop runs once per element and fails when two elements disagree:
+                            // never exempt as a first / only patch (isFirstPatchOfField does not see the loop inside the
+                            // callee); only consumersWriteOneValue (every patch writes the same constant) exempts it
                             let bFirstPatch =
-                                AcnExternalField.isOnlyPatchOfField ctx.r ctx.deps fieldId ||
-                                AcnExternalField.isFirstPatchOfField ctx.r ctx.deps fieldId ctx.t.id prm.id
+                                match placement, binding with
+                                | LoopConsumer, _ -> false
+                                | DirectConsumer, SingleFormal ->
+                                    AcnExternalField.isOnlyPatchOfField ctx.r ctx.deps fieldId ||
+                                    (k = 0 && AcnExternalField.isFirstPatchOfField ctx.r ctx.deps fieldId ctx.t.id prm.id)
+                                // Issue 126: the rule of before, per parameter (its exemptions can leave two patches of
+                                // the field unchecked; fixed with one ref per field)
+                                // An aliased field with a per-element patch (through another formal) in this function:
+                                // every patch of it is checked (the per-parameter exemptions do not see the loop; Codex
+                                // i124a F1). A loop patch in a nested callee is not seen here (Issue 126)
+                                | DirectConsumer, AliasedField ->
+                                    not (fieldsWithLoopPatch.Contains fieldId) &&
+                                    (AcnExternalField.isOnlyPatchOfField ctx.r ctx.deps fieldId ||
+                                     AcnExternalField.isFirstPatchOfField ctx.r ctx.deps fieldId ctx.t.id prm.id)
                             let bSameValue = not bFirstPatch && AcnExternalField.consumersWriteOneValue ctx.r ctx.deps fieldId
                             let bCannotFail = bFirstPatch || bSameValue
                             let isIA5StringDet = patchFn.Contains("IA5String")
@@ -1397,17 +1640,36 @@ let private appendPatchDetCalls
                                         ctx.lm.acn.acn_deferred_det_patch_ptr_with_size patchFn nBits valueExpr detParamName errCodePatch bCannotFail bSameValue ctx.codec
                                     | None ->
                                         ctx.lm.acn.acn_deferred_det_patch_ptr patchFn valueExpr detParamName errCodePatch bCannotFail bSameValue ctx.codec
-                            Some (guardPatchBlock ctx.lm checks preBlock patchCall, not checks.IsEmpty,
-                                  patchDetMappingDeclarations ctx.r ctx.lm field, bCannotFail))
+                            // the block, whether it may not run (a loop entry: zero elements) and the indexes it uses
+                            let code, bGuarded, indexes =
+                                match placement with
+                                | DirectConsumer -> guardPatchBlock ctx.lm checks preBlock patchCall, not checks.IsEmpty, []
+                                | LoopConsumer   ->
+                                    let code, indexes = patchLoopBlock ctx.r ctx.lm ctx.o.resolvedType dep boundaryPath specP checks preBlock patchCall
+                                    code, true, indexes
+                            (code, bGuarded, patchDetMappingDeclarations ctx.r ctx.lm field, bCannotFail, binding, indexes))
             match patchCalls with
-            | [] -> body, false, [], PatchChecked
+            | [] -> body, false, [], PatchChecked, []
             | calls ->
-                let patchCode = calls |> List.map (fun (code, _, _, _) -> code) |> String.concat "\n"
-                let guarded = calls |> List.exists (fun (_, guarded, _, _) -> guarded)
-                let mappingDeclarations = calls |> List.collect (fun (_, _, declarations, _) -> declarations)
+                let patchCode = calls |> List.map (fun (code, _, _, _, _, _) -> code) |> String.concat "\n"
+                // "guarded" = the block may write no result: true only when every patch is under a path check (Issue
+                // 121). One unguarded patch runs on every path. Exact for Ada, where every patch (checked or under
+                // pragma Assume) writes result: with List.exists a block "unguarded + guarded" kept a
+                // result := (Success => true, ...) before it that gnatprove flow reports as an unused assignment. In
+                // C an unchecked patch is (void) and writes no ret, so a block "unguarded unchecked + guarded checked"
+                // is declared AlwaysWrites while it writes only sometimes: harmless, the checked patch makes the block
+                // canFail, the caller keeps its if (ret) and ret is initialised TRUE in every function; no emitted
+                // check depends on this flag (q/details-docs/coverage/cycles/i121/review-fable.md Q2).
+                // A block with an aliased field keeps the join of before (List.exists; Issue 126).
+                let guarded =
+                    match calls |> List.exists (fun (_, _, _, _, binding, _) -> match binding with AliasedField -> true | SingleFormal -> false) with
+                    | false -> calls |> List.forall (fun (_, guarded, _, _, _, _) -> guarded)
+                    | true  -> calls |> List.exists (fun (_, guarded, _, _, _, _) -> guarded)
+                let mappingDeclarations = calls |> List.collect (fun (_, _, declarations, _, _, _) -> declarations)
+                let indexes = calls |> List.collect (fun (_, _, _, _, _, indexes) -> indexes)
                 // step 14e (E1): the patches cannot fail when every one is the only / first patch of its field
                 let check =
-                    match calls |> List.forall (fun (_, _, _, bCannotFail) -> bCannotFail) with
+                    match calls |> List.forall (fun (_, _, _, bCannotFail, _, _) -> bCannotFail) with
                     | true  -> PatchUnchecked
                     | false -> PatchChecked
                 // The PatchDet calls write the result: after a body that may fail they run only when it succeeded,
@@ -1415,10 +1677,10 @@ let private appendPatchDetCalls
                 // result, the join reads it (Ada: pragma Assume, the body is a specialised one, without contract; step
                 // 14e E1), else the PatchDet would overwrite a result nobody read (gnatprove flow "set ... but not used").
                 match bodyOutcome.canFail, bodyOutcome.writes with
-                | true, _        -> ctx.lm.isvalid.JoinItems2 body patchCode, guarded, mappingDeclarations, check
-                | false, NoWrite -> body + "\n" + patchCode, guarded, mappingDeclarations, check
+                | true, _        -> ctx.lm.isvalid.JoinItems2 body patchCode, guarded, mappingDeclarations, check, indexes
+                | false, NoWrite -> body + "\n" + patchCode, guarded, mappingDeclarations, check, indexes
                 | false, (AlwaysWrites | SometimesWrites | ReadsFirst | WritesUnknown) ->
-                    ctx.lm.isvalid.JoinItemsCannotFail body patchCode None true, guarded, mappingDeclarations, check
+                    ctx.lm.isvalid.JoinItemsCannotFail body patchCode None true, guarded, mappingDeclarations, check, indexes
 
 
 /// Step 3 — build the specialized function's deferred-determinant formal
@@ -1437,10 +1699,14 @@ let private buildSpecializedFormalParams
 /// Step 4 — emit the specialized function (definition + body) and assemble
 /// the auxiliaries list.  The returned list is bodyResult_auxiliaries
 /// followed by the function's def + body strings.
+/// ownErrCodes: the codes its definition declares besides its body's (the specialised function's own code; none for a
+/// CONTAINING site's contents function, Issue 135, whose region reports the site's code, declared by the parent: Ada
+/// rejects a second declaration of a constant).
 let private emitSpecializedFunctionDecl
         (ctx: DeferredRefCtx)
         (specP: CodegenScope)
-        (errCode: ErrorCode)
+        (ownErrCodes: ErrorCode list)
+        (bRegionCheck: bool)
         (specFuncName: string)
         (deferredFormalParams: string list)
         (deferredParamNames: string list)
@@ -1468,15 +1734,21 @@ let private emitSpecializedFunctionDecl
             sq.children |> List.exists (fun c -> match c with Asn1AcnAst.Asn1Child _ -> true | _ -> false)
         | _ -> true
     let bVarNameIsUnreferenced = finalBody.bValIsUnReferenced || not hasAsn1Children
-    // coverage step 10c: val is `in out` when the decoder may leave it partly written (DecodeOutcome.acnValWrite)
+    // coverage step 10c: val is `in out` when the decoder may leave it partly written (DecodeOutcome.acnValWrite); cycle
+    // 15g-b1 (U4): a body that checks a CONTAINING region first fails without writing val (the caller's component is
+    // already initialised, DecodeOutcome.valWrite), whatever its contents write
     let bValInOut =
+        let vw =
+            match bRegionCheck with
+            | true  -> DecodeOutcome.MayLeavePartial
+            | false -> DecodeOutcome.acnValWrite ctx.r ctx.deps ctx.lm ctx.o.resolvedType
         match ctx.codec with
-        | Decode -> DecodeOutcome.valInOut (DecodeOutcome.acnValWrite ctx.r ctx.deps ctx.lm ctx.o.resolvedType) soValInitFuncName && not bVarNameIsUnreferenced
+        | Decode -> DecodeOutcome.valInOut vw soValInitFuncName && not bVarNameIsUnreferenced
         | Encode -> false
 
     // coverage step 12a / 12b: as AcnFunctionWrapper.createAcnFunction
     let bodyOutcome = encodeOutcomeOf ctx.codec finalBody.encOutcome
-    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation ctx.lm ctx.codec ctx.isValidFunc ctx.t bodyOutcome
+    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation ctx.lm ctx.codec ctx.emittedValidatorOutcomes ctx.isValidFunc ctx.t bodyOutcome
     let bValidityCalled = isValidFuncName.IsSome && not bValidityCannotFail
     // coverage step 10b: same result initialisation as AcnFunctionWrapper.createAcnFunction (DecodeOutcome.fs)
     let specBodyContent =
@@ -1506,7 +1778,7 @@ let private emitSpecializedFunctionDecl
         |> ctx.lm.lg.wrapDeferredSpecBody
 
     let specErrCodStr =
-        (errCode :: finalBody.errCodes)
+        (ownErrCodes @ finalBody.errCodes)
         |> List.groupBy (fun x -> x.errCodeName)
         |> List.map (fun (k, v) -> {errCodeName = k; errCodeValue = v.Head.errCodeValue; comment = v.Head.comment; fieldPath = v.Head.fieldPath})
         |> List.map (fun x -> ctx.lm.acn.EmitTypeAssignment_def_err_code x.errCodeName (BigInteger x.errCodeValue) x.comment x.fieldPath)
@@ -1534,7 +1806,7 @@ let private emitSpecializedFunctionDecl
 /// Its basis is the compiler's analysis (EncodeOutcome.specialisedCall): specialised functions have no contract.
 let private specialisedCallOutcome (ctx: DeferredRefCtx) (specFuncName: string) (finalBody: AcnFuncBodyResult) : EncodeOutcome =
     let bodyOutcome = encodeOutcomeOf ctx.codec finalBody.encOutcome
-    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation ctx.lm ctx.codec ctx.isValidFunc ctx.t bodyOutcome
+    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation ctx.lm ctx.codec ctx.emittedValidatorOutcomes ctx.isValidFunc ctx.t bodyOutcome
     let isValidFuncName = match ctx.isValidFunc with None -> None | Some f -> f.funcName
     let bValidityCalled = isValidFuncName.IsSome && not bValidityCannotFail
     EncodeOutcome.specialisedCall specFuncName (bodyOutcome.canFail || (ctx.lm.lg.encodeCallValidates && bValidityCalled))
@@ -1643,7 +1915,7 @@ let private createDeferredReferenceFunction
         (baseType:Asn1Type)
         (us:State) =
 
-    let _baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t "_ACN" codec
+    let _baseTypeDefinitionName, baseFncName = getReferenceCallFuncName r lm typeDefinition o t "_ACN" codec
 
     // ICD this reference contributes to its parent.  Same construction as the
     // legacy inline path; without it the parent SEQUENCE drops the field row
@@ -1660,11 +1932,57 @@ let private createDeferredReferenceFunction
         | None -> false
 
     // Helper: create a simple funcBody from an STG template call (for CONTAINING FIXED/EMBEDDED)
-    let makeContainingFuncBody (stgCall: string -> string -> ErrorCode -> (AcnFuncBodyResult option) * State) =
+    // coverage step 14q: stgCall also takes the outcome of the call of the contents' encoder (looked up in the state the
+    // function body is built with)
+    let makeContainingFuncBody (stgCall: EncodeOutcome -> string -> string -> ErrorCode -> (AcnFuncBodyResult option) * State) =
+        // q/issues.md Issue 135: contents with ACN parameters cannot be specialised here (no closure work for
+        // embedded-length / fixed-size regions): an ACN specification that overrides them is rejected, instead of
+        // calling the type assignment's function with another encoding than the region's sizes
+        // (also when the specification refers to a field outside the contents: closure conversion then gives the contents
+        // a parameter; before, both shapes called the type assignment's function and ignored the specification)
+        match o.contentsSpecOverride && (not o.acnArguments.IsEmpty || not o.resolvedType.acnParameters.IsEmpty) with
+        | true ->
+            let errLoc = match t.acnLocation with Some l -> l | None -> o.tasName.Location
+            raise (SemanticError (errLoc, sprintf "an ACN specification that changes the encoding of the contents of this CONTAINING is not supported when the contents (%s) take ACN arguments or the specification refers to a field outside them (use a type assignment for the contents)" o.tasName.Value))
+        | false -> ()
+        // q/issues.md Issue 135: a site that is not specialised calls the referenced type assignment's function; the
+        // region's length range (from the site's merged contents) must hold that function's encoding, as legacy requires
+        // (AcnReference.containingCalleeMismatch), else the region writes a length outside its range (C: a read past a
+        // mask table of the runtime) or another encoding than its sizes say. A defence against a site the
+        // contentsSpecOverride test misses; it fires on no tracked grammar (i135 dry run: corpus, PUS-C, wire tests).
+        match containingSiteSpecialised r o, o.encodingOptions with
+        | false, Some eo ->
+            match AcnReference.containingCalleeMismatch t o eo (containedCalleeType r o) with
+            | Some msg ->
+                let errLoc = match t.acnLocation with Some l -> l | None -> o.tasName.Location
+                raise (SemanticError (errLoc, msg + "; not supported (use a type assignment for the contents)"))
+            | None -> ()
+        | true, _ | false, None -> ()
+        // coverage step 14q (Q3 b): the body of the contents' encoder when this site's validation is the one it repeats
         let soSparkAnnotations = Some(DAstACN.sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)
         let funcBody (us:State) (errCode:ErrorCode) (_acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (_nestingScope: NestingScope) (p:CodegenScope) =
             let pp = lm.lg.getParamValue t p.accessPath codec
-            stgCall pp baseFncName errCode
+            // q/issues.md Issue 135: a site whose ACN specification overrides the contents' encoding calls a function of
+            // its own with the merged contents (the region's sizes come from them), the external-size class's mechanism
+            // (buildContainingClosureBody). No error code of its own (the region keeps the site's code, its body the
+            // codes of the merged contents, allocated when they were built): no other code changes. Every other site
+            // calls the referenced type assignment's function.
+            match containingSiteSpecialised r o, baseType.getAcnFunction codec with
+            | true, Some baseAcnFunc ->
+                let pathStr = t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin "_"
+                let specFuncName = ToC2(r.args.TypePrefix + pathStr) + "_Containing_ACN" + (lm.lg.codecSuffix codec)
+                let specP : CodegenScope = lm.lg.getParamType t codec
+                let ctx : DeferredRefCtx = { r = r; deps = deps; lm = lm; codec = codec; t = t; o = o; typeDefinition = typeDefinition; isValidFunc = isValidFunc; refIcd = refIcd; emittedValidatorOutcomes = us.emittedValidatorOutcomes }
+                let specBody, us1 = buildNormalReferenceBody ctx specP baseAcnFunc id us
+                // the region is checked by the caller (the CONTAINING macro around this call): the body is the contents
+                let specAux = emitSpecializedFunctionDecl ctx specP [] false specFuncName [] [] specBody
+                let res, _ = stgCall (specialisedCallOutcome ctx specFuncName specBody) pp specFuncName errCode
+                (res |> Option.map (fun x -> {x with auxiliaries = x.auxiliaries @ specAux; userDefinedFunctions = x.userDefinedFunctions @ specBody.userDefinedFunctions})), us1
+            | true, None ->
+                raise (BugErrorException (sprintf "Issue 135: specialised CONTAINING site %s without an ACN function of its contents" t.id.AsString))
+            | false, _ ->
+                let callTarget, callOutcome = encodeCallTarget lm t.id.ModName us codec t.id baseFncName
+                stgCall callOutcome pp callTarget errCode
         DAstACN.createAcnFunction r deps lm codec t typeDefinition isValidFunc
             (fun us e acnArgs nestingScope p -> funcBody us e acnArgs nestingScope p)
             (fun _atc -> true) soSparkAnnotations [] us
@@ -1676,26 +1994,33 @@ let private createDeferredReferenceFunction
         | Some encOptions ->
             match encOptions.acnEncodingClass, encOptions.octOrBitStr with
             | Asn1AcnAst.SZ_EC_FIXED_SIZE, CommonTypes.ContainedInOctString ->
-                Some (makeContainingFuncBody (fun pp fncName errCode ->
+                Some (makeContainingFuncBody (fun callOutcome pp fncName errCode ->
                     // the region is maxSize whole octets (Issue 23): the contained encoding is padded to them
                     // E3 padding: no padding when the contents always fill the maxSize octets
                     let soFixedOctets = containingFixedOctets o.resolvedType |> Option.filter (fun n -> n = encOptions.maxSize.acn) |> Option.map string
-                    let fncBody = lm.acn.octet_string_containing_deferred_fixed_func pp fncName encOptions.maxSize.acn errCode.errCodeName soFixedOctets codec
-                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd; encOutcome = EncodeOutcome.unknown}), us))
+                    // coverage step 14q: the call, then the padding (C: checked unless the call cannot fail; Ada: not checked)
+                    let fncBody = lm.acn.octet_string_containing_deferred_fixed_func pp fncName encOptions.maxSize.acn errCode.errCodeName soFixedOctets (encodeNoCheckNote lm codec callOutcome) codec
+                    let encOutcome = encodeOutcomeOf codec (EncodeOutcome.sequence [callOutcome; lm.lg.encodeTemplateOutcome EncRtlWritesOnly])
+                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd; encOutcome = encOutcome}), us))
             | Asn1AcnAst.SZ_EC_LENGTH_EMBEDDED _, CommonTypes.ContainedInOctString ->
-                Some (makeContainingFuncBody (fun pp fncName errCode ->
+                Some (makeContainingFuncBody (fun callOutcome pp fncName errCode ->
                     let nBits = GetNumberOfBitsForNonNegativeInteger (encOptions.maxSize.acn - encOptions.minSize.acn)
-                    let fncBody = lm.acn.octet_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn nBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced o.resolvedType) (containingFixedOctets o.resolvedType |> Option.map string) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced o.resolvedType)) (Some cov011Justification) codec
-                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd; encOutcome = EncodeOutcome.unknown}), us))
+                    // coverage step 14q: the call, then the padding and the length (RTL writes), checked unless the call cannot fail
+                    let fncBody = lm.acn.octet_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn nBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced o.resolvedType) (containingFixedOctets o.resolvedType |> Option.map string) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced o.resolvedType)) (Some cov011Justification) (encodeNoCheckNote lm codec callOutcome) codec
+                    let encOutcome = encodeOutcomeOf codec (EncodeOutcome.sequence [callOutcome; lm.lg.encodeTemplateOutcome EncRtlWritesOnly])
+                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd; encOutcome = encOutcome}), us))
             | Asn1AcnAst.SZ_EC_FIXED_SIZE, CommonTypes.ContainedInBitString ->
-                Some (makeContainingFuncBody (fun pp fncName _ ->
+                Some (makeContainingFuncBody (fun callOutcome pp fncName _ ->
                     let fncBody = lm.acn.bit_string_containing_deferred_fixed_func pp fncName codec
-                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd; encOutcome = EncodeOutcome.unknown}), us))
+                    // coverage step 14q: only the call
+                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = []; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd; encOutcome = encodeOutcomeOf codec callOutcome}), us))
             | Asn1AcnAst.SZ_EC_LENGTH_EMBEDDED _, CommonTypes.ContainedInBitString ->
-                Some (makeContainingFuncBody (fun pp fncName errCode ->
+                Some (makeContainingFuncBody (fun callOutcome pp fncName errCode ->
                     let nBits = GetNumberOfBitsForNonNegativeInteger (encOptions.maxSize.acn - encOptions.minSize.acn)
-                    let fncBody = lm.acn.bit_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn nBits errCode.errCodeName codec
-                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd; encOutcome = EncodeOutcome.unknown}), us))
+                    // coverage step 14q: the call, then the length (RTL writes), checked unless the call cannot fail
+                    let fncBody = lm.acn.bit_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn nBits errCode.errCodeName (encodeNoCheckNote lm codec callOutcome) codec
+                    let encOutcome = encodeOutcomeOf codec (EncodeOutcome.sequence [callOutcome; lm.lg.encodeTemplateOutcome EncRtlWritesOnly])
+                    Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd; encOutcome = encOutcome}), us))
             | _ when not isContainingExternalField ->
                 Some (DAstACN.createReferenceFunction_inline r deps lm codec t o typeDefinition isValidFunc baseType us)
             | _ -> None  // ExternalField with params → specialized function below
@@ -1758,6 +2083,7 @@ let private createDeferredReferenceFunction
                 typeDefinition = typeDefinition
                 isValidFunc    = isValidFunc
                 refIcd         = refIcd
+                emittedValidatorOutcomes = us.emittedValidatorOutcomes
             }
 
             // Generate body content — dispatched on the 3-way match.  Each branch
@@ -1773,10 +2099,27 @@ let private createDeferredReferenceFunction
             // encoded, so the CHOICE boundary is the containing region and
             // must measure/limit it. The selected child's referenced type has
             // no explicit ACN argument of its own, so it cannot do this work.
+            // q/issues.md Issue 141: the region's kind (OCTET / BIT) is the CHOICE's containingRegion (front end,
+            // Asn1AcnAstUtilFunctions.choiceContainingRegion), the rule the CHOICE's sizes follow; the size dependency
+            // found here must be on the same parameter with the same kind (the last CONTAINING alternative's), else the
+            // sizes and the code disagree (a compiler bug, made loud)
+            let choiceRegion =
+                match isContainingExternalField, ctx.o.resolvedType.Kind, findContainingSizeParamInfo ctx.deps ctx.o with
+                | false, Asn1AcnAst.Asn1TypeKind.Choice ch, found ->
+                    match found, ch.containingRegion with
+                    | Some (sizePrm, containing), Some (regionPrmName, octOrBitStr)
+                            when regionPrmName = sizePrm.name && containing.encodingOptions.Value.octOrBitStr = octOrBitStr ->
+                        Some (ch, sizePrm, octOrBitStr)
+                    | None, None -> None
+                    | Some (sizePrm, _), Some _
+                    | Some (sizePrm, _), None ->
+                        raise (BugErrorException (sprintf "CONTAINING region of the CHOICE %s: the size parameter %s or its region kind is not the CHOICE's region (Choice.containingRegion)" ctx.t.id.AsString sizePrm.id.AsString))
+                    | None, Some (regionPrmName, _) ->
+                        raise (BugErrorException (sprintf "CONTAINING region of the CHOICE %s: no size dependency for its region parameter %s (Choice.containingRegion)" ctx.t.id.AsString regionPrmName))
+                | _ -> None
             let bodyResult =
-                match isContainingExternalField, ctx.o.resolvedType.Kind,
-                      findContainingSizeParamInfo ctx.deps ctx.o with
-                | false, Asn1AcnAst.Asn1TypeKind.Choice ch, Some (sizePrm, containing) ->
+                match choiceRegion with
+                | Some (ch, sizePrm, regionKind) ->
                     // Some alternative's contents use 'size deduced' (Ada decodes
                     // the region from a stream limited to it).
                     let bDeducedContent =
@@ -1796,26 +2139,28 @@ let private createDeferredReferenceFunction
                     let patchFnName, soNBits, sValue, mappingDeclarations =
                         containingSizePatchDet ctx.r ctx.lm ctx.deps ctx.codec sizePrm.id (fun () ->
                             failwithf "BUG: missing PatchDet function for CONTAINING CHOICE parameter %s" sizePrm.id.AsString)
+                    // coverage step 14q: no check of the body's result when it cannot fail
+                    let soNoCheckNote = encodeNoCheckNote ctx.lm ctx.codec bodyResult.encOutcome
                     let wrappedBody =
-                        match containing.encodingOptions.Value.octOrBitStr with
+                        match regionKind with
                         | CommonTypes.ContainedInOctString ->
                             ctx.lm.acn.octet_string_containing_deferred_wrapper
                                 bodyResult.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName bDeducedContent (containingSizePatchCannotFail ctx sizePrm)
                                 (choiceRegionFixedOctets ctx.o.resolvedType ch |> Option.map string)
-                                (pastRegionExemption bDeducedEveryAlternative) ctx.codec
+                                (pastRegionExemption bDeducedEveryAlternative) soNoCheckNote (choiceRegionMax ctx.o.resolvedType regionKind) ctx.codec
                         | CommonTypes.ContainedInBitString ->
                             ctx.lm.acn.bit_string_containing_deferred_wrapper
-                                bodyResult.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption bDeducedEveryAlternative) ctx.codec
+                                bodyResult.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption bDeducedEveryAlternative) soNoCheckNote (choiceRegionMax ctx.o.resolvedType regionKind) ctx.codec
                     { bodyResult with
                         funcBody = wrappedBody
-                        // the end of the region reads the body's result (q/issues.md Issue 63)
-                        encOutcome = EncodeOutcome.seq2 bodyResult.encOutcome (containingWrapperOutcome ctx sizePrm)
+                        // the end of the region reads the body's result (q/issues.md Issue 63) unless it cannot fail (14q)
+                        encOutcome = EncodeOutcome.seq2 bodyResult.encOutcome (containingRegionEndOutcome ctx sizePrm soNoCheckNote)
                         userDefinedFunctions = bodyResult.userDefinedFunctions @ mappingDeclarations }
                 | _ -> bodyResult
 
             // Step 2b: append PatchDet calls (encode only) onto the body.
             let finalBody =
-                let body, bPatchGuarded, mappingDeclarations, patchCheck =
+                let body, bPatchGuarded, mappingDeclarations, patchCheck, patchIndexes =
                     appendPatchDetCalls ctx specP
                         isContainingExternalField (not baseAcnFunc.funcName.IsNone) bodyResult.encOutcome bodyResult.funcBody
                 // coverage step 12b: the PatchDet calls write the result (they may fail); after a body that may fail
@@ -1839,7 +2184,18 @@ let private createDeferredReferenceFunction
                     // a body that cannot fail and writes the result: joined by JoinItemsCannotFail, which reads it
                     | false, false, (AlwaysWrites | SometimesWrites | ReadsFirst | WritesUnknown), _ -> EncodeOutcome.seq2 b patch
                 { bodyResult with funcBody = body; encOutcome = encOutcome
-                                  userDefinedFunctions = bodyResult.userDefinedFunctions @ mappingDeclarations }
+                                  userDefinedFunctions = bodyResult.userDefinedFunctions @ mappingDeclarations
+                                  // the indexes of the patch loops (Issue 124); declared once with the body's own
+                                  localVariables = bodyResult.localVariables @ patchIndexes }
+
+            // cycle 15g-b1 (U4): the body checks a CONTAINING region before the contents (the external-size wrappers of
+            // buildContainingClosureBody when it found the size parameter, buildContainingStandaloneBody, the CHOICE region)
+            let bRegionCheck =
+                match isContainingExternalField, baseAcnFunc.funcName.IsNone, choiceRegion with
+                | true, true, _     -> (findContainingSizeParam ctx.deps ctx.o).IsSome
+                | true, false, _    -> true
+                | false, _, Some _  -> true
+                | false, _, None    -> false
 
             // Step 3: build the specialized function's deferred formal params.
             let deferredFormalParams, deferredParamNames =
@@ -1848,7 +2204,7 @@ let private createDeferredReferenceFunction
             // Step 4: emit the specialized function (def + body) into auxiliaries.
             let allAuxiliaries =
                 emitSpecializedFunctionDecl
-                    ctx specP errCode
+                    ctx specP [errCode] bRegionCheck
                     specFuncName deferredFormalParams deferredParamNames finalBody
 
             // Step 5: build the caller's funcBody, record the cross-TAS call,

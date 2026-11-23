@@ -1,0 +1,5 @@
+-- as argopt, the element a CHOICE whose alternative receives the argument (legacy rejects, --acn-v2 accepts; R2-1)
+REJ DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    QQ ::= SEQUENCE { o OCTET STRING (SIZE(3)) }
+    T ::= SEQUENCE { c CHOICE { list SEQUENCE (SIZE(1..2)) OF CHOICE { q QQ, y BOOLEAN }, z BOOLEAN } }
+END

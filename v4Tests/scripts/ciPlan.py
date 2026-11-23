@@ -112,6 +112,8 @@ def sharded(legs_, k, n):
 
 
 ADA_WS8_SHARDS = 3
+GNATA_SHARDS = 2
+GNATA_LEGS = ["-l Ada -ws 8 -s false --ada-assertions", "-l Ada -ws 8 -s false -acnv2 --ada-assertions"]
 C_SHARDS = 4
 SCALA_SHARDS = 3
 C_LEGS = ["-l c -ws 4 -s false", "-l c -ws 4 -s false -acnv2",
@@ -124,6 +126,8 @@ def build_jobs():
     jobs["ada-rtl-x86"] = [sh("./scripts/proveAdaRtl.sh x86")]
     jobs["ada-rtl-msp430"] = [sh("./scripts/proveAdaRtl.sh msp430")]
     jobs["ada-ws4"] = [reg("-l Ada -ws 4 -s false"), reg("-l Ada -ws 4 -s false -acnv2")]
+    # -slim narrows the Ada types (Issues 99, 103 compiled in C but not in Ada); the RUN_SPARK proof runs without -slim
+    jobs["ada-ws8-slim"] = [reg("-l Ada -ws 8 -s true")]
     for suffix, leg in [("", "-l Ada -ws 8 -s false"), ("-acnv2", "-l Ada -ws 8 -s false -acnv2")]:
         for k in range(1, ADA_WS8_SHARDS + 1):
             jobs[f"ada-ws8{suffix}-{k}"] = [reg(leg, shard=f"{k}/{ADA_WS8_SHARDS}")]
@@ -138,6 +142,11 @@ def build_jobs():
                       sh("uvx --python=3.11 pytest tests -v", cwd="asn1python"),
                       sh("./tools/check_generated_code.sh", cwd="asn1python")]
     jobs["rust"] = [reg("-l Rust -ws 4 -s false"), reg("-l Rust -ws 8 -s false")]
+    # Ada automatic tests with -gnata (Pre / Post / Assert / Assume / Loop_Invariant checked at run time, Issue 115):
+    # two shards per mode, appended to the four shortest jobs (the org runs at most 20 jobs at a time: no new job)
+    for (job, leg, k) in [("ada-rtl-msp430", GNATA_LEGS[0], 1), ("ada-ws8-slim", GNATA_LEGS[0], 2),
+                          ("ada-ws4", GNATA_LEGS[1], 1), ("rust", GNATA_LEGS[1], 2)]:
+        jobs[job].append(reg(leg, shard=f"{k}/{GNATA_SHARDS}"))
     for k, f in enumerate(scala_shards(SCALA_SHARDS), 1):
         jobs[f"scala-{k}"] = scala(f)
     return jobs
@@ -198,8 +207,10 @@ def write_expected(out, jobs):
 
 
 def leg_key(entry):
+    # gnata (regression --ada-assertions) only when set: the keys of the other legs (and ci-timings.json) unchanged
     return f"l={entry['lang']} ws={entry['ws']} slim={str(entry['slim']).lower()} " \
-           f"ig={str(entry['ig']).lower()} acnv2={str(entry['acnv2']).lower()}"
+           f"ig={str(entry['ig']).lower()} acnv2={str(entry['acnv2']).lower()}" + \
+           (" gnata=true" if entry.get("gnata") else "")
 
 
 def summary(results_dir, expected_file, trx_dir):
@@ -210,7 +221,8 @@ def summary(results_dir, expected_file, trx_dir):
             if len(parts) < 6:
                 continue
             cid, rest = parts[0], dict(p.split("=", 1) for p in parts[1:])
-            key = f"l={rest['l']} ws={rest['ws']} slim={rest['slim']} ig={rest['ig']} acnv2={rest['acnv2']}"
+            key = f"l={rest['l']} ws={rest['ws']} slim={rest['slim']} ig={rest['ig']} acnv2={rest['acnv2']}" + \
+                  (" gnata=true" if rest.get("gnata") == "true" else "")
             expected[key].add(cid)
 
     ran = collections.defaultdict(list)

@@ -176,8 +176,8 @@ IntUnconstrained_decode(p, sErrCode, bCoverageIgnore, soType) ::= <<
 >>
 
 /*case: A :: = INTEGER(MIN..5) */
-IntUnconstrainedMax_encode(p, nMax, soCheckExp, sErrCode) ::= "pBitStrm.encode_unconstrained_whole_number(<p>);"
-IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
+IntUnconstrainedMax_encode(p, nMax, soCheckExp, sErrCode, soType) ::= "pBitStrm.encode_unconstrained_whole_number(<p>);"
+IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode, soType) ::= <<
 {
     let (val, ok) = pBitStrm.decode_unconstrained_whole_number();
     <p> = val as _;
@@ -623,7 +623,7 @@ bitString_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nS
 >>
 
 
-FixedSize_Fragmentation_sqf_64K_encode(p, sAcc,sCurOffset, sCurBlockSize, sBlockIndex, nBlocks64K, sInternalItem, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
+FixedSize_Fragmentation_sqf_64K_encode(p, sAcc,sCurOffset, sCurBlockSize, sBlockIndex, nBlocks64K, sInternalItem, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName, bItemCannotFail) ::=<<
 //encode <nBlocks64K> x 64K Blocks
 <sCurBlockSize> = 0x10000;
 <sCurOffset> = 0;
@@ -647,7 +647,7 @@ while <sBlockIndex> \< <nBlocks64K> {
 }
 >>
 
-FixedSize_Fragmentation_sqf_small_block_encode(p, sAcc,sInternalItem, nBlockSize, sBlockId, sCurOffset, sCurBlockSize, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
+FixedSize_Fragmentation_sqf_small_block_encode(p, sAcc,sInternalItem, nBlockSize, sBlockId, sCurOffset, sCurBlockSize, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName, bItemCannotFail) ::=<<
 //encode <nBlockSize> Block
 <sCurBlockSize> = <nBlockSize>;
 pBitStrm.encode_constraint_whole_number(<sBlockId>, 0, 0xFF);
@@ -666,7 +666,7 @@ while <sBLI> \< (<sCurBlockSize> + <sCurOffset>) as usize
 <sCurOffset> += <sCurBlockSize>;
 >>
 
-FixedSize_Fragmentation_sqf_remaining_encode(p, sAcc,sInternalItem, bRemainingItemsWithinByte, nRemainingItemsVar, sCurOffset, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::= <<
+FixedSize_Fragmentation_sqf_remaining_encode(p, sAcc,sInternalItem, bRemainingItemsWithinByte, nRemainingItemsVar, sCurOffset, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName, bItemCannotFail) ::= <<
 //encode remaining <nRemainingItemsVar> items
 <if(bRemainingItemsWithinByte)>
 pBitStrm.encode_constraint_whole_number(<nRemainingItemsVar>, 0, 0xFF);
@@ -690,11 +690,16 @@ while <sBLI> \< (<sCurOffset> + <nRemainingItemsVar>) as usize
 <endif>
 >>
 
+FixedSize_Fragmentation_sqf_final_zero_encode(sCurOffset, nFixedSize, sRemainingItemsVar, sErrCodeName) ::= <<
+//the final length of a fragmented length whose last fragment holds a multiple of 16K items is a single zero octet (X.691 10.9.3.8.3 NOTE)
+pBitStrm.encode_constraint_whole_number(0, 0, 0xFF);
+>>
+
 FixedSize_Fragmentation_sqf_encode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBitStringType) ::= <<
 <arrsEncodingParts; separator="\n">
 >>
 
-Fragmentation_sqf_encode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSizeMax, nRequiredBitsForUPerEncoding, bIsVariableSize, sErrCodeName, sRemainingItemsVar, sCurBlockSize, sBlockIndex, sCurOffset, sBLJ, sBLI, sLengthTmp, bIsBitStringType, bIsAsciiString) ::= <<
+Fragmentation_sqf_encode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSizeMax, nRequiredBitsForUPerEncoding, bIsVariableSize, sErrCodeName, sRemainingItemsVar, sCurBlockSize, sBlockIndex, sCurOffset, sBLJ, sBLI, sLengthTmp, bIsBitStringType, bIsAsciiString, bItemCannotFail) ::= <<
 <sRemainingItemsVar> = <if(bIsAsciiString)><p>.len() as i64<else><if(bIsVariableSize)><p><sAcc>n_count as i64<else><nSizeMax><endif><endif>;
 <sCurBlockSize> = 0;
 <sCurOffset> = 0;
@@ -757,7 +762,7 @@ while <sBLI> \< (<sCurOffset> + <sRemainingItemsVar>) as usize
 >>
 
 
-FixedSize_Fragmentation_sqf_64K_decode(p, sAcc,sCurOffset, sCurBlockSize, sBlockIndex, nBlocks64K, sInternalItem, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
+FixedSize_Fragmentation_sqf_64K_decode(p, sAcc,sCurOffset, sCurBlockSize, sBlockIndex, nBlocks64K, sInternalItem, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName, bItemCannotFail) ::=<<
 //we expect to decode <nBlocks64K> Blocks and each block must contain 64K elements. Each block must begin with the byte 0xC4
 <sCurBlockSize> = 0x10000;
 <sCurOffset> = 0;
@@ -788,7 +793,7 @@ while ret && <sBlockIndex> \< <nBlocks64K> {
 >>
 
 
-FixedSize_Fragmentation_sqf_small_block_decode(p, sAcc,sInternalItem, nBlockSize, sBlockId, sCurOffset, sCurBlockSize, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
+FixedSize_Fragmentation_sqf_small_block_decode(p, sAcc,sInternalItem, nBlockSize, sBlockId, sCurOffset, sCurBlockSize, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName, bItemCannotFail) ::=<<
 //decode a single Block with <nBlockSize> items
 <sCurBlockSize> = <nBlockSize>;
 let (val, ok) = pBitStrm.decode_constraint_whole_number(0, 0xFF);
@@ -812,7 +817,7 @@ if ret {
 }
 >>
 
-FixedSize_Fragmentation_sqf_remaining_decode(p, sAcc,sInternalItem, bRemainingItemsWithinByte, nRemainingItemsVar, sCurOffset, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::= <<
+FixedSize_Fragmentation_sqf_remaining_decode(p, sAcc,sInternalItem, bRemainingItemsWithinByte, nRemainingItemsVar, sCurOffset, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName, bItemCannotFail) ::= <<
 //decode remaining <nRemainingItemsVar> items
 <if(bRemainingItemsWithinByte)>
 {
@@ -846,6 +851,16 @@ if ret {
 }
 >>
 
+FixedSize_Fragmentation_sqf_final_zero_decode(sCurOffset, nFixedSize, sRemainingItemsVar, sErrCodeName) ::= <<
+//the final length of a fragmented length whose last fragment holds a multiple of 16K items is a single zero octet (X.691 10.9.3.8.3 NOTE)
+{
+    let (val, ok) = pBitStrm.decode_constraint_whole_number(0, 0xFF);
+    <sRemainingItemsVar> = val;
+    ret = ok && (<sRemainingItemsVar> == 0);
+    *pErrCode = if ret { 0 } else { <sErrCodeName> };
+}
+>>
+
 FixedSize_Fragmentation_sqf_decode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBitStringType) ::= <<
 <arrsEncodingParts; separator="\n">
 <if(bIsBitStringType)>
@@ -855,7 +870,7 @@ FixedSize_Fragmentation_sqf_decode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBi
 >>
 
 
-Fragmentation_sqf_decode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSizeMax, nRequiredBitsForUPerEncoding, bIsVariableSize, sErrCodeName, sRemainingItemsVar, sCurBlockSize, sBlockIndex, sCurOffset, sBLJ, sBLI, sLengthTmp, bIsBitStringType, bIsAsciiString) ::= <<
+Fragmentation_sqf_decode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSizeMax, nRequiredBitsForUPerEncoding, bIsVariableSize, sErrCodeName, sRemainingItemsVar, sCurBlockSize, sBlockIndex, sCurOffset, sBLJ, sBLI, sLengthTmp, bIsBitStringType, bIsAsciiString, bItemCannotFail) ::= <<
 <sRemainingItemsVar> = 0;
 <sCurBlockSize> = 0;
 <sCurOffset> = 0;
@@ -867,6 +882,11 @@ ret = ok;
 if ret {
     while ret && (<sRemainingItemsVar> & 0xC0) == 0xC0
     {
+        if <sCurBlockSize> % 0x10000 != 0 {
+            /*a fragment of fewer than 64K items is the last one: only the final length may follow (X.691 10.9.3.8.1)*/
+            *pErrCode = <sErrCodeName>; /*COVERAGE_IGNORE*/
+            return false; /*COVERAGE_IGNORE*/
+        }
         if <sRemainingItemsVar> == 0xC4 {
             <sCurBlockSize> = 0x10000;
         } else if <sRemainingItemsVar> == 0xC3 {
@@ -917,6 +937,8 @@ if ret {
             if ret {
                 <sRemainingItemsVar> |= len2;
                 <sRemainingItemsVar> &= 0x7FFF;
+                /*a length below 128 takes one octet (X.691 10.9.3.6)*/
+                ret = <sRemainingItemsVar> \>= 0x80;
             }
         }
         ret = ret && (<sCurOffset> + <sRemainingItemsVar> \<= <nSizeMax>);
@@ -965,29 +987,28 @@ if ret {
 
 
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode, bCallCannotFail) ::= <<
 /*open new scope to declare some variables*/
 {
     /*encode to a temporary bitstream*/
-    let mut arr: [u8; <sReqBytesForUperEncoding>] = [0; <sReqBytesForUperEncoding>];
+    let mut arr: [u8; <sBufferBytes>] = [0; <sBufferBytes>];
     let mut bit_strm = BitStream::new(&mut arr);
 
     ret = <sFuncName>(&<p>, &mut bit_strm, pErrCode, false);
     if ret {
-        let n_count = if bit_strm.current_bit == 0 { bit_strm.current_byte } else { bit_strm.current_byte + 1 };
-        ret = pBitStrm.octet_string_encode(&arr, n_count as i32, <nMinSize>, <nMaxSize>);
+        /*X.691: general length in octets, contents padded to whole octets (an empty encoding is one zero octet)*/
+        let n_bits = bit_strm.current_byte * 8 + bit_strm.current_bit as i64;
+        ret = pBitStrm.encode_containing_octets(&arr, n_bits, <nMaxOctets>);
     }
 }
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode, bCallCannotFail) ::= <<
 /*open new scope to declare some variables*/
 {
     /*decode to a temporary bitstream*/
-    let mut arr: [u8; <sReqBytesForUperEncoding>] = [0; <sReqBytesForUperEncoding>];
-    let n_count;
-    let (dec_count, ok) = pBitStrm.octet_string_decode(&mut arr, <nMinSize>, <nMaxSize>);
-    n_count = dec_count;
+    let mut arr: [u8; <sBufferBytes>] = [0; <sBufferBytes>];
+    let (n_count, ok) = pBitStrm.decode_containing_octets(&mut arr, <nMaxOctets>);
     ret = ok;
     *pErrCode = if ret { 0 } else { <sErrCode> };
     if ret {
@@ -997,29 +1018,28 @@ octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUp
 }
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode, bCallCannotFail) ::= <<
 /*open new scope to declare some variables*/
 {
     /*encode to a temporary bitstream*/
-    let mut arr: [u8; <sReqBytesForUperEncoding>] = [0; <sReqBytesForUperEncoding>];
+    let mut arr: [u8; <sBufferBytes>] = [0; <sBufferBytes>];
     let mut bit_strm = BitStream::new(&mut arr);
 
     ret = <sFuncName>(&<p>, &mut bit_strm, pErrCode, false);
     if ret {
-        let n_count = bit_strm.current_byte * 8 + bit_strm.current_bit as i64;
-        ret = pBitStrm.bit_string_encode(&arr, n_count as i32, <nMinSize>, <nMaxSize>);
+        /*X.691: general length in bits, contents padded to whole octets (an empty encoding is one zero octet)*/
+        let n_bits = bit_strm.current_byte * 8 + bit_strm.current_bit as i64;
+        ret = pBitStrm.encode_containing_bits(&arr, n_bits, <nMaxBits>);
     }
 }
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode, bCallCannotFail) ::= <<
 /*open new scope to declare some variables*/
 {
     /*decode to a temporary bitstream*/
-    let mut arr: [u8; <sReqBytesForUperEncoding>] = [0; <sReqBytesForUperEncoding>];
-    let n_count;
-    let (dec_count, ok) = pBitStrm.bit_string_decode(&mut arr, <nMinSize>, <nMaxSize>);
-    n_count = dec_count;
+    let mut arr: [u8; <sBufferBytes>] = [0; <sBufferBytes>];
+    let (n_count, ok) = pBitStrm.decode_containing_bits(&mut arr, <nMaxBits>);
     ret = ok;
     *pErrCode = if ret { 0 } else { <sErrCode> };
     if ret {
@@ -1077,6 +1097,7 @@ InternalItem_string_no_alpha_fullRange(p, i) ::= ""
 InternalItem_string_with_alpha_fullRange(p, td/*:FE_StringTypeDefinition*/, i, nCharIndexSize) ::= ""
 str_FixedSize_fullRange(p, i, sInternalItem, nFixedSize, nIntItemMaxSize) ::= ""
 str_VarSize_fullRange(p, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMaxSize) ::= ""
+seqOf_VarSize_fullRange(p, sAcc, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMaxSize, bItemWritesResult) ::= ""
 octet_VarSize_fullRange(p, sAcc, nSizeMin, nSizeInBits) ::= ""
 bitString_VarSize_fullRange(p, sAcc, nSizeMin, nSizeInBits) ::= ""
 
@@ -1095,3 +1116,7 @@ bitString_FixSize_noCheck(p, sAcc, nFixedSize) ::= ""
 /* Coverage step 14c3, C only (ILangGeneric.decodeOneValueWithoutRead; never used here). */
 one_value_assign(p, sValue) ::= ""
 choice_one_alternative(p, sAcc, sChildID, sChildContent) ::= ""
+
+/* Coverage step 14q (Q3 b): Ada only (ILangGeneric.encoderBodySplit). */
+EmitEncodeBodyProcedure(sVarName, sBodyFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, bBsIsUnreferenced, bVarNameIsUnreferenced, bFragmentation) ::= <<
+>>

@@ -265,6 +265,8 @@ type EncodeTemplate =
     | EncSequenceOfFixedSize    // the loop, without the element
     | EncSequenceOfVarSize of VarSizeLengthCheck    // the length and the loop, without the element
     | EncFragmentation          // uPER fragmented SEQUENCE OF / OCTET / BIT STRING / IA5String, without the element
+    | EncContainingUper         // uPER OCTET / BIT STRING (CONTAINING X) after the call of X's encoder: the general length
+                                // and the contents (C: the RTL call returns a flag; Ada: a procedure without result)
     | EncSequenceOfOtherLoop    // ACN external-field / null-terminated / deduced SEQUENCE OF, without the element
     | EncLoopWithoutInvariant   // such a loop whose element writes result: Ada has no loop invariant on result there, so
                                 // gnatprove could not prove an encoder's Post => result.Success after the loop
@@ -276,6 +278,9 @@ type EncodeTemplate =
     | EncContainingDeferredWrapper of DeferredPatchCheck  // --acn-v2: the end of a CONTAINING region around an inline
                                     // body (checks the body's result, then the PatchDet of the region's size: reads
                                     // result first; may fail unless that PatchDet is unchecked, step 14e E3)
+    | EncContainingRegionEnd of DeferredPatchCheck  // --acn-v2: the same end of a CONTAINING region after a body that
+                                    // cannot fail, without the check of its result (coverage step 14q): the padding and
+                                    // the PatchDet of the region's size, which writes the result (C ret = <PatchDet>(...))
     // coverage step 12c: the update of an ACN determinant (AcnDependencies), without the flag it may set
     | EncDeterminantAssign      // size / presence: an assignment
     | EncDeterminantRangeCheck  // IA5String size with a range check (Ada: result.Success := ..., a component write)
@@ -293,6 +298,28 @@ type DeterminantInit =
 type DeterminantFlagModel =
     | FlagEveryDeterminant      // as before 12c
     | FlagMaybeUninitialized    // only where the update may leave the determinant unset (C, Ada)
+
+/// Whether a validation function can return FALSE for a value of its language type (coverage step 11b): a parent does
+/// not call the IsConstraintValid of an AlwaysValid child. Derived from the body the function emits
+/// (DastValidate2.createIsValidFunction), so the two cannot disagree.
+type ValidationOutcome =
+    | AlwaysValid       // no check, or only checks that the language type already enforces
+    | MayBeInvalid
+
+/// Coverage step 14q (Q3 b): the body of a type assignment's encoder, which its Ada _aux calls after the validation.
+type EncodeBodyCall = {
+    bodyFuncName : string           // the name a call uses (the templates append _aux)
+    outcome      : EncodeOutcome    // what a call of the body does
+    validatorKey : string           // encodeCallKey of the IsConstraintValid the _aux calls first
+    modName      : string           // ToC module name of the type assignment: only calls from the same package use the
+                                    // body (it is not declared in the spec)
+}
+
+/// Cycle 15a2: a type assignment that is a reference is constructed twice (DAstConstruction.mapTas); the first
+/// construction only yields the outcomes of the validators it creates.
+type ConstructionPass =
+    | EmittingPass              // the construction whose functions are emitted
+    | ValidatorOutcomePass      // the first construction: its state is discarded, it prints no warning
 
 type State = {
     currErrorCode   : int
@@ -316,13 +343,35 @@ type State = {
     // the parent's join after the call knows whether it can fail. sortTypes creates the referenced type assignments
     // first; a function that is not in the map is EncodeOutcome.unknown.
     encodeCallOutcomes : Map<string, EncodeOutcome>
+    // coverage step 14p: the outcome of every IsConstraintValid function created so far, by its qualified name
+    // (DAstUtilFunctions.encodeCallKey), so that a reference decides from the function it calls, not from the copy of
+    // the referenced type at the site (whose inline children lose the typedef that enforces their ranges, 11b). The
+    // last function created under a name wins: a reference's function is created after its resolved type.
+    validatorOutcomes : Map<string, ValidationOutcome>
+    // coverage step 14q (Q3 b): the encoder bodies of type assignments (Ada: <X>_Encode_Body_aux / <X>_ACN_Encode_Body_aux,
+    // the encoding without the entry validation), by the encodeCallKey of the encoder (<X>_Encode)
+    encodeBodies : Map<string, EncodeBodyCall>
+    // coverage step 14q (Q3 b): the validator a reference site's validation calls (encodeCallKey), by the site's id
+    // (ReferenceToType.AsString); absent when it calls none
+    siteValidatorCalls : Map<string, string>
     // coverage step 12e: NestingScope.checkedSelectors at the end of the last SEQUENCE encoder body generated inline;
     // a parent SEQUENCE clears it before a child and reads it after a mandatory SEQUENCE child (same function)
     acnSequenceCheckedSelectors : (string * string) list
+    // cycle 15a2: which construction of the type assignment runs (DAstConstruction.mapTas)
+    constructionPass : ConstructionPass
+    // cycle 15a2: the encodeCallKey of every IsConstraintValid created since the start of the type assignment's
+    // construction (DastValidate2.createIsValidFunction; reset by DAstConstruction.mapTas)
+    tasValidatorKeys : Set<string>
+    // cycle 15a2: the outcome of the IsConstraintValid functions that the type assignment under construction emits, by
+    // encodeCallKey, taken from a first construction of that type assignment (DAstConstruction.mapTas). A chained alias
+    // creates one validator per construction level under the same name, and the encoder is built (or lent) at an inner
+    // level, before the function finally emitted under the name exists, so validatorOutcomes cannot tell the encoder
+    // what the function it calls does. Map.empty outside a type assignment that is a reference.
+    emittedValidatorOutcomes : Map<string, ValidationOutcome>
 }
 
 
-let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; alphaIndex=0; alphaFuncs=[]; typeIdsSet=Map.empty; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty; functionCalls=Map.empty; encodeCallOutcomes=Map.empty; acnSequenceCheckedSelectors=[]}
+let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; alphaIndex=0; alphaFuncs=[]; typeIdsSet=Map.empty; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty; functionCalls=Map.empty; encodeCallOutcomes=Map.empty; validatorOutcomes=Map.empty; encodeBodies=Map.empty; siteValidatorCalls=Map.empty; acnSequenceCheckedSelectors=[]; emittedValidatorOutcomes=Map.empty; constructionPass=EmittingPass; tasValidatorKeys=Set.empty}
 
 /// Parent context passed from the fold's pre-functions to child callbacks.
 /// Allows seqAcnChildFunc to know about the parent SEQUENCE's deferred children.
@@ -504,6 +553,9 @@ type TestCaseValue =
     | TcvSizeableTypeValue of BigInteger       //length
     | TcvChoiceAlternativePresentWhenInt of BigInteger
     | TcvChoiceAlternativePresentWhenStr of String
+    /// Not in a test value's map: the value of an ACN field none of whose consumers is in the value (q/issues.md Issue
+    /// 123; AcnDependencies). The field takes its default value, so it agrees with any other consumer.
+    | TcvNoConsumer
 
 (*
 In general, an automatic test involves many types (e.g. in sequences, choices etc). It consists of function (initTestCaseFunc) that returns
@@ -520,8 +572,8 @@ type AutomaticTestCase = {
 
 /// Coverage step 14a: the value of an automatic test case with one node of the type's own tree changed (another
 /// automatic test value of that node, or a language toggle). Built together with the value, so it holds for exactly
-/// this value: no lookup by node id. A referenced type is changed only as a whole: another value, or a change at its
-/// root (its own inner nodes are changed by the tests of its type assignment).
+/// this value: no lookup by node id. Variants of a referenced type's inner nodes reach the parents for the Equal tests
+/// only (coverage cycle 15c, AtcVariantUse).
 and AtcVariant = {
     nodeId      : ReferenceToType                       // the node whose value differs
     what        : string                                // the node and the change, for the test's comment and message
@@ -529,11 +581,38 @@ and AtcVariant = {
     // the node and the testCaseTypeIDsMap of the test value written there, when the change is another test value of
     // the node (coverage step 14d: the ACN validity of the changed value); None for a toggle or a SEQUENCE OF element
     replaces    : (ReferenceToType * Map<ReferenceToType, TestCaseValue>) option
-    // coverage step 14e (E6-C): an inner node of a reference site that has node ids of its own (ACN fields or
-    // constraints at the site, 12d), lifted to the parent only for the step-14d tests (the referenced type's own
-    // equality tests change its inner nodes, so test_case_unequal_* keeps a reference as a whole)
-    inconsistencyOnly : bool
+    usedBy      : AtcVariantUse                         // which automatic tests may take the variant
+    change      : AtcVariantChange                      // what the variant changes
 }
+
+/// Coverage cycle 15c (round 7, George: option A): the variants that are new in the Equal tests since 15c are taken
+/// only when they flip a presence flag, which T_Equal compares exactly. Another value may compare equal: a REAL within
+/// Asn1Real_Equal's tolerance (`REAL (0.0 | 1.0 | 1.000001)`), or two automatic values that are the same value
+/// (`data ('01'H | '00000001'B)`).
+and AtcVariantChange =
+    | PresenceFlip      // an OPTIONAL child's next test value (they alternate present / absent), an ALWAYS PRESENT child made absent
+    | ValueChange       // another value, size, alternative, a toggle
+
+/// Coverage cycle 15c: the automatic tests that may take a variant. Monotone: a variant marked EqualityOnly stays
+/// EqualityOnly when it is lifted further (DAstInitialize.ownTreeVariants), and it never has `replaces` (helper
+/// DAstInitialize.equalityOnly), so it never reaches the step-14d tests. Every case but EqualityAndInconsistency is new
+/// in the Equal tests since 15c and is taken there only when every automatic value of the type assignment sets every
+/// component (DastTestCaseCreation.completeTestValues): T_Equal reads every presence flag, and the C / Ada initialisers
+/// leave some unset (an OPTIONAL NULL, a child without automatic values), which the tests of before 15c already read.
+and AtcVariantUse =
+    // test_case_unequal_* (T_Equal must return FALSE) and, when `replaces` is Some, test_case_inconsistent_* (14d)
+    | EqualityAndInconsistency
+    // test_case_inconsistent_* (14d), and test_case_unequal_* on complete values: an inner node of an --acn-v2
+    // reference site with ids of its own (14e E6-C; before 15c the step-14d tests only)
+    | InconsistencyAndEquality
+    // test_case_unequal_* only: an inner node of a reference whose ids the parent's test values do not key (an inner
+    // variant of a reference lifted to its parent)
+    | EqualityOnly
+    // test_case_unequal_* only, and T_Equal(v2, v2) must return TRUE for the changed value: an ALWAYS PRESENT child
+    // made absent (a value that must not be encoded). The reflexive check gives the MC/DC pair of `ret && exist.x`
+    // (ret TRUE, x absent on both sides), which no other test value has. Lifted through inline parents only: through
+    // a reference it becomes EqualityOnly (the referenced type's own test has the pair in the same function)
+    | EqualityOnlyAndReflexive
 
 type InitProcedure0 = {
     funcName:string;
@@ -585,9 +664,6 @@ type AnonymousVariable = {
     valKind             : Asn1ValueKind        // the value
 }
 
-/// Whether a validation function can return FALSE for a value of its language type (coverage step 11b): a parent does
-/// not call the IsConstraintValid of an AlwaysValid child. Derived from the body the function emits
-/// (DastValidate2.createIsValidFunction), so the two cannot disagree.
 /// Whether the typedef of a constrained type already enforces its range (coverage step 11b): Ada declares ranged
 /// subtypes (INTEGER, the Length of SIZE-constrained types) and enumerations, so a value of the type cannot violate
 /// those constraints and IsConstraintValid does not check them at run time; C, Scala, Python and Rust typedefs
@@ -613,10 +689,6 @@ type EqualChildPart =
     | EqualChildOmitted of string * (string * LocalVariable list)
                                     // a comment instead of a comparison that cannot find a difference (writes no ret);
                                     // the comparison is kept for a SEQUENCE that would compare nothing else
-
-type ValidationOutcome =
-    | AlwaysValid       // no check, or only checks that the language type already enforces
-    | MayBeInvalid
 
 /// Whether a type's encoder calls its IsConstraintValid when that function cannot fail (coverage step 12a): C and
 /// Ada skip the call and its check (a comment says why); Scala, Python and Rust keep it.
@@ -830,6 +902,9 @@ type AcnFunction = {
     isTestVaseValid     : AutomaticTestCase -> bool
     userDefinedFunctions : UserDefinedFunction list //a list of user defined functions prototypes used in this function body. Emitted at the begining of the source file
     icdTas              : IcdTypeAss option (* always present in Encode, always None in Decode *)
+    // the error code of the type's own failures (q/issues.md Issue 108: the guard a SEQUENCE emits around a component
+    // that is present when a BOOLEAN field is TRUE fails with the component's code)
+    errCode             : ErrorCode
 }
 
 type EncodeDecodeTestFunc = {

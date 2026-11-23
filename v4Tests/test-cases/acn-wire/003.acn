@@ -1,0 +1,163 @@
+WIRE DEFINITIONS ::= BEGIN
+    MyPDU [] {
+        flg BOOLEAN [],
+        flg2 BOOLEAN [],
+        header [present-when flg] { a [], n INTEGER [size 8, encoding pos-int], m INTEGER [size 8, encoding pos-int] },
+        data [present-when flg2, size header.n],
+        str  [present-when flg2, size header.m]
+    }
+    ChPDU [] {
+        flg BOOLEAN [],
+        flg2 BOOLEAN [],
+        header [present-when flg] { a [], k Kind [encoding pos-int, size 1] },
+        ch [determinant header.k, present-when flg2]
+    }
+    PwPDU [] {
+        flg BOOLEAN [],
+        flg2 BOOLEAN [],
+        header [present-when flg] { a [], t INTEGER [size 2, encoding pos-int] },
+        cp [present-when flg2] { p1 [present-when header.t==1], p2 [present-when header.t==2] }
+    }
+    PwStrPDU [] {
+        flg BOOLEAN [],
+        flg2 BOOLEAN [],
+        header [present-when flg] { a [], s Tag [] },
+        cs [present-when flg2] { s1 [present-when header.s=="ab"], s2 [present-when header.s=="cd"] }
+    }
+    Payload3 <BOOLEAN:b> [] { y [present-when b] }
+    BoolPDU [] {
+        flg BOOLEAN [],
+        g BOOLEAN [],
+        header [present-when flg] { a [], more BOOLEAN [] },
+        x [present-when header.more],
+        p <header.more> [present-when g],
+        tail []
+    }
+    SqPDU [] {
+        [] {
+            f BOOLEAN [],
+            h [present-when f] { a [], more BOOLEAN [], n INTEGER [size 4, encoding pos-int] },
+            x [present-when h.more, size h.n],
+            tail []
+        }
+    }
+    ElemPDU [] {
+        elems [] {
+          [] {
+            e1 BOOLEAN [],
+            e2 BOOLEAN [],
+            hh [present-when e1] { a [], n INTEGER [size 4, encoding pos-int] },
+            dd [present-when e2, size hh.n]
+          }
+        }
+    }
+    NestPDU [] {
+        f1 BOOLEAN [],
+        f3 BOOLEAN [],
+        h1 [present-when f1] { f2 BOOLEAN [], a [], h2 [present-when f2] { b [], n INTEGER [size 4, encoding pos-int] } },
+        d [present-when f3, size h1.h2.n]
+    }
+    Nest2PDU [] {
+        f1 BOOLEAN [],
+        h1 [present-when f1] { a [], h2 [present-when f1] { b [], n INTEGER [size 4, encoding pos-int] } },
+        d [present-when f1, size h1.h2.n]
+    }
+    AltPDU [] {
+        flg BOOLEAN [],
+        header [present-when flg] { a [], n INTEGER [size 4, encoding pos-int] },
+        alt [] { o1 [size header.n], o2 [] }
+    }
+    ContPDU [] {
+        flg BOOLEAN [],
+        flg2 BOOLEAN [],
+        header [present-when flg] { a [], cl INTEGER [size 4, encoding pos-int] },
+        cont [present-when flg2, size header.cl]
+    }
+    Payload <INTEGER:len> [] { d [size len] }
+    ArgPDU [] {
+        flg BOOLEAN [],
+        flg2 BOOLEAN [],
+        header [present-when flg] { a [], n INTEGER [size 4, encoding pos-int] },
+        pl <header.n> [present-when flg2],
+        tail []
+    }
+    Payload2 <INTEGER:len> [] { has BOOLEAN [], d [present-when has, size len], e [] }
+    OptArgPDU [] {
+        flg BOOLEAN [],
+        flg2 BOOLEAN [],
+        header [present-when flg] { a [], n INTEGER [size 4, encoding pos-int] },
+        pl <header.n> [present-when flg2],
+        tail []
+    }
+    ColPDU [] {
+        f1 BOOLEAN [],
+        a [present-when f1] { g1 BOOLEAN [], b-h [present-when g1] { more BOOLEAN [], c [] } },
+        a-b [] { g2 BOOLEAN [], g3 BOOLEAN [], h [present-when g2] { more BOOLEAN [], c [] }, w [present-when g3] { z [present-when h.more] } },
+        y [present-when a.b-h.more],
+        tail []
+    }
+    Col2PDU [] {
+        a [] { b-h [] { more BOOLEAN [], c [] } },
+        header [present-when a.b-h.more] { n INTEGER [size 8, encoding pos-int], c [] },
+        a-b [] { h [] { more BOOLEAN [], c [] } },
+        w [present-when a-b.h.more],
+        data [present-when a.b-h.more, size header.n],
+        tail []
+    }
+    AbsPDU [] {
+        flg2 BOOLEAN [],
+        header [] { a [], n INTEGER [size 4, encoding pos-int] },
+        data [present-when flg2, size header.n]
+    }
+    RefKc <INTEGER:k> [] { one [present-when k==0], two [present-when k==1] }
+    RefChPDU [] {
+        flg BOOLEAN [],
+        flg2 BOOLEAN [],
+        header [present-when flg] { a [], k INTEGER [size 2, encoding pos-int] },
+        ch <header.k> [present-when flg2]
+    }
+    DefPDU [] {
+        f BOOLEAN [],
+        header [present-when f] { a [], n INTEGER [size 4, encoding pos-int] },
+        d [present-when f, size header.n],
+        p <f> [],
+        tail []
+    }
+    AlPDU [] {
+        flg BOOLEAN [],
+        g BOOLEAN [],
+        header [present-when flg] { a [], n INTEGER [size 4, encoding pos-int] },
+        d [present-when g, size header.n, align-to-next byte],
+        tail []
+    }
+    StrOnlyPDU [] {
+        flg BOOLEAN [],
+        flg2 BOOLEAN [],
+        header [present-when flg] { a [], m INTEGER [size 4, encoding pos-int] },
+        str [present-when flg2, size header.m]
+    }
+    RefKe <Kind2:k> [determinant k] { e1 [], e2 [] }
+    EnChPDU [] {
+        flg BOOLEAN [],
+        flg2 BOOLEAN [],
+        header [present-when flg] { a [], k Kind2 [encoding pos-int, size 1] },
+        ch <header.k> [present-when flg2]
+    }
+    MyOct <INTEGER:len> [size len]
+    MySq <INTEGER:len> [size len]
+    AlRefPDU [] {
+        flg BOOLEAN [],
+        g1 BOOLEAN [],
+        g2 BOOLEAN [],
+        g3 BOOLEAN [],
+        header [present-when flg] { a [], k Kind2 [encoding pos-int, size 1], n INTEGER [size 4, encoding pos-int] },
+        ch <header.k> [present-when g1, align-to-next byte],
+        d <header.n> [present-when g2, align-to-next byte],
+        arr <header.n> [present-when g3, align-to-next word]
+    }
+    SamePDU [] {
+        flg BOOLEAN [],
+        header [present-when flg] { a [], n INTEGER [size 4, encoding pos-int] },
+        data [present-when flg, size header.n]
+    }
+END

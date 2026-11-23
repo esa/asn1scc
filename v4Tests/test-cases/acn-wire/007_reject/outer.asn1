@@ -1,0 +1,4 @@
+-- a field in an outer element consumed inline in an inner SEQUENCE OF (legacy and --acn-v2 reject)
+REJ DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    S ::= SEQUENCE (SIZE(1..2)) OF SEQUENCE { a INTEGER(0..7), items SEQUENCE (SIZE(0..2)) OF OCTET STRING (SIZE(0..15)) }
+END

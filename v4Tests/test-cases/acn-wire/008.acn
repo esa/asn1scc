@@ -1,0 +1,11 @@
+ACN-WIRE-ALIGNED DEFINITIONS ::= BEGIN
+    T []
+    Box []
+    Q6 [] { y [], f [align-to-next byte], z [] }
+    Fx []
+    BoxF []
+    QF [] { y [], f [align-to-next byte], g [align-to-next byte], z [] }
+    MyInt12 [encoding pos-int, size 12]
+    TLVList [size deduced]
+    MyMsg [] { a [], b [align-to-next byte] }
+END

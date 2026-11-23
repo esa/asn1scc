@@ -1,0 +1,6 @@
+-- constant consumers in the elements (SIZE(3)): accepted by legacy and --acn-v2 (both encode them right)
+REJ DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    P ::= SEQUENCE { items SEQUENCE (SIZE(0..2)) OF OCTET STRING (SIZE(3)) }
+    T ::= SEQUENCE { a INTEGER(0..255), pl P, tail INTEGER(0..255) }
+    S ::= SEQUENCE { a INTEGER(0..255), items SEQUENCE (SIZE(0..2)) OF OCTET STRING (SIZE(3)), tail INTEGER(0..255) }
+END

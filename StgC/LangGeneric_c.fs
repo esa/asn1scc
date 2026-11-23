@@ -479,6 +479,12 @@ type LangGeneric_c() =
                 "BitStream_DecodeOctetString"
                 "BitStream_EncodeBitString"
                 "BitStream_DecodeBitString"
+                "BitStream_EncodeGeneralLength"
+                "BitStream_DecodeGeneralLength"
+                "BitStream_EncodeContainingOctets"
+                "BitStream_DecodeContainingOctets"
+                "BitStream_EncodeContainingBits"
+                "BitStream_DecodeContainingBits"
                 "BitStream_checkBitPatternPresent"
                 "BitStream_ReadBits_nullterminated"
                 "Acn_AlignToNextByte"
@@ -874,8 +880,12 @@ type LangGeneric_c() =
 
         override this.computeDeferredFallbackValue (acnType: Asn1AcnAst.AcnInsertedType) (uperMinOffset: BigInteger) : string =
             match acnType with
-            | Asn1AcnAst.AcnInsertedType.AcnInteger _ ->
-                if uperMinOffset > 0I then uperMinOffset.ToString() else "0"
+            | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
+                // the wire value of the field's default (Issues 123 / 142): the default less the offset of a uPER-encoded
+                // field (PatchDet writes its argument as is). A range holding no value >= 0 keeps 0 (legacy would write the
+                // bound): not reachable, no ACN size / present-when consumer takes a negative value (i108a review)
+                let wire = Asn1AcnAstUtilFunctions.acnIntegerDefaultValue ai - uperMinOffset
+                if wire >= 0I then wire.ToString() else "0"
             | Asn1AcnAst.AcnInsertedType.AcnBoolean _ -> "0"
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
                 // The wire value of the first item (PatchDet writes its argument as is);
@@ -892,6 +902,10 @@ type LangGeneric_c() =
         override _.atcEmitsInvalidValueTests = true
         // An encoder does not call an IsConstraintValid that cannot fail (coverage step 12a).
         override _.encoderValidationModel = EncodersSkipAlwaysValid
+        // coverage step 14q (Q6 b): the determinant of several sources from one that is always set
+        override _.multiAcnUpdateFromAlwaysSetSource = true
+        // Issue 105: the determinant of several sources takes its default value when no source is set
+        override _.multiAcnUpdateDefaultWhenNoSource = true
         // What the C encode templates write to ret (coverage step 12b; checked by step12/tools/gate12b.py).
         override _.encodeTemplateOutcome t =
             match t with
@@ -908,6 +922,8 @@ type LangGeneric_c() =
             // the variable-size ones keep the check (the length is checked first; left open, step 12 Q6)
             | EncOctetStringVarSize _
             | EncOctetStringNoLength                            -> {canFail = true; writes = AlwaysWrites; callee = None}
+            // ret = BitStream_EncodeContainingOctets / Bits(...) (coverage step 14p)
+            | EncContainingUper                                 -> {canFail = true; writes = AlwaysWrites; callee = None}
             | EncPresentWhenCheck | EncDeferredPatch PatchChecked
             | EncChoiceAbsentArm                                -> {canFail = true; writes = AlwaysWrites; callee = None}
             // (void)<PatchDet>(...): the only / first patch of each field (13b / 14d), ret not written
@@ -916,6 +932,9 @@ type LangGeneric_c() =
             | EncContainingDeferredWrapper PatchChecked         -> {canFail = true; writes = ReadsFirst; callee = None}
             // ... the same with the only / first patch of the size field, which cannot fail (step 14e, E3)
             | EncContainingDeferredWrapper PatchUnchecked       -> {canFail = false; writes = ReadsFirst; callee = None}
+            // ret = <PatchDet>(...) after a body that cannot fail, checked or not (coverage step 14q)
+            | EncContainingRegionEnd PatchChecked               -> {canFail = true; writes = AlwaysWrites; callee = None}
+            | EncContainingRegionEnd PatchUnchecked             -> {canFail = false; writes = AlwaysWrites; callee = None}
             // the defensive default arm (ret = FALSE) of an unchecked encode of an invalid selector (coverage step 12d)
             | EncChoiceDefaultArm                               -> {canFail = true; writes = SometimesWrites; callee = None}
             // determinant updates (coverage step 12c): assignments (the C size update has no range check)
@@ -948,6 +967,12 @@ type LangGeneric_c() =
         // coverage step 14c3: no read of a one-value type, no `if (ret)` after a decode part that writes no ret
         override _.decodeOneValueWithoutRead = true
         override _.decodeJoinsByWrites = true
+        // Issue 106: fail at the dependent when the holder of its determinant field is absent
+        override _.decodeFailsWhenHolderAbsent = true
+        override _.encodeFailsWhenHolderAbsent = true
+        // Issue 107: the AcnInsertedFieldRef of the RTL tracks whether its field is in the stream
+        override _.deferredRefTracksStream = true
+        override _.stringLocalInit _ = "\"\""
 
         override this.getDirInfo (target:Targets option) rootDir =
             {rootDir = rootDir; srcDir=rootDir;asn1rtlDir=rootDir;boardsDir=rootDir}

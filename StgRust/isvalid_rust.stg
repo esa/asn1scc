@@ -57,6 +57,10 @@ if ret {
 }
 >>
 
+/* Coverage step 14q: used by C and Ada only (the templates of this backend keep their checks). */
+EncodeNoCheckNote(soCallee, bAssumed, bWritesResult) ::= <<
+>>
+
 
 
 

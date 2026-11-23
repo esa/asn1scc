@@ -1,0 +1,15 @@
+-- Issue 138: the contents of a CONTAINING are encoded by the referenced type assignment's own functions, also when it
+-- shares the typedef of another type: an alias with an ACN specification of its own (`Sub ::= T`, `Sub [size 24]`)
+-- and a WITH COMPONENTS subtype (`WSub ::= TR (WITH COMPONENTS ...)`, which takes no ACN specification from TR: its
+-- r has the default 16 bits, not TR's 32) share `typedef T` / `typedef TR`. Before, the call and its buffer were
+-- named after the typedef (T, TR) while the region's sizes were the referenced type's: --acn-v2 wrote T's encoding
+-- into Sub's region (Q12 05 05 80 instead of 00 00 05 00 00 05 80), legacy rejected the sites. Legacy and --acn-v2.
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 014_wire_test.c / 014_wire_test.adb.
+ACN-WIRE-CALLEE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    T     ::= INTEGER (0..255)
+    Sub   ::= T
+    Q12   ::= SEQUENCE { f OCTET STRING (CONTAINING Sub), g BIT STRING (CONTAINING Sub), z BOOLEAN }
+    TR    ::= SEQUENCE { r INTEGER (0..65535), k INTEGER (0..7) }
+    WSub  ::= TR (WITH COMPONENTS {..., k (0..3)})
+    Q9    ::= SEQUENCE { f OCTET STRING (CONTAINING WSub), z BOOLEAN }
+END

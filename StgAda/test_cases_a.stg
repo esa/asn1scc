@@ -149,7 +149,7 @@ Codec_DecodeSweep_helper(nBudget) ::= <<
 Codec_DecodeSweep_adapter(sModName, sFuncName, sDecFuncName, soEncFuncName, sTasName, sAmber, soIsValidFunc) ::= <<
 >>
 
-Codec_DecodeSweep(sModName, sFuncName, sDecFuncName, soEncFuncName, sTasName, sEnc, sAmber, sVal, soIsValidFunc, bTruncate, bDeduced, nBudget) ::= <<
+Codec_DecodeSweep(sModName, sFuncName, sDecFuncName, soEncFuncName, sTasName, sEnc, sAmber, sVal, soIsValidFunc, bTruncate, bDeduced, nBudget, soEqualFunc, sInitFunc, nLastOffset, nExtraBytes, arrnCorruptAt) ::= <<
 --  Decode corrupted copies of the encoded value
 if ret.Success then
     declare
@@ -157,7 +157,9 @@ if ret.Success then
         begin
             <sModName>.<sDecFuncName>(decodedPDU, bs, Res);
             Valid := <if(soIsValidFunc)>not Res.Success or else <sModName>.<soIsValidFunc>(decodedPDU).Success<else>True<endif>;
-        end Sweep_Decode;
+        end Sweep_Decode;<if(arrnCorruptAt)><\n>        type Byte_Offsets is array (Positive range \<\>) of Natural;
+        Fragmentation_Header_Bytes : constant Byte_Offsets := (<arrnCorruptAt:{p|<i> => <p>}; separator=", ">);
+        Encoded_End : constant Natural := stream.Current_Bit_Pos;<endif>
     begin
 <if(bDeduced)>
         --  'size deduced' PDU: the view ends at the encoded length (coverage step 14i)
@@ -166,9 +168,58 @@ if ret.Success then
         if result.Success then
             adaasn1rtl.encoding.test_cases_aux.Decode_View_End_Sweep(stream, "<sFuncName>", Sweep_Decode'Access, result);
         end if;
-        stream.End_Bit_Pos := stream.Size_In_Bytes * 8;<\n><endif>        ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_DECODE_CORRUPTED, Success => result.Success, ErrorCode => result.ErrorCode);
+        stream.End_Bit_Pos := stream.Size_In_Bytes * 8;<\n><endif><if(arrnCorruptAt)>
+        --  the fragmentation headers of the fixed-size encoding and the byte after each (offsets from 0), deep inside the
+        --  value where the positions above do not reach (coverage cycle 15d): set to 16#00#, 16#FF# and with each bit
+        --  flipped; the decoder must fail with an error code or return a valid value
+        for Offset of Fragmentation_Header_Bytes loop
+            for k in 1 .. 10 loop
+                exit when not result.Success;
+                declare
+                    Saved   : constant <rtlModuleName()>.Asn1Byte := stream.Buffer (Offset + 1);
+                    Pattern : constant <rtlModuleName()>.Asn1Byte :=
+                      (case k is
+                          when 1      => 16#00#,
+                          when 2      => 16#FF#,
+                          when others => Saved xor Interfaces.Shift_Left (1, k - 3));
+                    Res     : <rtlModuleName()>.ASN1_RESULT;
+                    Valid   : Boolean;
+                begin
+                    if Pattern /= Saved then
+                        stream.Buffer (Offset + 1) := Pattern;
+                        Sweep_Decode (stream, Res, Valid);
+                        stream.Buffer (Offset + 1) := Saved;
+                        if (Res.Success and then not Valid) or else (not Res.Success and then Res.ErrorCode = 0) then
+                            result := (Success => False, ErrorCode => 7);
+                        end if;
+                    end if;
+                end;
+            end loop;
+        end loop;
+        stream.Current_Bit_Pos := Encoded_End;<\n><endif>        ret := <rtlModuleName()>.TEST_CASE_RESULT'(Step => <rtlModuleName()>.TC_DECODE_CORRUPTED, Success => result.Success, ErrorCode => result.ErrorCode);
     end;
-end if;
+end if;<if(soEncFuncName)><if(soEqualFunc)><\n>--  Encode / decode the value from bit offsets 1 .. <nLastOffset> (coverage step 15b): encoder and decoder _aux
+--  keep the position; the stream holds <nExtraBytes> byte(s) more than the stream above (the type's maximum); the decoder must stop where
+--  the encoder stopped; the packages are named from Standard: a module can have the name of a local below (an ASN.1
+--  module name can map to any Ada identifier, so no local name is safe), which would hide its package here
+if ret.Success then
+    declare
+        procedure Offset_Encode (bs : in out adaasn1rtl.encoding.Bitstream; Res : out <rtlModuleName()>.ASN1_RESULT) is
+        begin
+            Standard.<sModName>.<soEncFuncName>_aux(<sVal>, bs, Res);
+        end Offset_Encode;
+        procedure Offset_Decode (bs : in out adaasn1rtl.encoding.Bitstream; Res : out <rtlModuleName()>.ASN1_RESULT) is
+        begin
+            decodedPDU := Standard.<sModName>.<sInitFunc>;
+            Standard.<sModName>.<sDecFuncName>_aux(decodedPDU, bs, Res);
+        end Offset_Decode;
+        function Offset_Valid return Boolean is (<if(soIsValidFunc)>Standard.<sModName>.<soIsValidFunc>(decodedPDU).Success<else>True<endif>);
+        function Offset_Same return Boolean is (Standard.<sModName>.<soEqualFunc>(<sVal>, decodedPDU));
+    begin
+        adaasn1rtl.encoding.test_cases_aux.Offset_Round_Trips("<sFuncName>", stream.Size_In_Bytes + <nExtraBytes>, <nLastOffset>, <if(bDeduced)>True<else>False<endif>, Offset_Encode'Access, Offset_Decode'Access, Offset_Valid'Access, Offset_Same'Access, ret);
+        result := (Success => ret.Success, ErrorCode => ret.ErrorCode);
+    end;
+end if;<endif><endif>
 >>
 
 Codec_write_bitstreamToFile() ::= <<
@@ -546,7 +597,7 @@ decodingCaseKind(sBody, sIdentifier) ::= <<
 
 /* Coverage step 11c (T2): a value just outside one constraint (only values the Ada type can hold). IsConstraintValid
    and every checked encoder must fail with the error code of that constraint. */
-emitConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, sErrCodeModule, sErrCode, arrsEncodeChecks) ::= <<
+emitConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, sErrCodeModule, sErrCode, arrsEncodeChecks, soEqualFunc) ::= <<
 procedure <sFuncName> ( totalErrors : in out Integer)
 is
     procedure Put_Line (Item : String) renames Ada.Text_IO.Put_Line;
@@ -612,6 +663,15 @@ constraintViolationUncheckedEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmb
 /* Coverage step 11c: character nIndex (0-based) of a string set to the code nChar (0 ends the string there). */
 constraintViolationStringChar(sStr, nIndex, nChar) ::= <<
 <sStr>(<nIndex> + 1) := Character'Val (<nChar>);
+>>
+
+/* Coverage step 14q: characters 1 .. nCount of a string set to one character (a string longer than its maximum size). */
+constraintViolationStringFill(sStr, nCount, nChar) ::= <<
+<sStr>(1 .. <nCount>) := (others => Character'Val (<nChar>));
+>>
+
+/* Coverage step 14q: C only (no infinity in this backend's REAL types / no constraint-violation tests). */
+constraintViolationRealInfinity(sVal, bNegative) ::= <<
 >>
 
 /* Coverage step 14f: a constraint violation that needs a selection inside a SEQUENCE OF element, set in every element
@@ -680,7 +740,7 @@ end if;
 
 /* Coverage step 14a: T_Equal with two different values (AutomaticTestCase.variants): the test value with one node
    changed must compare unequal, both ways. */
-emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks) ::= <<
+emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks, bReflexiveChecks) ::= <<
 procedure <sFuncName> ( totalErrors : in out Integer)
 is
     procedure Put_Line (Item : String) renames Ada.Text_IO.Put_Line;
@@ -713,7 +773,7 @@ begin
     if ok then
         Put_Line ("Test case '<sFuncName>' succeeded");
     else
-        Put_Line ("Test case '<sFuncName>' failed: <sEqualFunc> returned True for two different values.");
+        Put_Line ("Test case '<sFuncName>' failed: <sEqualFunc> returned True for two different values<if(bReflexiveChecks)> or False for a value and itself<endif>.");
         Put_Line ("========================================");
         totalErrors := totalErrors + 1;
     end if;
@@ -727,6 +787,15 @@ tc_data2 := tc_data;
 if <sModName>.<sEqualFunc> (tc_data, tc_data2) or else <sModName>.<sEqualFunc> (tc_data2, tc_data) then
     ok := False;
     Put_Line ("  equal for: <sWhat>");
+end if;
+>>
+
+/* Coverage cycle 15c (P4): after equalityVariantCheck, the changed value (tc_data2) compared with itself must be equal:
+   the MC/DC pair of `ret and then val1.Exist.x = 1` with x absent on both sides (an ALWAYS PRESENT child made absent). */
+equalityReflexiveCheck(sModName, sAmber, sWhat, sEqualFunc) ::= <<
+if not <sModName>.<sEqualFunc> (tc_data2, tc_data2) then
+    ok := False;
+    Put_Line ("  <sEqualFunc> returned False for a value and itself: <sWhat>");
 end if;
 >>
 

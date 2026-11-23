@@ -1,0 +1,20 @@
+-- OCTET / BIT STRING (CONTAINING X) whose contents have a fixed uPER size but a variable ACN size (null-terminated BCD
+-- integer), and contents with a variable uPER size but a fixed ACN size (CHOICE alternatives of equal ACN size). The ACN
+-- length of the contents follows their ACN sizes: before, the BIT STRING of X had no length, so the legacy decoder read
+-- the fixed minimum and failed.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    X   ::= SEQUENCE { a INTEGER (0..255) }
+    Ch  ::= CHOICE { p INTEGER (0..3), q INTEGER (0..255) }
+
+    MyPDU ::= SEQUENCE {
+        b  BIT STRING (CONTAINING X),
+        o  OCTET STRING (CONTAINING X),
+        cb BIT STRING (CONTAINING Ch),
+        co OCTET STRING (CONTAINING Ch),
+        z  BOOLEAN
+    }
+
+END
+
+--TCLS     X[] { a [encoding BCD, size null-terminated] } Ch[] { p [encoding pos-int, size 8], q [] } MyPDU[]

@@ -22,6 +22,7 @@ type CliArguments =
     | [<Unique>]                            List
     | [<Unique>]                            Json of file:string
     | [<Unique>]                            Timings of file:string
+    | [<Unique>]                            Ada_Assertions
 with
     interface IArgParserTemplate with
         member this.Usage =
@@ -40,7 +41,8 @@ with
             | Spark _            -> "only | exclude: keep only / drop the Ada test cases of files marked RUN_SPARK"
             | List               -> "print the selected test cases (one id per line) without running them"
             | Json _             -> "write the result and duration of every test case to this JSON file"
-            | Timings _          -> "JSON {\"l=<lang> ws=<n> slim=<b> ig=<b> acnv2=<b>\": {<id>: seconds}}: --shard balances the shards by these durations (longest first) and the cases run longest first"
+            | Timings _          -> "JSON {\"l=<lang> ws=<n> slim=<b> ig=<b> acnv2=<b>[ gnata=true]\": {<id>: seconds}}: --shard balances the shards by these durations (longest first) and the cases run longest first"
+            | Ada_Assertions     -> "Ada only: build the automatic tests with -gnata (Pre / Post / Assert / Assume / Loop_Invariant checked at run time) and -gnatwn; no line gate, no SPARK proof. KNOWN_FAILURE mode gnata"
 
 let checkArguement arg =
     match arg with
@@ -59,6 +61,7 @@ let checkArguement arg =
     | List               -> ()
     | Json _             -> ()
     | Timings _          -> ()
+    | Ada_Assertions     -> ()
 
 let StrJoin str listItems =
     if Seq.isEmpty listItems then 
@@ -150,10 +153,11 @@ let extraFlags (t:Test_Case) (lang:string) =
     | false -> ""
 
 // KNOWN_FAILURE(<lang>[,<mode>...]) on the first line (same rules in runTests.py): the test cases of the file are
-// known to fail in the configurations it names; every mode must match (legacy, acn-v2, slim, ig, ws4, ws8). The
+// known to fail in the configurations it names; every mode must match (legacy, acn-v2, slim, ig, ws4, ws8, gnata). The
 // cases still run: a failure is reported as a known failure (counted OK, listed in the CI summary), a pass fails the
 // case, so that the marker is removed once the defect is fixed. Returns the matching marker text.
-let knownFailureMarker (t:Test_Case) (lang:string, ws:int, slim:bool, enableIG:bool, enableAcnV2:bool) =
+// gnata: only in a --ada-assertions run (a marker without it also matches that run).
+let knownFailureMarker (t:Test_Case) (lang:string, ws:int, slim:bool, enableIG:bool, enableAcnV2:bool) (assertions:bool) =
     let markers = File.ReadLines t.asn1 |> Seq.tryHead |> Option.defaultValue ""
     let modeMatches (m:string) =
         match m with
@@ -163,7 +167,8 @@ let knownFailureMarker (t:Test_Case) (lang:string, ws:int, slim:bool, enableIG:b
         | "ig"     -> enableIG
         | "ws4"    -> ws = 4
         | "ws8"    -> ws = 8
-        | _        -> failwithf "%s: unknown mode '%s' in KNOWN_FAILURE (legacy, acn-v2, slim, ig, ws4, ws8)" t.asn1 m
+        | "gnata"  -> assertions
+        | _        -> failwithf "%s: unknown mode '%s' in KNOWN_FAILURE (legacy, acn-v2, slim, ig, ws4, ws8, gnata)" t.asn1 m
     System.Text.RegularExpressions.Regex.Matches(markers, @"KNOWN_FAILURE\(([^)]*)\)")
     |> Seq.tryPick (fun m ->
         match m.Groups[1].Value.Split(',') |> Array.map (fun s -> s.Trim()) |> Array.filter (fun s -> s <> "") |> List.ofArray with
@@ -222,7 +227,53 @@ let sparkProblems (workDir:string) (sparkLog:string list) : string list =
                 | n   -> [sprintf "unproved checks: %s (%s)" n summary]
     messages @ unproved
 
-let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim:bool, enableIG:bool, enableAcnV2:bool) =
+/// --ada-assertions (q/issues.md Issue 115): the gprbuild calls of the generated Makefile get -gnata (contracts and
+/// assertions checked at run time) and -gnatwn after their own compiler switches, i.e. after -gnatwe -gnatwa (a later
+/// warning switch wins): with assertions enabled GNAT warns about the assertion code itself ("condition is always
+/// True", "check will fail at run time" on the loop invariant of an empty loop), which -gnatwe would make errors.
+/// What GNAT prints for a failed Pre / Post / Assert / Assume / Loop_Invariant (the exception name, also in the
+/// harness's sweep reports): a KNOWN_FAILURE(...,gnata) marker accepts only a failure that shows it.
+let assertionFailureText = "ADA.ASSERTIONS.ASSERTION_ERROR"
+
+/// The tag a failure message carries when the test executable ran and failed a run-time contract
+/// (--ada-assertions); a KNOWN_FAILURE(...,gnata) marker accepts only such a failure.
+let runTimeAssertionTag = "[--ada-assertions: the test executable ran and failed a run-time contract]"
+
+/// --ada-assertions: the run of the test executable writes its output (stdout and stderr) to this file in its
+/// directory, then prints it (addAdaAssertionSwitches): the file exists only when the build succeeded and the
+/// executable ran, and it holds nothing of the build.
+let gnataRunLog = "mainprogram-gnata.log"
+
+/// The run-time contract failures the test executable printed (lines with "raised ADA.ASSERTIONS.ASSERTION_ERROR":
+/// an exception out of a test, or a sweep report); [] when it did not run.
+let runTimeAssertionLines (runLog:string) =
+    match File.Exists runLog with
+    | false -> []
+    | true  ->
+        File.ReadAllLines runLog
+        |> Array.filter (fun l -> l.Contains ("raised " + assertionFailureText))
+        |> Array.truncate 5 |> Array.toList
+
+let addAdaAssertionSwitches (workDir:string) : string option =
+    let makefile = Path.Combine(workDir, "Makefile")
+    let switches = " -gnata -gnatwn"
+    // the run of the tests: its own output file, so that a known failure can be told from a build failure
+    let runLine = System.Text.RegularExpressions.Regex(@"^\t(cd \S+ ; \./mainprogram)\s*$")
+    let rewrite (l:string) =
+        match l.StartsWith "\tgprbuild" && l.Contains " -cargs ", runLine.Match l with
+        | false, m when m.Success ->
+            sprintf "\t%s > %s 2>&1 ; rc=$$? ; cat %s ; exit $$rc" m.Groups[1].Value gnataRunLog gnataRunLog
+        | false, _ -> l
+        | true, _  ->
+            match l.IndexOf " -largs" with
+            | -1 -> l + switches
+            | i  -> l.Substring(0, i) + switches + l.Substring i
+    try
+        File.WriteAllLines(makefile, File.ReadAllLines makefile |> Array.map rewrite)
+        None
+    with ex -> Some (sprintf "--ada-assertions: cannot add the switches to %s: %s" makefile ex.Message)
+
+let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim:bool, enableIG:bool, enableAcnV2:bool) (assertions:bool) =
     let wsa = if ws=8 then "-fpWordSize 8 -wordSize 8" else "-fpWordSize 4 -wordSize 4"
     let slima = if slim then "-slim" else ""
     let ig = if enableIG then "-ig" else ""
@@ -250,13 +301,14 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
     let invokeMake (t:Test_Case) : TestCaseResult=
         let asn1Lines = File.ReadAllLines t.asn1
         let bNoAtc = asn1Lines |> Seq.exists(fun l -> l.Contains "NO_AUTOMATIC_TEST_CASES")
-        if lang = "python" then
+        if res.ExitCode <> 0 then
+            // a directive that must pass needs a compiler that succeeded (as runTests.py checks), checked before any
+            // build / test step of any language: files written before a late failure (e.g. an export step) would
+            // otherwise build and pass; with --ada-assertions they also lack the -gnata switches (i115c review)
+            markError "asn1scc failed (exit code %d)\n%s\n%s" res.ExitCode res.StdErr cmd
+        elif lang = "python" then
             if bNoAtc then
-                // Just verify asn1scc succeeded (res from outer scope, not yet shadowed)
-                if res.ExitCode <> 0 then
-                    markError "asn1scc failed.\n%s\n%s" res.StdErr cmd
-                else
-                    markSuccess "Python code generation OK (no automatic test cases)"
+                markSuccess "Python code generation OK (no automatic test cases)"
             else
                 let pytestRes = executeBashScript workDir "uvx --python 3.11 pytest"
                 if pytestRes.ExitCode <> 0 && pytestRes.ExitCode <> 5 then
@@ -266,8 +318,11 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
         else
             // NOCOVERAGE (first line, as in runTests.py) skips only the line gate on the .gcov file:
             // the coverage target still runs the automatic tests, and RUN_SPARK still proves.
-            let bCheckLineCoverage = not ((asn1Lines |> Seq.tryHead |> Option.defaultValue "").Contains "NOCOVERAGE")
-            let bRunSpark = (lang = "Ada") && asn1Lines |> Seq.exists(fun l -> l.Contains "RUN_SPARK")
+            // --ada-assertions: no line gate (with -gnata the raise branch of every Pre / Post line counts as a line
+            // that never ran) and no SPARK proof (both belong to the normal legs)
+            let bCheckLineCoverage = not assertions && not ((asn1Lines |> Seq.tryHead |> Option.defaultValue "").Contains "NOCOVERAGE")
+            // the RUN_SPARK proof runs in the legs without -slim (the Ada -slim leg compiles and runs the tests only)
+            let bRunSpark = (lang = "Ada") && not slim && not assertions && asn1Lines |> Seq.exists(fun l -> l.Contains "RUN_SPARK")
             let ada_target =
                 if ws = 4 then
                     "obj_msp430"
@@ -278,9 +333,22 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
             let covLinesToIgnore = ["}";"default:";"break;";"end";"declare"] |> Set.ofList
 
             let makeCommand = sprintf "make%s" (if bNoAtc then "" else " coverage")
-            let res = executeBashScript workDir makeCommand
+            let res =
+                match (if assertions then addAdaAssertionSwitches workDir else None) with
+                | Some err -> { ExitCode = -1; StdOut = ""; StdErr = err }
+                | None     -> executeBashScript workDir makeCommand
             if res.ExitCode <> 0 then
-                markError "Error code is %d\n%s\n%s" res.ExitCode res.StdErr cmd
+                // --ada-assertions: the run-time contract failures the tests printed (a sweep reports them on stdout,
+                // an exception out of a test goes to stderr); a gnata KNOWN_FAILURE marker needs one of them
+                let assertionLines =
+                    match assertions with
+                    | false -> []
+                    | true  -> runTimeAssertionLines (Path.Combine(workDir, ada_target, "debug", gnataRunLog))
+                let evidence =
+                    match assertionLines with
+                    | [] -> ""
+                    | ls -> runTimeAssertionTag + "\n" + String.concat "\n" ls + "\n"
+                markError "Error code is %d\n%s%s\n%s" res.ExitCode evidence res.StdErr cmd
             else
                 if bNoAtc then
                     markSuccess "Make OK"
@@ -300,7 +368,11 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
                             Seq.filter(fun l -> not (l.Contains "COVERAGE_IGNORE")) |>
                             Seq.filter(fun l -> not (covLinesToIgnore.Contains (restoreSrcLine l))) |>
                             Seq.toList
-                    let coverageText = if bCheckLineCoverage then "Code Coverage OK" else "tests OK (NOCOVERAGE: no line gate)"
+                    let coverageText =
+                        match bCheckLineCoverage, assertions with
+                        | true, _      -> "Code Coverage OK"
+                        | false, true  -> "tests OK with -gnata (no line gate)"
+                        | false, false -> "tests OK (NOCOVERAGE: no line gate)"
                     if not (List.isEmpty covLines) then
                         markError "Code Coverage Failed. See %s\n%s\n%s" coverageFile covLines.Head cmd
                     else
@@ -327,8 +399,11 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
         | ErrorLine   (a,c,errMsg)      -> checkErrMsg errMsg res
         | SuccessFile (a,c)             -> invokeMake t
         | ErrorFile   (a,c,errMsg)      -> checkErrMsg errMsg res
-    match knownFailureMarker t (lang, ws, slim, enableIG, enableAcnV2), ret with
+    match knownFailureMarker t (lang, ws, slim, enableIG, enableAcnV2) assertions, ret with
     | None, _                   -> ret
+    // a gnata marker stands for a run-time contract failure: any other failure (generation, build) is a failure
+    | Some k, Failed msg when k.Contains "gnata" && not (msg.Contains runTimeAssertionTag) ->
+        markError "%s expects a run-time assertion failure (%s while the tests run), but the case failed otherwise:\n%s" k assertionFailureText msg
     | Some k, Failed msg        -> KnownFailure (sprintf "%s: %s" k msg)
     | Some k, Success _         -> markError "%s, but the test case passed: remove the marker\n%s" k cmd
     | Some _, KnownFailure _    -> ret
@@ -347,12 +422,12 @@ let dirSafeDelete dirName =
     dirSafeDelete_aux 5 dirName
 
         
-let executeTestCaseSync asn1sccdll workDir (i:int) (t:Test_Case) (lang:string, ws:int, slim:bool, enableIG:bool, enableAcnV2:bool) =
+let executeTestCaseSync asn1sccdll workDir (assertions:bool) (i:int) (t:Test_Case) (lang:string, ws:int, slim:bool, enableIG:bool, enableAcnV2:bool) =
     let rndDir = Path.GetRandomFileName()
     let newWorkDir = Path.Combine(workDir, rndDir)
     Directory.CreateDirectory newWorkDir |> ignore
     let watch = Diagnostics.Stopwatch.StartNew()
-    let ret = executeTestCase asn1sccdll newWorkDir t (lang, ws, slim, enableIG, enableAcnV2)
+    let ret = executeTestCase asn1sccdll newWorkDir t (lang, ws, slim, enableIG, enableAcnV2) assertions
     let seconds = watch.Elapsed.TotalSeconds
     match ret with
     | Success _      -> dirSafeDelete newWorkDir
@@ -382,6 +457,7 @@ type CaseResult = {
     slim : bool
     ig : bool
     acnv2 : bool
+    gnata : bool
     ok : bool
     seconds : float
     workDir : string
@@ -441,13 +517,17 @@ let main0 argv =
             | true  -> [parserResults.GetResult(<@ Slim @>)]
         let enableIG = parserResults.Contains <@ Init_Globals @>
         let enableAcnV2 = parserResults.Contains <@ Acn_V2 @>
+        let assertions = parserResults.Contains <@ Ada_Assertions @>
+        if assertions && languages <> ["Ada"] then failwith "--ada-assertions needs -l Ada"
+        if assertions && parserResults.TryGetResult(<@ Spark @>) = Some "only" then
+            failwith "--ada-assertions runs no SPARK proof: it cannot be combined with --spark only"
 
         let asn1sccModes =
             seq {
                 for l in languages do
                     for ws in [word_sizes] do
                         for sm in slim_modes do
-                            if not (l <> "c" && sm) then   // slim mode is C-only
+                            if not sm || l = "c" || l = "Ada" then   // slim mode: C and Ada
                                 yield (l,ws,sm, enableIG, enableAcnV2)
             } |> Seq.toList
         let isSparkFile (t:Test_Case) = File.ReadLines t.asn1 |> Seq.exists (fun l -> l.Contains "RUN_SPARK")
@@ -466,7 +546,7 @@ let main0 argv =
                 | _ -> failwithf "--shard expects k/N with 1 <= k <= N, got %s" s
         // measured duration of each case of this configuration (unknown cases: the median of the known ones)
         let legKey (lang:string, ws:int, slim:bool, ig:bool, acnV2:bool) =
-            sprintf "l=%s ws=%d slim=%b ig=%b acnv2=%b" lang ws slim ig acnV2
+            sprintf "l=%s ws=%d slim=%b ig=%b acnv2=%b%s" lang ws slim ig acnV2 (if assertions then " gnata=true" else "")
         let timings : Map<string, Map<string, float>> =
             match parserResults.TryGetResult(<@ Timings @>) with
             | None       -> Map.empty
@@ -519,7 +599,7 @@ let main0 argv =
         match parserResults.Contains <@ List @> with
         | true ->
             results0 |> List.iter (fun (_, itc, (lang, ws, slim, ig, acnV2)) ->
-                printfn "%s\tl=%s\tws=%d\tslim=%b\tig=%b\tacnv2=%b" itc.id lang ws slim ig acnV2)
+                printfn "%s\tl=%s\tws=%d\tslim=%b\tig=%b\tacnv2=%b%s" itc.id lang ws slim ig acnV2 (if assertions then "\tgnata=true" else ""))
             0
         | false ->
 
@@ -528,10 +608,10 @@ let main0 argv =
             match threadPoolSize > 1 with 
             | true ->
                 executionOrder |>
-                executeParallel threadPoolSize (fun (i,itc, m) -> executeTestCaseSync asn1sccdll workDir i itc.tc m) |>
+                executeParallel threadPoolSize (fun (i,itc, m) -> executeTestCaseSync asn1sccdll workDir assertions i itc.tc m) |>
                 List.sortBy (fun (i, _, _, _, _, _, _, _) -> i)
             | false  ->
-                results0 |> List.map (fun (i,itc, m) -> executeTestCaseSync asn1sccdll workDir i itc.tc m) |>
+                results0 |> List.map (fun (i,itc, m) -> executeTestCaseSync asn1sccdll workDir assertions i itc.tc m) |>
                 List.sortBy (fun (i, _, _, _, _, _, _, _) -> i)
 
 
@@ -566,7 +646,7 @@ let main0 argv =
                         | Success _        -> true, ""
                         | KnownFailure m   -> true, m
                         | Failed m         -> false, m
-                    { id = ids[i]; lang = lang; ws = ws; slim = slim; ig = enableIG; acnv2 = enableAcnV2
+                    { id = ids[i]; lang = lang; ws = ws; slim = slim; ig = enableIG; acnv2 = enableAcnV2; gnata = assertions
                       ok = ok; seconds = Math.Round(seconds, 1); workDir = (if ok then "" else Path.Combine(workDir, rndDir))
                       message = message })
             File.WriteAllText(fname, Text.Json.JsonSerializer.Serialize(entries, Text.Json.JsonSerializerOptions(WriteIndented = true)))

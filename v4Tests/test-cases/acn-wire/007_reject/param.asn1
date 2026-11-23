@@ -1,0 +1,5 @@
+-- a parameter consumed inside the elements of the parameterized type (legacy rejects, --acn-v2 accepts)
+REJ DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    P ::= SEQUENCE { items SEQUENCE (SIZE(0..2)) OF SEQUENCE { o OCTET STRING (SIZE(0..15)) } }
+    T ::= SEQUENCE { a INTEGER(0..255), pl P, tail INTEGER(0..255) }
+END

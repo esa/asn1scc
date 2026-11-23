@@ -1,0 +1,9 @@
+-- --acn-v2, C only: one ACN field passed twice to a parameterized type (`payload <n, n>`), one formal consumed directly,
+-- the other inside the elements of a SEQUENCE OF (q/issues.md Issues 124 / 126). Every patch of the field is checked:
+-- an element that disagrees with the direct consumer fails with ERR_ACN_DET_CONSISTENCY_MISMATCH (before: TRUE with
+-- 203, Ada a false pragma Assume). Ada does not compile the shape under -gnatwe (Issue 126), so only C runs it.
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 007_aliased_test.c.
+ALIASED DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    P ::= SEQUENCE { d OCTET STRING (SIZE(0..15)), items SEQUENCE (SIZE(0..2)) OF OCTET STRING (SIZE(0..15)) }
+    T ::= SEQUENCE { payload P }
+END
