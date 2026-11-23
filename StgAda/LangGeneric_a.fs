@@ -526,6 +526,8 @@ type LangGeneric_a() =
             match t with
             | EncRtlWritesOnly | EncPresenceBits | EncEnumerated | EncOctetStringFixedSize | EncOctetStringNoLength | EncBitStringFixedSize
             | EncStringFixedSize | EncSequenceOfFixedSize                           -> EncodeOutcome.noWrite
+            // Issue 184: result := (False, <code>) for a valid extension addition above the signed maximum
+            | EncIntExtensionAboveSignedMax                                         -> {canFail = true; writes = SometimesWrites; callee = None}
             // BitStream_EncodeContainingOctets / Bits: procedures without result (coverage step 14p)
             | EncContainingUper                                                     -> EncodeOutcome.noWrite
             // the fragmentation writes no result; since coverage step 14p its fixed-size blocks are joined by what an element

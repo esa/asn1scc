@@ -37,10 +37,10 @@ type IUper_rust() =
             uper_rust.IntSemiConstraintPos  p nMin sErrCode soType codec
         override this.IntNoneRequired  (p:string) (sConst:string) (sErrCode:string) (soType:string option) (codec:Codec) =
             uper_rust.IntNoneRequired  p sConst sErrCode soType codec
-        override this.IntRootExt  (p:string) (nMin:BigInteger) (sRootBaseConstraint:string) (sIntBody:string) (sErrCode:string) (codec:Codec) =
-            uper_rust.IntRootExt  p nMin sRootBaseConstraint sIntBody sErrCode codec
-        override this.IntRootExt2  (p:string) (nMin:BigInteger) (sRootBaseConstraint:string) (sIntBody:string) (sErrCode:string) (sType:string) (codec:Codec) =
-            uper_rust.IntRootExt2  p nMin sRootBaseConstraint sIntBody sErrCode sType codec
+        override this.IntRootExt  (p:string) (nMin:BigInteger) (sRootBaseConstraint:string) (sIntBody:string) (sErrCode:string) (bExtViaTemp:bool) (soExtMin:string option) (soExtMax:string option) (sExtType:string) (codec:Codec) =
+            uper_rust.IntRootExt  p nMin sRootBaseConstraint sIntBody sErrCode bExtViaTemp soExtMin soExtMax sExtType codec
+        override this.IntRootExt2  (p:string) (nMin:BigInteger) (sRootBaseConstraint:string) (sIntBody:string) (sErrCode:string) (sType:string) (bExtViaTemp:bool) (soExtMin:string option) (soExtMax:string option) (sExtType:string) (soExtUnsignedMax:string option) (codec:Codec) =
+            uper_rust.IntRootExt2  p nMin sRootBaseConstraint sIntBody sErrCode sType bExtViaTemp soExtMin soExtMax sExtType soExtUnsignedMax codec
         override this.Boolean  (p:string) (sErrCode:string) (sType:string) (codec:Codec) =
             uper_rust.Boolean  p sErrCode sType codec
         override this.Real  (p:string) (sSuffix:string) (sErrCode:string) (sType:string) (codec:Codec) =

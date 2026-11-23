@@ -299,6 +299,88 @@ for mode in "" "--acn-v2"; do
     done
 done
 
+# Serially applied constraints with an extension marker (Issue 184; X.680 46.8 / G.4.2.3, X.691 9.3.18): the PER root
+# is the intersection of the roots of all serial constraints, the type is extensible only if the last constraint is.
+# Before, an extensible base narrowed where used (B10E ::= INTEGER (0..10, ...); N5 ::= B10E (MIN..5)) kept the
+# extension bit; an extensible last constraint after another one (INTEGER (0..10) (MIN..5, ...)) encoded an
+# unconstrained number past the buffer (C) and did not compile (Ada); SIZE(1..6, ...) (SIZE(MIN..2)) was "infinite size".
+# Valid values byte-exact (the X.691 model; strings = pycrate), uPER and the default ACN encoding, REQUIRED_BITS pinned,
+# rejected rows with the code and bit position (C = Ada), the encoder failure of an unsigned addition above the signed
+# maximum; legacy and --acn-v2; C with -DNDEBUG and ASan / UBSan into buffers of exactly REQUIRED_BYTES, also at
+# -wordSize 4 (without the WS8-ONLY lines); Ada plain, -gnata, -gnatp with ASan, and the msp430 package (-wordSize 4)
+# under -gnatwa -gnatwe.
+for mode in "" "--acn-v2"; do
+    for ws in 8 4; do
+        out=$work/uper009$mode-ws$ws
+        mkdir -p "$out/in"
+        grep -v WS8-ONLY "$root/test-cases/uper-wire/009.asn1" > "$out/in/009.asn1"
+        if [ $ws = 8 ]; then
+            cp "$root/test-cases/uper-wire/009.asn1" "$out/in/009.asn1"
+        fi
+        run_compiler -c -uPER -ACN -equal $mode -wordSize $ws -fpWordSize $ws -o "$out" "$out/in/009.asn1" \
+            "$root/test-cases/uper-wire/009.acn"
+        cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -DNDEBUG -fsanitize=address,undefined \
+            -fno-sanitize-recover=undefined -I "$out" "$out"/*.c "$root/test-cases/uper-wire/009_wire_test.c" \
+            -o "$out/wire_test"
+        "$out/wire_test"
+        echo "uper-wire 009 $mode ws$ws OK"
+    done
+    for gnata in "" "-gnata" "-gnatp"; do
+        out=$work/uper009ada$mode$gnata
+        mkdir "$out"
+        run_compiler -Ada -uPER -ACN -equal $mode -o "$out" "$root/test-cases/uper-wire/009.asn1" \
+            "$root/test-cases/uper-wire/009.acn"
+        cp "$root/test-cases/uper-wire/009_wire_test.adb" "$out/wire_test.adb"
+        if [ "$gnata" = -gnatp ]; then
+            (cd "$out" && gnatmake -q -gnat2012 -gnatp -g wire_test.adb -cargs -fsanitize=address \
+                -largs -fsanitize=address && if [ "$(ulimit -s)" = unlimited ]; then ulimit -s 524288; fi && ./wire_test)
+        else
+            (cd "$out" && gnatmake -q -gnat2012 $gnata wire_test.adb && ./wire_test)
+        fi
+        if [ "$gnata" = "" ]; then
+            mkdir "$out/w"
+            (cd "$out/w" && gcc -c -gnat2012 -gnatwa -gnatwe -I.. ../uper_wire_ext.adb)
+        fi
+        echo "uper-wire 009 (Ada) $mode $gnata OK"
+    done
+    out=$work/uper009ada$mode-msp430
+    mkdir -p "$out/in"
+    grep -v WS8-ONLY "$root/test-cases/uper-wire/009.asn1" > "$out/in/009.asn1"
+    run_compiler -Ada -uPER -ACN -equal $mode -t msp430 -wordSize 4 -fpWordSize 4 -o "$out" "$out/in/009.asn1" \
+        "$root/test-cases/uper-wire/009.acn"
+    (cd "$out" && gcc -c -gnat2012 -gnatwa -gnatwe -Iasn1rtl -Isrc -Iboards/msp430 src/uper_wire_ext.adb)
+    echo "uper-wire 009 (Ada msp430) $mode OK"
+done
+
+# An extension marker left in the SIZE of the last serial constraint (Issue 184, S1): the size encoders have no
+# extension bit, so it is rejected (before, it was ignored after an earlier SIZE: the length of SIZE(1..6), no extension
+# bit; a single extensible SIZE was "infinite size"). An extensible FROM stays legal (not PER-visible, X.691 9.3.10).
+out=$work/uper009reject
+mkdir "$out"
+printf '%s\n' 'R DEFINITIONS AUTOMATIC TAGS ::= BEGIN' '    T ::= OCTET STRING (SIZE(1..6)) (SIZE(1..2, ...))' 'END' \
+    > "$out/r1.asn1"
+printf '%s\n' 'R DEFINITIONS AUTOMATIC TAGS ::= BEGIN' '    T0 ::= IA5String (SIZE(1..6))' \
+    '    T ::= T0 (SIZE(MIN..2, ...))' 'END' > "$out/r2.asn1"
+printf '%s\n' 'R DEFINITIONS AUTOMATIC TAGS ::= BEGIN' '    T ::= SEQUENCE (SIZE(1..6, ...)) OF BOOLEAN' 'END' \
+    > "$out/r3.asn1"
+printf '%s\n' 'R DEFINITIONS AUTOMATIC TAGS ::= BEGIN' '    T ::= IA5String (SIZE(1..4)) (FROM("AB"), ...)' \
+    '    U ::= IA5String (SIZE(1..4)) (FROM("AB", ...))' 'END' > "$out/ok.asn1"
+for r in r1:2:10 r2:3:10 r3:2:10; do
+    f=${r%%:*}
+    loc=${r#*:}
+    if run_compiler -c -uPER -o "$out" "$out/$f.asn1" > "$out/$f.log" 2>&1; then
+        echo "uper-wire 009: $f.asn1 was accepted"
+        exit 1
+    fi
+    grep -qx "$out/$f.asn1:$loc: error: Extensible SIZE constraints are not supported" "$out/$f.log" || {
+        cat "$out/$f.log"
+        echo "uper-wire 009: $f.asn1 not rejected with the expected message"
+        exit 1
+    }
+done
+run_compiler -c -uPER -o "$out" "$out/ok.asn1"
+echo "uper-wire 009 rejections OK"
+
 # ACN INTEGER as ASCII digits with a terminator: a value outside the range of the type, or a digit string beyond the
 # integer type, is an error code (Ada used to raise Constraint_Error, and accepted digit strings that wrapped around);
 # C, Ada x86 and Ada msp430 (-gnata: the RTL contracts are checked too).

@@ -227,13 +227,13 @@ ret = true;
 
 
 /*case: A:: = INTEGER (5..40,...) */
-IntRootExt_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
+IntRootExt_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, bExtViaTemp, soExtMin, soExtMax, sExtType) ::=<<
 pBitStrm.append_bit_zero(); /* write extension bit*/
 <sIntBody>
 >>
 
 
-IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
+IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, bExtViaTemp, soExtMin, soExtMax, sExtType) ::=<<
 {
     let mut ext_bit: bool = false;
     /* read extension bit*/
@@ -253,7 +253,7 @@ IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
 
 
 /*case: A:: = INTEGER (5..40,..., 60..70) */
-IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::=<<
+IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType, bExtViaTemp, soExtMin, soExtMax, sExtType, soExtUnsignedMax) ::=<<
 if <sRootBaseConstraint> {
     pBitStrm.append_bit_zero(); /* write extension bit, value within root range, so ext bit is zero */
     <sIntBody>
@@ -264,7 +264,7 @@ if <sRootBaseConstraint> {
 }
 >>
 
-IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::= "<IntRootExt_decode(p=p, nMin=nMin, sRootBaseConstraint = sRootBaseConstraint, sIntBody = sIntBody, sErrCode=sErrCode)>"
+IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType, bExtViaTemp, soExtMin, soExtMax, sExtType, soExtUnsignedMax) ::= "<IntRootExt_decode(p=p, nMin=nMin, sRootBaseConstraint = sRootBaseConstraint, sIntBody = sIntBody, sErrCode=sErrCode, bExtViaTemp=bExtViaTemp, soExtMin=soExtMin, soExtMax=soExtMax, sExtType=sExtType)>"
 
 
 /* INTETEGER END*/

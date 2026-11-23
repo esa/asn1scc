@@ -218,13 +218,13 @@ ret = TRUE;
 
 
 /*case: A:: = INTEGER (5..40,...) */
-IntRootExt_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
+IntRootExt_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, bExtViaTemp, soExtMin, soExtMax, sExtType) ::=<<
 BitStream_AppendBitZero(pBitStrm); /* write extension bit*/
 <sIntBody>
 >>
 
 
-IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
+IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, bExtViaTemp, soExtMin, soExtMax, sExtType) ::=<<
 {
 	flag extBit=0;
 	/* read extension bit*/
@@ -234,7 +234,7 @@ IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
 	    if (extBit==0) { /* ext bit is zero ==> value is expected with root range*/
 		    <sIntBody>
 	    } else {
-		    <IntUnconstrained_decode(p=p, sErrCode = sErrCode, bCoverageIgnore="true")>
+		    <IntRootExt_extension_decode(p=p, sErrCode=sErrCode, bExtViaTemp=bExtViaTemp, soExtMin=soExtMin, soExtMax=soExtMax)>
 	    }
     }
 }
@@ -242,18 +242,44 @@ IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
 
 
 /*case: A:: = INTEGER (5..40,..., 60..70) */
-IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::=<<
+IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType, bExtViaTemp, soExtMin, soExtMax, sExtType, soExtUnsignedMax) ::=<<
 if (<sRootBaseConstraint>) {
     BitStream_AppendBitZero(pBitStrm); /* write extension bit, value within root range, so ext bit is zero */
     <sIntBody>
 } else {
     /* value is not within root range, so ext bit is one and value is encoded as unconstrained */
-    BitStream_AppendBitOne(pBitStrm);
-    <IntUnconstrained_encode(p=p, sErrCode=sErrCode, soType=sType)>
+    <IntRootExt2_extension_encode(p=p, sErrCode=sErrCode, sType=sType, soExtUnsignedMax=soExtUnsignedMax)>
 };
 >>
 
-IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::= "<IntRootExt_decode(p=p, nMin=nMin, sRootBaseConstraint = sRootBaseConstraint, sIntBody = sIntBody, sErrCode=sErrCode)>"
+/* Issue 184: the extension path of IntRootExt_decode. bExtViaTemp: the typedef does not hold every signed value
+   (unsigned, or a range from the constraints before the extensible one), so the unconstrained whole number goes through
+   a signed temporary that must lie within the typedef's range (each bound only when it is tighter than the signed
+   range); else master's text. */
+IntRootExt_extension_decode(p, sErrCode, bExtViaTemp, soExtMin, soExtMax) /*nogen*/::= <<
+<if(bExtViaTemp)>asn1SccSint extVal = 0;
+ret = BitStream_DecodeUnConstraintWholeNumber(pBitStrm, &extVal);   /*COVERAGE_IGNORE*/
+ret = ret<if(soExtMin)> && extVal >= <soExtMin><endif><if(soExtMax)> && extVal \<= <soExtMax><endif>;   /*COVERAGE_IGNORE*/
+*pErrCode = ret ? 0 : <sErrCode>;   /*COVERAGE_IGNORE*/
+*<p> = extVal;   /*COVERAGE_IGNORE*/<else><IntUnconstrained_decode(p=p, sErrCode = sErrCode, bCoverageIgnore="true")><endif>
+>>
+
+/* Issue 184 (R1): the extension path of IntRootExt2_encode. soExtUnsignedMax: an unsigned typedef whose extension
+   additions can be above the signed maximum; the unconstrained whole number RTL call is signed, so such a value fails
+   with the type's error code; else master's text. */
+IntRootExt2_extension_encode(p, sErrCode, sType, soExtUnsignedMax) /*nogen*/::= <<
+<if(soExtUnsignedMax)>if (<p> \<= <soExtUnsignedMax>) {
+    BitStream_AppendBitOne(pBitStrm);
+    <IntUnconstrained_encode(p=p, sErrCode=sErrCode, soType=sType)>
+} else {
+    /* an extension addition above the signed maximum: the unconstrained whole number encoder takes a signed value */
+    ret = FALSE;
+    *pErrCode = <sErrCode>;
+}<else>BitStream_AppendBitOne(pBitStrm);
+<IntUnconstrained_encode(p=p, sErrCode=sErrCode, soType=sType)><endif>
+>>
+
+IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType, bExtViaTemp, soExtMin, soExtMax, sExtType, soExtUnsignedMax) ::= "<IntRootExt_decode(p=p, nMin=nMin, sRootBaseConstraint = sRootBaseConstraint, sIntBody = sIntBody, sErrCode=sErrCode, bExtViaTemp=bExtViaTemp, soExtMin=soExtMin, soExtMax=soExtMax, sExtType=sExtType)>"
 
 
 /* INTETEGER END*/

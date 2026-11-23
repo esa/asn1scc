@@ -40,6 +40,16 @@ let getIntTypeConstraintUperRange (cons:IntegerTypeConstraint list) (l:SrcLoc) =
         getRangeTypeConstraintUperRange c (fun x -> x + 1I) (fun x -> x - 1I) l |> fst
     cons |> List.fold(fun s c -> uperIntersection s (getIntTypeConstraintUperRange c l) l) Full
 
+/// Issue 184 (X.680 46.8, X.691 9.3.18): the extension root of an INTEGER's serially applied constraints. Only the last
+/// constraint can still carry an extension marker (AcnCreateFromAntlr.serialRoots); its root is intersected with the
+/// constraints before it, so MIN / MAX in it are the parent's bounds.
+let getIntTypeConstraintRootRange (cons:IntegerTypeConstraint list) (l:SrcLoc) =
+    let root (c:IntegerTypeConstraint) =
+        match c with
+        | RangeRootConstraint (_, a) | RangeRootConstraint2 (_, a, _) -> a
+        | _                                                           -> c
+    getIntTypeConstraintUperRange (cons |> List.map root) l
+
 let getRealTypeConstraintUperRange (cons:RealTypeConstraint list) (l:SrcLoc) =
     let getRealTypeConstraintUperRange (c:RealTypeConstraint) (l:SrcLoc) =
         getRangeTypeConstraintUperRange c id id  l |> fst
@@ -271,6 +281,27 @@ let getRequiredBitsForIntUperEncoding  (integerSizeInBytes:BigInteger) uperRange
     match uperRange with
     | Concrete(a,b)                   -> (GetNumberOfBitsForNonNegativeInteger(b-a)), (GetNumberOfBitsForNonNegativeInteger(b-a))
     | Full | PosInf(_) |  NegInf(_)   -> 8I, (integerSizeInBytes+1I)*8I
+
+/// uPER min / max size in bits of an INTEGER with the constraints cons (after AcnCreateFromAntlr.serialRoots) and the
+/// range uperRange. Issue 184: an extensible INTEGER (X.691 12.1) writes the extension bit and a value of the effective
+/// root (every constraint's root intersected), or the extension bit and an unconstrained whole number (10.8) for an
+/// extension addition, which may be shorter than the root (an addition 0 of a 20-bit root). The decoder reads an
+/// unconstrained value after any extension bit 1 (the Ada RTL UPER_Dec_UnConstraintWholeNumber requires
+/// integerSizeInBytes + 1 octets left), so the maximum is that of an unconstrained INTEGER, also without additions.
+let getIntUperSizeInBits (integerSizeInBytes:BigInteger) (cons:IntegerTypeConstraint list) (uperRange:BigIntegerUperRange) (l:SrcLoc) =
+    let extensible =
+        cons |> List.tryPick (fun c ->
+            match c with
+            | RangeRootConstraint _     -> Some false
+            | RangeRootConstraint2 _    -> Some true
+            | _                         -> None)
+    match extensible with
+    | None              -> getRequiredBitsForIntUperEncoding integerSizeInBytes uperRange
+    | Some hasAdditions ->
+        let rootMin, rootMax = getRequiredBitsForIntUperEncoding integerSizeInBytes (getIntTypeConstraintRootRange cons l)
+        let unconstrainedMin, unconstrainedMax = getRequiredBitsForIntUperEncoding integerSizeInBytes Full
+        let mn = if hasAdditions then min rootMin unconstrainedMin else rootMin
+        1I + mn, 1I + max rootMax unconstrainedMax
 
 /// Size in bits of an X.691 10.9 general length determinant of n units: one octet below 128, two below 16K; from 16K,
 /// parts of 16K .. 64K units with one header octet each, then the length of the last part (one or two octets). The

@@ -252,6 +252,9 @@ type DeferredPatchCheck =
 
 type EncodeTemplate =
     | EncRtlWritesOnly          // INTEGER, REAL, BOOLEAN, NULL, OBJECT IDENTIFIER, TIME (uPER): RTL writes
+    | EncIntExtensionAboveSignedMax // Issue 184: an extensible INTEGER of an unsigned typedef whose extension additions can
+                                    // be above the signed maximum: such a value fails with the type's error code (the
+                                    // unconstrained whole number RTL call is signed); the other values: RTL writes
     | EncPresenceBits           // the presence bits of a SEQUENCE
     | EncEnumerated             // the value -> index / encoded value map
     | EncOctetStringFixedSize

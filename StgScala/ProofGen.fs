@@ -63,6 +63,10 @@ let intSizeExpr (int: Asn1AcnAst.Integer) (obj: Expr): Expr =
     | Full ->
       plus [longlit 8I; Mult (longlit 8I, getLengthForEncodingSigned obj)]
     | NegInf _ | PosInf _ -> getBitCountUnsigned obj
+    // Issue 184: an extensible INTEGER with a concrete range writes the extension bit and its root, or an unconstrained
+    // value (uPER.getIntUperSizeInBits): min <> max; use the max, as for the variable-size ACN encodings below
+    | Concrete _ when int.cons |> List.exists (fun c -> match c with RangeRootConstraint _ | RangeRootConstraint2 _ -> true | _ -> false) ->
+      longlit int.acnMaxSizeInBits
     | Concrete _ ->
       assert (int.acnMinSizeInBits = int.acnMaxSizeInBits)
       assert (int.uperMinSizeInBits = int.uperMinSizeInBits)

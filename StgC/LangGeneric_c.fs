@@ -915,6 +915,8 @@ type LangGeneric_c() =
             | EncSequenceOfOtherLoop | EncLoopWithoutInvariant  -> EncodeOutcome.noWrite
             // the defensive default arm (ret = FALSE) of an unchecked encode of an invalid value (coverage step 12d)
             | EncEnumerated                                     -> {canFail = true; writes = SometimesWrites; callee = None}
+            // Issue 184: ret = FALSE for a valid extension addition above the signed maximum
+            | EncIntExtensionAboveSignedMax                     -> {canFail = true; writes = SometimesWrites; callee = None}
             // BitStream_EncodeOctetString_no_length returns FALSE only for a stream shorter than the encoder's
             // REQUIRED_BYTES, which every other C write assumes too (they only assert; BitStream_AppendBits ignores
             // this result): the fixed-size call is not checked (coverage step 14i, C1)

@@ -1,0 +1,74 @@
+-- Issue 184: serially applied constraints with an extension marker (X.680 46.8, 48.5, G.4.2.3; X.691 9.3.18, B.2.3.2):
+-- the PER root is the intersection of the roots of all serial constraints (MIN / MAX = the parent's bounds); the type
+-- is extensible only if the LAST constraint is; the extension markers and additions of the earlier ones are discarded.
+-- Rows = the X.691 model (extension bit, root of the effective root, an addition as 1 + an unconstrained whole number,
+-- X.691 12.1 / 10.8), root bits = pycrate 0.8.1 of the equivalent non-extensible types. Before the fix:
+--   (a) broken: an extensible last constraint after a non-extensible one (IE1 ... IC1) encoded an addition / the root
+--       as an unconstrained number past an exact REQUIRED_BYTES buffer (C, ASan) and the decoder rejected its own
+--       stream; Ada did not compile; IE2 / IE19 raised Constraint_Error in Ada on an extension-bit-1 stream; SE2 / AF3
+--       were "infinite size"; AP and the ACN field n of SQL were rejected (pos-int on a "signed" type); the ACN field
+--       n L2 [] of SQD did not compile (C -Werror, Ada).
+--   (b) self-consistent but not X.691 (master bytes in the harness comments): an extensible base narrowed where used
+--       (N5, SC, IE2, ...) kept the extension bit; two extensible constraints took the first root (IE4, IR3, IR5);
+--       an extensible FROM followed by a SIZE (AF2, AFX) was not PER-visible (7-bit characters).
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 009_wire_test.c (-DNDEBUG, ASan / UBSan, buffers of
+-- exactly REQUIRED_BYTES) / 009_wire_test.adb (plain and -gnata), legacy and --acn-v2; the lines marked WS8-ONLY are
+-- dropped for the -wordSize 4 build (C -Wall -Wextra -Werror + harness, Ada -gnatwa -gnatwe).
+UPER-WIRE-EXT DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    -- an extensible base type narrowed where used: not extensible (X.680 48.5 "B is inextensible")
+    B10E  ::= INTEGER (0..10, ...)
+    N5    ::= B10E (MIN..5)
+    SC    ::= SEQUENCE { a B10E (MIN..5), b BOOLEAN }
+    SQ    ::= SEQUENCE (SIZE(2)) OF B10E (MIN..5)
+    CH    ::= CHOICE { x B10E (MIN..5), y BOOLEAN }
+    IE2   ::= INTEGER (0..10, ...) (MIN..5)
+    IE19  ::= INTEGER (0..10, ..., 20) (MIN..5)
+    IE7   ::= INTEGER (0..10, ..., 20) (0..5)
+    IE15  ::= INTEGER (0..10, ...) (5)
+    F15   ::= INTEGER (0..15, ...) (0..7)
+    B10   ::= INTEGER (0..10)
+    B8X   ::= B10 (0..8, ...)
+    MID   ::= B8X (MIN..5)
+    -- the last constraint extensible: extension bit + the intersection of the roots
+    IR2   ::= B10 (MIN..5, ...)
+    IE1   ::= INTEGER (0..10) (MIN..5, ...)
+    IC1   ::= SEQUENCE { a INTEGER (0..10) (MIN..5, ...), b BOOLEAN }
+    IE8   ::= INTEGER (0..10) (3..MAX, ...)
+    IE16  ::= INTEGER (-10..10) (MIN..-5, ...)
+    IE18  ::= INTEGER (0..10) (MIN..5, ..., 7)
+    IE21  ::= INTEGER (0..100) (0..10, ..., 20..30)
+    IE5   ::= INTEGER (0..10) (0..5, ...)
+    IE14  ::= INTEGER (0..10) (5, ...)
+    IE13  ::= INTEGER (0..MAX) (MIN..5, ...)
+    IE12  ::= INTEGER (0..10, ...) (0..5) (MIN..3, ...)
+    IE4   ::= INTEGER (0..10, ...) (0..5, ...)
+    IR3   ::= B10E (0..5, ...)
+    B8    ::= B10E (0..8)
+    IR5   ::= B8 (MIN..5, ...)
+    YY    ::= INTEGER (0..10, ...) (MIN..5, ...) (MIN..3)
+    W300  ::= INTEGER (0..MAX) (0..5, ..., 300)
+    NEG3  ::= INTEGER (-100..100) (0..5, ..., -3)
+    SEMI  ::= INTEGER (0..MAX) (5..MAX, ...)
+    W32   ::= INTEGER (0..MAX) (0..5, ..., 4294967295)
+    WBIG  ::= INTEGER (0..MAX) (0..5, ..., 18446744073709551615)   -- WS8-ONLY
+    -- controls: a single extensible constraint (unchanged)
+    IE3   ::= INTEGER (0..10, ...)
+    IE10  ::= INTEGER (1..32, ..., 33..128)
+    IR6   ::= B10E
+    -- sizes and alphabets (X.691 B.3 A14 / A17)
+    SE2O  ::= OCTET STRING (SIZE(1..6, ...)) (SIZE(MIN..2))
+    SE2A  ::= IA5String (SIZE(1..6, ...)) (SIZE(MIN..2))
+    SE2N  ::= NumericString (SIZE(1..6, ...)) (SIZE(MIN..2))
+    SE2B  ::= BIT STRING (SIZE(1..6, ...)) (SIZE(MIN..2))
+    AF3   ::= IA5String (SIZE(1..10, ..., 29)) (FROM("A".."D"))
+    AF2   ::= IA5String (FROM("A".."D"), ...) (SIZE(1..10))
+    AFX   ::= IA5String (SIZE(1..4)) (FROM("AB"), ...) (SIZE(1..2))
+    -- explicit ACN encodings (009.acn)
+    AP    ::= INTEGER (0..10, ...) (MIN..5)
+    AQ    ::= INTEGER (0..10) (MIN..5, ...)
+    AR    ::= REAL (0.0..10.0, ...) (MIN..5.0)
+    L     ::= INTEGER (0..10, ...) (MIN..5)
+    SQL   ::= SEQUENCE { s OCTET STRING (SIZE(0..5)) }
+    L2    ::= INTEGER (0..10) (MIN..5, ...)
+    SQD   ::= SEQUENCE { s OCTET STRING (SIZE(0..5)) }
+END

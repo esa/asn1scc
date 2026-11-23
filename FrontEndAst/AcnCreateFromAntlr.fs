@@ -269,6 +269,145 @@ let getAcnDeterminantName (id : ReferenceToType) =
                 ToC2(longName.Replace("#","elm"))
 
 
+/// Issue 184 (X.680 46.8, 48.5, G.4.2.3; X.691 9.3.18, B.2.3.2): in a serial application of constraints the extension
+/// marker and the extension additions of every constraint but the last are discarded, and a later constraint sees only
+/// the root of the earlier ones (MIN / MAX included). rootOf replaces every extensible constraint inside a constraint by
+/// its root: at the top, inside set arithmetic (X.680 46.4: the root of N ^ E, N | E, ... is the arithmetic on the
+/// roots) and inside a SIZE / FROM (47.5, 47.7.4). Each node keeps the source text of the node it replaces (the text of
+/// a root is that of its inner constraint, without the parentheses and the marker: the generated comments and the ICD
+/// print it).
+let private rangeWithText (s:string) (c:RangeTypeConstraint<'v1,'v2>) : RangeTypeConstraint<'v1,'v2> =
+    match c with
+    | RangeUnionConstraint (_, a, b, v)         -> RangeUnionConstraint (s, a, b, v)
+    | RangeIntersectionConstraint (_, a, b)     -> RangeIntersectionConstraint (s, a, b)
+    | RangeAllExceptConstraint (_, a)           -> RangeAllExceptConstraint (s, a)
+    | RangeExceptConstraint (_, a, b)           -> RangeExceptConstraint (s, a, b)
+    | RangeRootConstraint (_, a)                -> RangeRootConstraint (s, a)
+    | RangeRootConstraint2 (_, a, b)            -> RangeRootConstraint2 (s, a, b)
+    | RangeSingleValueConstraint (_, v)         -> RangeSingleValueConstraint (s, v)
+    | RangeConstraint (_, a, b, i1, i2)         -> RangeConstraint (s, a, b, i1, i2)
+    | RangeConstraint_val_MAX (_, a, i)         -> RangeConstraint_val_MAX (s, a, i)
+    | RangeConstraint_MIN_val (_, b, i)         -> RangeConstraint_MIN_val (s, b, i)
+let rec private rangeRootOf (c:RangeTypeConstraint<'v1,'v2>) : RangeTypeConstraint<'v1,'v2> =
+    match c with
+    | RangeRootConstraint (s, a) | RangeRootConstraint2 (s, a, _)   -> rangeWithText s (rangeRootOf a)
+    | RangeUnionConstraint (s, a, b, v)                             -> RangeUnionConstraint (s, rangeRootOf a, rangeRootOf b, v)
+    | RangeIntersectionConstraint (s, a, b)                         -> RangeIntersectionConstraint (s, rangeRootOf a, rangeRootOf b)
+    | RangeAllExceptConstraint (s, a)                               -> RangeAllExceptConstraint (s, rangeRootOf a)
+    | RangeExceptConstraint (s, a, b)                               -> RangeExceptConstraint (s, rangeRootOf a, rangeRootOf b)
+    | RangeSingleValueConstraint _ | RangeConstraint _
+    | RangeConstraint_val_MAX _ | RangeConstraint_MIN_val _         -> c
+let private sizeWithText (s:string) (c:SizableTypeConstraint<'v>) : SizableTypeConstraint<'v> =
+    match c with
+    | SizeUnionConstraint (_, a, b, v)          -> SizeUnionConstraint (s, a, b, v)
+    | SizeIntersectionConstraint (_, a, b)      -> SizeIntersectionConstraint (s, a, b)
+    | SizeAllExceptConstraint (_, a)            -> SizeAllExceptConstraint (s, a)
+    | SizeExceptConstraint (_, a, b)            -> SizeExceptConstraint (s, a, b)
+    | SizeRootConstraint (_, a)                 -> SizeRootConstraint (s, a)
+    | SizeRootConstraint2 (_, a, b)             -> SizeRootConstraint2 (s, a, b)
+    | SizeSingleValueConstraint (_, v)          -> SizeSingleValueConstraint (s, v)
+    | SizeConstraint (_, r)                     -> SizeConstraint (s, r)
+let rec private sizeRootOf (c:SizableTypeConstraint<'v>) : SizableTypeConstraint<'v> =
+    match c with
+    | SizeRootConstraint (s, a) | SizeRootConstraint2 (s, a, _) -> sizeWithText s (sizeRootOf a)
+    | SizeUnionConstraint (s, a, b, v)                          -> SizeUnionConstraint (s, sizeRootOf a, sizeRootOf b, v)
+    | SizeIntersectionConstraint (s, a, b)                      -> SizeIntersectionConstraint (s, sizeRootOf a, sizeRootOf b)
+    | SizeAllExceptConstraint (s, a)                            -> SizeAllExceptConstraint (s, sizeRootOf a)
+    | SizeExceptConstraint (s, a, b)                            -> SizeExceptConstraint (s, sizeRootOf a, sizeRootOf b)
+    | SizeConstraint (s, r)                                     -> SizeConstraint (s, rangeRootOf r)
+    | SizeSingleValueConstraint _                               -> c
+let private strWithText (s:string) (c:IA5StringConstraint) : IA5StringConstraint =
+    match c with
+    | StrUnionConstraint (_, a, b, v)           -> StrUnionConstraint (s, a, b, v)
+    | StrIntersectionConstraint (_, a, b)       -> StrIntersectionConstraint (s, a, b)
+    | StrAllExceptConstraint (_, a)             -> StrAllExceptConstraint (s, a)
+    | StrExceptConstraint (_, a, b)             -> StrExceptConstraint (s, a, b)
+    | StrRootConstraint (_, a)                  -> StrRootConstraint (s, a)
+    | StrRootConstraint2 (_, a, b)              -> StrRootConstraint2 (s, a, b)
+    | StrSingleValueConstraint (_, v)           -> StrSingleValueConstraint (s, v)
+    | StrSizeConstraint (_, r)                  -> StrSizeConstraint (s, r)
+    | AlphabetConstraint (_, r)                 -> AlphabetConstraint (s, r)
+let rec private strRootOf (c:IA5StringConstraint) : IA5StringConstraint =
+    match c with
+    | StrRootConstraint (s, a) | StrRootConstraint2 (s, a, _)   -> strWithText s (strRootOf a)
+    | StrUnionConstraint (s, a, b, v)                           -> StrUnionConstraint (s, strRootOf a, strRootOf b, v)
+    | StrIntersectionConstraint (s, a, b)                       -> StrIntersectionConstraint (s, strRootOf a, strRootOf b)
+    | StrAllExceptConstraint (s, a)                             -> StrAllExceptConstraint (s, strRootOf a)
+    | StrExceptConstraint (s, a, b)                             -> StrExceptConstraint (s, strRootOf a, strRootOf b)
+    | StrSizeConstraint (s, r)                                  -> StrSizeConstraint (s, rangeRootOf r)
+    | AlphabetConstraint (s, r)                                 -> AlphabetConstraint (s, rangeRootOf r)
+    | StrSingleValueConstraint _                                -> c
+/// SEQUENCE OF: kept for symmetry; it cannot take effect today (a SEQUENCE OF takes one inline constraint, and a chain
+/// needs a base with an extensible SIZE, which is rejected by itself: checkExtensibleSize).
+let private seqOfWithText (s:string) (c:SequenceOfConstraint) : SequenceOfConstraint =
+    match c with
+    | SeqOfSizeUnionConstraint (_, a, b, v)     -> SeqOfSizeUnionConstraint (s, a, b, v)
+    | SeqOfSizeIntersectionConstraint (_, a, b) -> SeqOfSizeIntersectionConstraint (s, a, b)
+    | SeqOfSizeAllExceptConstraint (_, a)       -> SeqOfSizeAllExceptConstraint (s, a)
+    | SeqOfSizeExceptConstraint (_, a, b)       -> SeqOfSizeExceptConstraint (s, a, b)
+    | SeqOfSizeRootConstraint (_, a)            -> SeqOfSizeRootConstraint (s, a)
+    | SeqOfSizeRootConstraint2 (_, a, b)        -> SeqOfSizeRootConstraint2 (s, a, b)
+    | SeqOfSizeSingleValueConstraint (_, v)     -> SeqOfSizeSingleValueConstraint (s, v)
+    | SeqOfSizeConstraint (_, r)                -> SeqOfSizeConstraint (s, r)
+    | SeqOfSeqWithComponentConstraint (_, a, l) -> SeqOfSeqWithComponentConstraint (s, a, l)
+let rec private seqOfRootOf (c:SequenceOfConstraint) : SequenceOfConstraint =
+    match c with
+    | SeqOfSizeRootConstraint (s, a) | SeqOfSizeRootConstraint2 (s, a, _)   -> seqOfWithText s (seqOfRootOf a)
+    | SeqOfSizeUnionConstraint (s, a, b, v)                                 -> SeqOfSizeUnionConstraint (s, seqOfRootOf a, seqOfRootOf b, v)
+    | SeqOfSizeIntersectionConstraint (s, a, b)                             -> SeqOfSizeIntersectionConstraint (s, seqOfRootOf a, seqOfRootOf b)
+    | SeqOfSizeAllExceptConstraint (s, a)                                   -> SeqOfSizeAllExceptConstraint (s, seqOfRootOf a)
+    | SeqOfSizeExceptConstraint (s, a, b)                                   -> SeqOfSizeExceptConstraint (s, seqOfRootOf a, seqOfRootOf b)
+    | SeqOfSizeConstraint (s, r)                                            -> SeqOfSizeConstraint (s, rangeRootOf r)
+    | SeqOfSizeSingleValueConstraint _ | SeqOfSeqWithComponentConstraint _  -> c
+/// Every constraint but the last of a serial application, replaced by its root.
+let private serialRoots (rootOf: 'c -> 'c) (cons: 'c list) : 'c list =
+    match List.rev cons with
+    | []              -> []
+    | last :: earlier -> (List.rev earlier |> List.map rootOf) @ [last]
+
+/// Issue 184 (S1): an extension marker in the PER-visible SIZE of the last serial constraint (X.680 47.5: SIZE(x, ...);
+/// a root (x, ...) whose root holds a SIZE; X.691 9.3.18 and 16.3 / 27.4 then need an extension bit before the length)
+/// is not supported by the size templates; before, such a marker was ignored after an earlier SIZE (no extension bit,
+/// the length of the earlier SIZE) or the type was rejected with "infinite size". A marker inside a FROM is legal and
+/// stays (an extensible permitted alphabet is not PER-visible, X.691 9.3.10).
+let rec private rangeIsExtensible (c:RangeTypeConstraint<'v1,'v2>) =
+    match c with
+    | RangeRootConstraint _ | RangeRootConstraint2 _                    -> true
+    | RangeUnionConstraint (_, a, b, _) | RangeIntersectionConstraint (_, a, b)
+    | RangeExceptConstraint (_, a, b)                                   -> rangeIsExtensible a || rangeIsExtensible b
+    | RangeAllExceptConstraint (_, a)                                   -> rangeIsExtensible a
+    | RangeSingleValueConstraint _ | RangeConstraint _
+    | RangeConstraint_val_MAX _ | RangeConstraint_MIN_val _             -> false
+let rec private sizeHasExtensibleSize (inRoot:bool) (c:SizableTypeConstraint<'v>) =
+    match c with
+    | SizeRootConstraint (_, a) | SizeRootConstraint2 (_, a, _)         -> sizeHasExtensibleSize true a
+    | SizeUnionConstraint (_, a, b, _) | SizeIntersectionConstraint (_, a, b)
+    | SizeExceptConstraint (_, a, b)                                    -> sizeHasExtensibleSize inRoot a || sizeHasExtensibleSize inRoot b
+    | SizeAllExceptConstraint (_, a)                                    -> sizeHasExtensibleSize inRoot a
+    | SizeConstraint (_, r)                                             -> inRoot || rangeIsExtensible r
+    | SizeSingleValueConstraint _                                       -> false
+let rec private strHasExtensibleSize (inRoot:bool) (c:IA5StringConstraint) =
+    match c with
+    | StrRootConstraint (_, a) | StrRootConstraint2 (_, a, _)           -> strHasExtensibleSize true a
+    | StrUnionConstraint (_, a, b, _) | StrIntersectionConstraint (_, a, b)
+    | StrExceptConstraint (_, a, b)                                     -> strHasExtensibleSize inRoot a || strHasExtensibleSize inRoot b
+    | StrAllExceptConstraint (_, a)                                     -> strHasExtensibleSize inRoot a
+    | StrSizeConstraint (_, r)                                          -> inRoot || rangeIsExtensible r
+    | AlphabetConstraint _ | StrSingleValueConstraint _                 -> false
+let rec private seqOfHasExtensibleSize (inRoot:bool) (c:SequenceOfConstraint) =
+    match c with
+    | SeqOfSizeRootConstraint (_, a) | SeqOfSizeRootConstraint2 (_, a, _)   -> seqOfHasExtensibleSize true a
+    | SeqOfSizeUnionConstraint (_, a, b, _) | SeqOfSizeIntersectionConstraint (_, a, b)
+    | SeqOfSizeExceptConstraint (_, a, b)                                   -> seqOfHasExtensibleSize inRoot a || seqOfHasExtensibleSize inRoot b
+    | SeqOfSizeAllExceptConstraint (_, a)                                   -> seqOfHasExtensibleSize inRoot a
+    | SeqOfSizeConstraint (_, r)                                            -> inRoot || rangeIsExtensible r
+    | SeqOfSizeSingleValueConstraint _ | SeqOfSeqWithComponentConstraint _  -> false
+/// cons: after serialRoots, so only the last constraint can still be extensible.
+let private checkExtensibleSize (hasExtensibleSize: bool -> 'c -> bool) (loc:SrcLoc) (cons: 'c list) : 'c list =
+    match cons |> List.exists (hasExtensibleSize false) with
+    | true  -> raise(SemanticError(loc, "Extensible SIZE constraints are not supported"))
+    | false -> cons
+
 let private mergeInteger (asn1:Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*LanguageMacros) list) (loc:SrcLoc)  (typeAssignmentInfo : AssignmentInfo option) (acnErrLoc: SrcLoc option) (props:GenericAcnProperty list) cons withcons thisTypeCons (tdarg:GetTypeDefinition_arg) (us:Asn1AcnMergeState) =
     let declare_IntegerNoRTL       (l:ProgrammingLanguage)     = (asn1.args.getBasicLang l).declare_IntegerNoRTL
     let declare_PosIntegerNoRTL    (l:ProgrammingLanguage)     = (asn1.args.getBasicLang l).declare_PosIntegerNoRTL
@@ -289,12 +428,7 @@ let private mergeInteger (asn1:Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*Langua
                 mappingFunction                      = getMappingFunctionProperty acnErrLoc props
             }
         | None  -> {IntegerAcnProperties.encodingProp = None; sizeProp = None; endiannessProp = None; mappingFunction = None }
-    let uperMinSizeInBits, uperMaxSizeInBits =
-        match rootCons with
-        | []  -> uPER.getRequiredBitsForIntUperEncoding asn1.args.integerSizeInBytes uperRange
-        | _   ->
-            let mn,mx = uPER.getRequiredBitsForIntUperEncoding asn1.args.integerSizeInBytes uperRange
-            1I + mn, 1I + mx
+    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getIntUperSizeInBits asn1.args.integerSizeInBytes cons uperRange loc
 
     let isUnsigned = intClass.IsPositive
         (*
@@ -1056,14 +1190,16 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (lms:
         | Asn1Ast.IA5String
         | Asn1Ast.NumericString  ->
             let isNumeric = (asn1Type0.Kind = Asn1Ast.NumericString)
-            let cons =  asn1Type0.Constraints |> List.collect (fixConstraint asn1) |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 asn1Type0)
+            let cons =  asn1Type0.Constraints |> List.collect (fixConstraint asn1) |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 asn1Type0) |> serialRoots strRootOf |> checkExtensibleSize strHasExtensibleSize ts.Location
             let defaultCharSet = [|for i in 0..127 -> System.Convert.ToChar(i) |]
             let str, ns = mergeStringType asn1 lms None ts.Location (Some ts.Location) props cons [] defaultCharSet isNumeric (AcnPrmGetTypeDefinition (curPath,md.Value,ts.Value)) us
             AcnReferenceToIA5String({AcnReferenceToIA5String.modName = md; tasName = ts; str = str; acnAlignment= acnAlignment}), ns
         | Asn1Ast.Integer       ->
-            let cons =  asn1Type0.Constraints |> List.collect (fixConstraint asn1) |> List.map (ConstraintsMapping.getIntegerTypeConstraint asn1 asn1Type0)
+            // Issue 184: the serial constraints of the referenced type assignment as in mergeType (only the last keeps its
+            // extension marker), with the sizes of mergeInteger
+            let cons =  asn1Type0.Constraints |> List.collect (fixConstraint asn1) |> List.map (ConstraintsMapping.getIntegerTypeConstraint asn1 asn1Type0) |> serialRoots rangeRootOf
             let uperRange    = uPER.getIntTypeConstraintUperRange cons  ts.Location
-            let uperMinSizeInBits, uperMaxSizeInBits = uPER.getRequiredBitsForIntUperEncoding asn1.args.integerSizeInBytes uperRange
+            let uperMinSizeInBits, uperMaxSizeInBits = uPER.getIntUperSizeInBits asn1.args.integerSizeInBytes cons uperRange ts.Location
             let acnProperties = {IntegerAcnProperties.encodingProp = getIntEncodingProperty ts.Location props; sizeProp = getIntSizeProperty ts.Location props; endiannessProp = getEndiannessProperty props; mappingFunction = getMappingFunctionProperty ts.Location props}
             // The local of the field has the C / Ada type of the referenced INTEGER (intClass, from its range), so the
             // encoding class follows the range too, as for an ASN.1 INTEGER component (Issue 98): an ASCII encoding of an
@@ -1101,33 +1237,35 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (lms:
             mapAcnParamTypeToAcnAcnInsertedType asn1 lms acn newParma (props@baseTypeAcnProps) curPath us
 
 
+/// The constraints of a reference site (ReferenceType.refCons); Issue 184: serial constraints as in mergeType (every one
+/// but the last replaced by its root).
 let rec mapAnyConstraint (asn1:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (cons:Asn1Ast.Asn1Constraint list) =
     let fixConstraint  = (fixConstraint asn1)
     match t.Kind with
     | Asn1Ast.Integer                  ->
-        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIntegerTypeConstraint asn1 t) |> List.map IntegerTypeConstraint
+        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIntegerTypeConstraint asn1 t) |> serialRoots rangeRootOf |> List.map IntegerTypeConstraint
     | Asn1Ast.Real                     ->
-        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getRealTypeConstraint asn1 t) |> List.map RealTypeConstraint
+        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getRealTypeConstraint asn1 t) |> serialRoots rangeRootOf |> List.map RealTypeConstraint
     | Asn1Ast.ObjectIdentifier
     | Asn1Ast.RelativeObjectIdentifier         ->
         cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getObjectIdConstraint asn1 t) |> List.map ObjectIdConstraint
     | Asn1Ast.TimeType   tc      ->
         cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getTimeConstraint asn1 t) |> List.map TimeConstraint
     | Asn1Ast.IA5String                ->
-        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t) |> List.map IA5StringConstraint
+        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t) |> serialRoots strRootOf |> List.map IA5StringConstraint
     | Asn1Ast.NumericString            ->
-        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t) |> List.map IA5StringConstraint
+        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t) |> serialRoots strRootOf |> List.map IA5StringConstraint
     | Asn1Ast.OctetString              ->
-        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getOctetStringConstraint asn1 t) |> List.map OctetStringConstraint
+        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getOctetStringConstraint asn1 t) |> serialRoots sizeRootOf |> List.map OctetStringConstraint
     | Asn1Ast.BitString    namedBitList            ->
-        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getBitStringConstraint asn1 t) |> List.map BitStringConstraint
+        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getBitStringConstraint asn1 t) |> serialRoots sizeRootOf |> List.map BitStringConstraint
     | Asn1Ast.NullType                 ->  [NullConstraint]
     | Asn1Ast.Boolean                  ->
         cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getBoolConstraint asn1 t) |> List.map BoolConstraint
     | Asn1Ast.Enumerated  items        ->
         cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getEnumConstraint asn1 t) |> List.map EnumConstraint
     | Asn1Ast.SequenceOf  chType       ->
-        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getSequenceOfConstraint asn1 t chType) |> List.map SequenceOfConstraint
+        cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getSequenceOfConstraint asn1 t chType) |> serialRoots seqOfRootOf |> List.map SequenceOfConstraint
     | Asn1Ast.Sequence    children     ->
         cons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getSeqConstraint asn1 t children) |> List.map SeqConstraint
     | Asn1Ast.Choice      children     ->
@@ -1187,17 +1325,19 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
 
     let tfdArg = {GetTypeDefinition_arg.asn1TypeKind = t.Kind; loc = t.Location; curPath = curPath; typeDefPath = typeDefPath; enmItemTypeDefPath = enmItemTypeDefPath; inheritInfo = inheritInfo; typeAssignmentInfo = typeAssignmentInfo; rtlFnc = None; blm=asn1.args.blm}
     let fixConstraint = fixConstraint asn1
+    // Issue 184 (S1): an extensible SIZE is reported at the reference site that applies it, else at the type
+    let sizeErrLoc = originalLocation |> Option.defaultValue t.Location
 
     let asn1Kind, kindState =
         match t.Kind with
         | Asn1Ast.Integer                  ->
-            let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIntegerTypeConstraint asn1 t)
-            let thisTypeCons = t.Constraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIntegerTypeConstraint asn1 t)
+            let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIntegerTypeConstraint asn1 t) |> serialRoots rangeRootOf
+            let thisTypeCons = t.Constraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIntegerTypeConstraint asn1 t) |> serialRoots rangeRootOf
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIntegerTypeConstraint asn1 t)
             let o, us1  = mergeInteger asn1 lms t.Location typeAssignmentInfo  acnErrLoc combinedProperties cons wcons thisTypeCons tfdArg us
             Integer o, us1
         | Asn1Ast.Real                     ->
-            let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getRealTypeConstraint asn1 t)
+            let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getRealTypeConstraint asn1 t) |> serialRoots rangeRootOf
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getRealTypeConstraint asn1 t)
             let o, us1 = mergeReal asn1 acn lms t.Location acnErrLoc combinedProperties cons wcons tfdArg us
             Real o, us1
@@ -1214,24 +1354,24 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
             TimeType o, us1
         | Asn1Ast.IA5String                ->
             let defaultCharSet = [|for i in 0..127 -> System.Convert.ToChar(i) |]
-            let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t)
+            let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t) |> serialRoots strRootOf |> checkExtensibleSize strHasExtensibleSize sizeErrLoc
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t)
             let o, us1 = mergeStringType asn1 lms (Some t) t.Location acnErrLoc combinedProperties cons wcons defaultCharSet false (EnmStrGetTypeDefinition_arg tfdArg) us
             IA5String o , us1
         | Asn1Ast.NumericString            ->
             let defaultCharSet = [| ' ';'0';'1';'2';'3';'4';'5';'6';'7';'8';'9'|]
 
-            let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t)
+            let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t) |> serialRoots strRootOf |> checkExtensibleSize strHasExtensibleSize sizeErrLoc
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getIA5StringConstraint asn1 t)
             let o, us1 = mergeStringType asn1 lms (Some t) t.Location acnErrLoc combinedProperties cons wcons defaultCharSet true (EnmStrGetTypeDefinition_arg tfdArg) us
             NumericString o, us1
         | Asn1Ast.OctetString              ->
-            let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getOctetStringConstraint asn1 t)
+            let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getOctetStringConstraint asn1 t) |> serialRoots sizeRootOf |> checkExtensibleSize sizeHasExtensibleSize sizeErrLoc
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getOctetStringConstraint asn1 t)
             let o, us1 = mergeOctetStringType asn1 lms t.Location acnErrLoc combinedProperties cons wcons tfdArg acnParamSubst us
             OctetString o, us1
         | Asn1Ast.BitString    namedBitList            ->
-            let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getBitStringConstraint asn1 t)
+            let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getBitStringConstraint asn1 t) |> serialRoots sizeRootOf |> checkExtensibleSize sizeHasExtensibleSize sizeErrLoc
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getBitStringConstraint asn1 t)
             let o, us1 = mergeBitStringType asn1 lms namedBitList t.Location acnErrLoc combinedProperties cons wcons tfdArg acnParamSubst us
             BitString o, us1
@@ -1254,7 +1394,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
             let myVisibleConstraints = t.Constraints@refTypeCons
             let myNonVisibleConstraints = withCons
 
-            let cons =  myVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getSequenceOfConstraint asn1 t chType)
+            let cons =  myVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getSequenceOfConstraint asn1 t chType) |> serialRoots seqOfRootOf |> checkExtensibleSize seqOfHasExtensibleSize sizeErrLoc
             let wcons = myNonVisibleConstraints |> List.collect fixConstraint |> List.map (ConstraintsMapping.getSequenceOfConstraint asn1 t chType)
 
             let childEncSpec, acnArgs, sizeDetArg =

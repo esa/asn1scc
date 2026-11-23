@@ -755,9 +755,20 @@ let rec constraintViolations (r:DAst.AstRoot) (lm:LanguageMacros) (unique:Set<st
                 // OPTIONAL child, SEQUENCE OF element) is sure to hold at this site only when it is the type's one
                 // site in the tested value (coverage step 12f)
                 let needsSelection (v:ConstraintViolation) = v.inAlternative || not v.presentChildren.IsEmpty || not v.nonEmptySeqOfs.IsEmpty
+                // Issue 184: a value of the referenced INTEGER outside its constraints must also be a value of the
+                // site's typedef, which can be narrower (Ada: B ::= INTEGER (0..10, ...), the typedef of B (MIN..5) is
+                // range 0 .. 5 and -1 is a compile error, "Constraint_Error will be raised at run time")
+                let siteHolds (v:ConstraintViolation) =
+                    match ts.Type.Kind, ref.resolvedType.Kind with
+                    | Integer bo, Integer so when v.nodeId = ts.Type.id ->
+                        intViolatingValues r lm bo.baseInfo [] bo.baseInfo.cons |>
+                        List.filter (representableInt r lm so.baseInfo) |>
+                        List.exists (fun x -> lm.init.initInteger (lm.lg.getValue path) (lm.lg.intValueToString x bo.baseInfo.intClass) false "" "" = v.setInvalid)
+                    | _ -> true
                 let candidates =
                     constraintViolations r lm unique path ts.Type |>
                     List.filter (fun v -> unique.Contains (ref.baseInfo.modName.Value, ref.baseInfo.tasName.Value) || not (needsSelection v)) |>
+                    List.filter siteHolds |>
                     List.indexed
                 // the first one covers the parent's check of the call (one that needs no selection if there is one, as
                 // before 12f); every invalid discriminant too (step 12d): the parent often encodes the referenced type

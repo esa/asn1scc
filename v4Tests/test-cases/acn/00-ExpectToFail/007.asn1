@@ -1,0 +1,12 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	-- Issue 184: an extension marker in the SIZE of the last serial constraint
+	-- (X.680 47.5) needs an extension bit before the length (X.691 9.3.18,
+	-- 16.3), which the size encoders do not write. Before, the marker was
+	-- ignored after an earlier SIZE (the length of SIZE(1..6), no extension
+	-- bit); a single extensible SIZE was "infinite size".
+	MyPDU ::= OCTET STRING (SIZE(1..6)) (SIZE(1..2, ...))
+
+END
+
+--TCLFC    MyPDU[]          $$$ sample1.asn1:8:11: error: Extensible SIZE constraints are not supported
