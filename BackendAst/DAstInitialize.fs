@@ -1132,13 +1132,7 @@ let createSequenceInitFunc (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Acn
             List.choose(fun c -> match c with Asn1Child x -> Some x | _ -> None) |>
             List.filter(fun z ->
                 match z.Type.Kind with
-                // coverage cycle 15h (Issue 144 part 2, George: Q3 = A): an OPTIONAL NULL child gets present / absent test
-                // values like any OPTIONAL child (before, C / Ada left its presence flag unset: C read malloc'd garbage,
-                // Ada always "present"); a mandatory NULL has nothing to set in C / Ada
-                | NullType _ ->
-                    match z.Optionality with
-                    | Some Asn1AcnAst.AlwaysPresent | Some (Asn1AcnAst.Optional _) -> true
-                    | Some Asn1AcnAst.AlwaysAbsent | None -> lm.lg.decodingKind = Copy // These backends expect the nulltype to be declared in any case
+                | NullType _ -> match z.Optionality with Some Asn1AcnAst.AlwaysPresent -> true | _ -> lm.lg.decodingKind = Copy // These backends expect the nulltype to be declared in any case
                 | _ -> true) |>
             List.filter(fun z -> match z.Optionality with Some Asn1AcnAst.AlwaysAbsent -> lm.lg.decodingKind = Copy | _ -> true)
 

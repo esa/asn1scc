@@ -1116,7 +1116,8 @@ let private variantText (t:Asn1Type) (sTypeName:string) (v:AtcVariant) =
 
 /// Coverage cycle 15c: every automatic test value of the type sets every component it holds, by the rules of the
 /// initialisers (DAstInitialize, SEQUENCE generateCases): a SEQUENCE sets only the children with automatic values (a
-/// mandatory child without values stays unset, an OPTIONAL one without values gets no presence flag); ALWAYS ABSENT children get
+/// mandatory child without values stays unset, an OPTIONAL one without values gets no presence flag); a backend that
+/// decodes in place (C, Ada) leaves an OPTIONAL NULL child out, presence flag included; ALWAYS ABSENT children get
 /// their flag; a SEQUENCE OF of an element without values gets no length; a CHOICE selects only alternatives with
 /// values. Conservative: the whole type, every value.
 let rec private completeTestValues (lm:LanguageMacros) (t:Asn1Type) : bool =
@@ -1131,8 +1132,8 @@ let rec private completeTestValues (lm:LanguageMacros) (t:Asn1Type) : bool =
                 match ch.Type.Kind, ch.Optionality, lm.lg.decodingKind with
                 | _, Some Asn1AcnAst.AlwaysAbsent, _                              -> true
                 | NullType _, (None | Some Asn1AcnAst.AlwaysPresent), _           -> true
-                // coverage cycle 15h (stage 4): an OPTIONAL NULL child gets present / absent values in every backend
-                | NullType _, Some (Asn1AcnAst.Optional _), (InPlace | Copy)      -> hasValues ch.Type
+                | NullType _, Some (Asn1AcnAst.Optional _), InPlace               -> false
+                | NullType _, Some (Asn1AcnAst.Optional _), Copy                  -> hasValues ch.Type
                 | _, (None | Some Asn1AcnAst.AlwaysPresent | Some (Asn1AcnAst.Optional _)), _ ->
                     hasValues ch.Type && completeTestValues lm ch.Type)
     | Choice ch        -> ch.children |> List.forall (fun c -> not (hasValues c.chType) || completeTestValues lm c.chType)
