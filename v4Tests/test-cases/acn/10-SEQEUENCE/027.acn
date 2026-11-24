@@ -1,0 +1,10 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+    SqPDU [] {
+        [] {
+            f BOOLEAN [],
+            h [present-when f] { a [], more BOOLEAN [], n INTEGER [size 4, encoding pos-int] },
+            x [present-when h.more, size h.n],
+            tail []
+        }
+    }
+END

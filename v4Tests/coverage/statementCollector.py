@@ -248,6 +248,40 @@ def read_report(report_dir, work):
     return files
 
 
+# GNAT rejects a source line longer than 32766 characters, and gnatcov 26.2 writes all the MC/DC state declarations of an
+# Ada unit on one line (90 662 characters for the spec of a large grammar). Coverage maps to the original sources through
+# the SID files, so breaking the instrumented copies after a statement changes nothing that is measured.
+GNAT_MAX_LINE = 32766
+
+
+def split_ada_line(line):
+    """The line broken after each ';' that ends a statement (not in a string or character literal, not in a comment)."""
+    parts, start, in_string = [], 0, False
+    for i, ch in enumerate(line):
+        if ch == '"':
+            in_string = not in_string
+        elif not in_string:
+            if line.startswith("--", i):
+                break
+            if ch == ";" and not (line[i - 1:i] == "'" and line[i + 1:i + 2] == "'"):
+                parts.append(line[start:i + 1])
+                start = i + 1
+    parts.append(line[start:])
+    return "\n".join(p for p in parts if p)
+
+
+def split_long_instrumented_lines(work):
+    """Break the over-long lines of gnatcov's instrumented Ada copies; returns the files changed."""
+    changed = []
+    for path in sorted(p for d in work.rglob("*gnatcov-instr") if d.is_dir() for p in d.glob("*.ad[bs]")):
+        lines = path.read_text(encoding="latin-1").split("\n")
+        if any(len(line) > GNAT_MAX_LINE for line in lines):
+            path.write_text("\n".join(split_ada_line(l) if len(l) > GNAT_MAX_LINE else l for l in lines),
+                            encoding="latin-1")
+            changed.append(path.name)
+    return changed
+
+
 def instrument_and_run(work, project, units, args, logs, steps):
     gnatcov = os.environ.get("GNATCOV", "gnatcov")
     common = ["-P" + project, *["--units=" + unit for unit in units]]
@@ -255,6 +289,10 @@ def instrument_and_run(work, project, units, args, logs, steps):
                 "--restricted-to-languages=" + ("C" if args.language == "c" else "Ada"),
                 "--dump-trigger=atexit", "--dump-channel=bin-file"],
                work, logs, "instrument", args.timeout, steps)
+    if args.language == "Ada":
+        split = split_long_instrumented_lines(work)
+        if split:
+            (logs / "instrument-long-lines.txt").write_text("".join(name + "\n" for name in split))
     build = ["gprbuild", "-p", "-P" + project, "-j" + str(args.jobs),
              "--src-subdirs=gnatcov-instr", "--implicit-with=gnatcov_rts"]
     if args.language == "Ada":

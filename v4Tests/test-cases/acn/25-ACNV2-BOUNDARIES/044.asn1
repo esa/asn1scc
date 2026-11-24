@@ -1,0 +1,26 @@
+-- ACNV2_ONLY C_ADA_ONLY (legacy: no CHOICE of CONTAINING regions sized by an ACN parameter, as 009)
+-- Issue 132: a --acn-v2 region around a CHOICE whose alternatives share one size parameter holds the whole CHOICE
+-- body, so the decoders bound its length by the CHOICE's own maximum, not by its largest CONTAINING alternative:
+-- an alternative that is not a CONTAINING and is larger (Doc1, Doc1B), an index of the CHOICE's own (Doc2B, BIT
+-- region). A bound taken from the alternatives rejected valid encodings of them. The OCTET regions with an index of
+-- the CHOICE's own and with aligned alternatives are in 045.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Val8 ::= SEQUENCE { number INTEGER (0..255) }
+Val16 ::= SEQUENCE { number INTEGER (0..65535) }
+
+-- Doc1: an alternative that is not a CONTAINING (32 bits) next to two regions of 1 octet
+Payload1 ::= CHOICE { value OCTET STRING (CONTAINING Val8), big INTEGER (0..4294967295), other OCTET STRING (CONTAINING Val8) }
+Doc1 ::= SEQUENCE { payload Payload1, trailer INTEGER (0..255) }
+
+-- Doc2B: a CHOICE with an index of its own (1 bit + 16 bits) in a BIT region
+Payload2B ::= CHOICE { value BIT STRING (CONTAINING Val16), other BIT STRING (CONTAINING Val16) }
+Doc2B ::= SEQUENCE { payload Payload2B, trailer INTEGER (0..255) }
+
+-- Doc1B: Doc1 with BIT regions
+Payload1B ::= CHOICE { value BIT STRING (CONTAINING Val8), big INTEGER (0..4294967295), other BIT STRING (CONTAINING Val8) }
+Doc1B ::= SEQUENCE { payload Payload1B, trailer INTEGER (0..255) }
+
+END
+
+--TCFS   044.acn

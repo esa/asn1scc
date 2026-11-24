@@ -1,0 +1,21 @@
+-- C_ADA_ONLY
+-- q/issues.md Issue 54 (GitHub #421): C99 / C23 keywords and the <stdbool.h> macros as component and
+-- enumerated names. The generated C includes <stdbool.h>, so before 4.9.54.0 a component `true` became
+-- `NullType true;` / `pVal->u.true` and did not compile. They are C keywords now: renamed by -fp AUTO
+-- (the runners pass it), rejected with "'true' is a C keyword." without it; enumerated items get the
+-- type prefix.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+Flag ::= ENUMERATED { false, true }
+Truth ::= CHOICE { true NULL, false NULL }
+Words ::= SEQUENCE {
+    bool BOOLEAN,
+    inline INTEGER (0..3),
+    restrict INTEGER (0..3),
+    typeof Flag,
+    nullptr INTEGER (0..3) OPTIONAL,
+    static-assert BOOLEAN,
+    thread-local Truth
+}
+END
+
+--TCFS   03-c23-keywords.acn

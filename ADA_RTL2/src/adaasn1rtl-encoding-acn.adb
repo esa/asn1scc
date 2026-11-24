@@ -21,6 +21,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_PositiveInteger_ConstSize_8 (bs, 0);
    end Acn_InitDet_U8;
@@ -33,7 +34,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_PositiveInteger_ConstSize_8 (bs, V);
@@ -57,6 +61,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16 (bs, 0);
    end Acn_InitDet_U16_BE;
@@ -69,7 +74,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_16 (bs, V);
@@ -91,6 +99,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32 (bs, 0);
    end Acn_InitDet_U32_BE;
@@ -103,7 +112,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_32 (bs, V);
@@ -125,6 +137,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64 (bs, 0);
    end Acn_InitDet_U64_BE;
@@ -137,7 +150,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64 (bs, V);
@@ -159,6 +175,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_16 (bs, 0);
    end Acn_InitDet_U16_LE;
@@ -171,7 +188,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_16 (bs, V);
@@ -193,6 +213,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32 (bs, 0);
    end Acn_InitDet_U32_LE;
@@ -205,7 +226,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_32 (bs, V);
@@ -227,6 +251,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64 (bs, 0);
    end Acn_InitDet_U64_LE;
@@ -239,7 +264,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64 (bs, V);
@@ -263,6 +291,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_TwosComplement_ConstSize_8 (bs, 0);
    end Acn_InitDet_I8;
@@ -275,7 +304,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_TwosComplement_ConstSize_8 (bs, To_Int (V));
@@ -297,6 +329,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16 (bs, 0);
    end Acn_InitDet_I16_BE;
@@ -309,7 +342,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_TwosComplement_ConstSize_big_endian_16 (bs, To_Int (V));
@@ -331,6 +367,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32 (bs, 0);
    end Acn_InitDet_I32_BE;
@@ -343,7 +380,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32 (bs, To_Int (V));
@@ -365,6 +405,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64 (bs, 0);
    end Acn_InitDet_I64_BE;
@@ -377,7 +418,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64 (bs, To_Int (V));
@@ -401,6 +445,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       BitStream_AppendBit (bs, 0);
    end Acn_InitDet_BOOL1;
@@ -413,7 +458,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          BitStream_AppendBit (bs, (if V = 0 then 0 else 1));
@@ -439,6 +487,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       for i in 0 .. nBits - 1 loop
          pragma Loop_Invariant
@@ -458,7 +507,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          for i in 0 .. nBits - 1 loop
@@ -490,6 +542,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       for i in 0 .. nBits - 1 loop
          pragma Loop_Invariant
@@ -509,7 +562,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          for i in 0 .. nBits - 1 loop
@@ -543,6 +599,7 @@ is
    begin
       det.Pos    := Acn_BitStream_GetPos (bs);
       det.Is_Set := False;
+      det.In_Stream := True;
       det.Value  := 0;
       --  det.Str_Value is irrelevant while Is_Set = False; PatchDet sets it.
       for i in 0 .. nChars * 7 - 1 loop
@@ -563,7 +620,10 @@ is
    is
       Cur : AcnBitStreamPos;
    begin
-      if not det.Is_Set then
+      if not det.In_Stream then
+         --  the component holding the field is absent: not in the stream
+         result := ASN1_RESULT'(Success => True, ErrorCode => 0);
+      elsif not det.Is_Set then
          Cur := Acn_BitStream_GetPos (bs);
          Acn_BitStream_SetPos (bs, det.Pos);
          for i in 0 .. nChars - 1 loop
@@ -664,7 +724,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - total_bytes * 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes * 8;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + total_bytes * 8;
 
    procedure Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N
      (bs : in out Bitstream; IntVal : Asn1UInt; total_bytes : Integer)
@@ -1022,12 +1082,18 @@ is
      (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
       maxVal :        Asn1UInt; Result : out ASN1_RESULT)
    is
+      --  bytes of the 64-bit field above Asn1UInt: 4 on a 32-bit board, else 0
+      Upper_Bytes    : constant Integer  := 8 - Asn1UInt'Size / 8;
+      Upper          : Asn1UInt;
+      Upper_Ok       : Boolean;
    begin
       Result.ErrorCode   := 0;
-      bs.Current_Bit_Pos := bs.Current_Bit_Pos + (64 - Asn1UInt'Size);
+      --  the upper bytes must be 0: a larger value does not fit in Asn1UInt
+      Dec_UInt (bs, Upper_Bytes, Upper, Upper_Ok);
       Dec_UInt (bs, Asn1UInt'Size / 8, IntVal, Result.Success);
       Result.Success :=
-        Result.Success and then IntVal >= minVal and then IntVal <= maxVal;
+        Result.Success and then Upper_Ok and then Upper = 0
+        and then IntVal >= minVal and then IntVal <= maxVal;
       if not Result.Success then
          IntVal           := minVal;
          Result.ErrorCode := ERR_INCORRECT_STREAM;
@@ -1040,7 +1106,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - total_bytes * 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes * 8;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + total_bytes * 8;
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N0
      (bs : in out Bitstream; IntVal : out Asn1UInt; total_bytes : Integer)
@@ -1067,7 +1133,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - total_bytes * 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes * 8 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + total_bytes * 8 and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -1108,10 +1174,23 @@ is
      (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
       maxVal :        Asn1UInt; Result : out ASN1_RESULT)
    is
+      --  bytes of the 64-bit field above Asn1UInt: 4 on a 32-bit board, else 0
+      Upper_Bytes    : constant Integer  := 8 - Asn1UInt'Size / 8;
+      Upper          : Asn1UInt;
+      Upper_Ok       : Boolean;
    begin
-      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N
-        (bs, IntVal, minVal, maxVal, Result, Asn1UInt'Size / 8);
-      bs.Current_Bit_Pos := bs.Current_Bit_Pos + (64 - Asn1UInt'Size);
+      Result.ErrorCode := 0;
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N0
+        (bs, IntVal, Asn1UInt'Size / 8);
+      --  the upper bytes must be 0: a larger value does not fit in Asn1UInt
+      Dec_UInt (bs, Upper_Bytes, Upper, Upper_Ok);
+      Result.Success :=
+        Upper_Ok and then Upper = 0 and then IntVal >= minVal
+        and then IntVal <= maxVal;
+      if not Result.Success then
+         IntVal           := minVal;
+         Result.ErrorCode := ERR_INCORRECT_STREAM;
+      end if;
    end Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64;
 
    procedure Acn_Dec_Int_PositiveInteger_VarSize_LengthEmbedded
@@ -1196,13 +1275,26 @@ is
       maxVal :        Asn1Int; Result : out ASN1_RESULT)
    is
       encVal : Asn1UInt;
+      --  bytes of the 64-bit field above Asn1UInt: 4 on a 32-bit board, else 0
+      Upper_Bytes    : constant Integer  := 8 - Asn1UInt'Size / 8;
+      Upper          : Asn1UInt;
+      Upper_Ok       : Boolean;
+      --  the upper bytes of a negative value: all bits set (none on a
+      --  64-bit board)
+      Upper_Negative : constant Asn1UInt :=
+        (if Upper_Bytes = 0 then 0 else Asn1UInt'Last);
    begin
       Result.ErrorCode   := 0;
-      bs.Current_Bit_Pos := bs.Current_Bit_Pos + (64 - Asn1UInt'Size);
+      Dec_UInt (bs, Upper_Bytes, Upper, Upper_Ok);
       Dec_UInt (bs, Asn1UInt'Size / 8, encVal, Result.Success);
       pragma Assert (Result.Success);
       IntVal         := To_Int (encVal);
-      Result.Success := IntVal >= minVal and IntVal <= maxVal;
+      --  the upper bytes must be the sign extension of the value: else it
+      --  does not fit in Asn1Int
+      Result.Success :=
+        Upper_Ok
+        and then Upper = (if IntVal < 0 then Upper_Negative else 0)
+        and then IntVal >= minVal and then IntVal <= maxVal;
       if not Result.Success then
          IntVal           := minVal;
          Result.ErrorCode := ERR_INCORRECT_STREAM;
@@ -1216,7 +1308,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - total_bytes * 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes * 8 and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + total_bytes * 8 and
       ((Result.Success and IntVal >= minVal and IntVal <= maxVal) or
        (not Result.Success and IntVal = minVal));
 
@@ -1262,10 +1354,31 @@ is
      (bs     : in out Bitstream; IntVal : out Asn1Int; minVal : Asn1Int;
       maxVal :        Asn1Int; Result : out ASN1_RESULT)
    is
+      encVal : Asn1UInt;
+      --  bytes of the 64-bit field above Asn1UInt: 4 on a 32-bit board, else 0
+      Upper_Bytes    : constant Integer  := 8 - Asn1UInt'Size / 8;
+      Upper          : Asn1UInt;
+      Upper_Ok       : Boolean;
+      --  the upper bytes of a negative value: all bits set (none on a
+      --  64-bit board)
+      Upper_Negative : constant Asn1UInt :=
+        (if Upper_Bytes = 0 then 0 else Asn1UInt'Last);
    begin
-      Acn_Dec_Int_TwosComplement_ConstSize_little_endian_N
-        (bs, IntVal, minVal, maxVal, Result, Asn1UInt'Size / 8);
-      bs.Current_Bit_Pos := bs.Current_Bit_Pos + (64 - Asn1UInt'Size);
+      Result.ErrorCode := 0;
+      Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N0
+        (bs, encVal, Asn1UInt'Size / 8);
+      IntVal := To_Int (encVal);
+      Dec_UInt (bs, Upper_Bytes, Upper, Upper_Ok);
+      --  the upper bytes must be the sign extension of the value: else it
+      --  does not fit in Asn1Int
+      Result.Success :=
+        Upper_Ok
+        and then Upper = (if IntVal < 0 then Upper_Negative else 0)
+        and then IntVal >= minVal and then IntVal <= maxVal;
+      if not Result.Success then
+         IntVal           := minVal;
+         Result.ErrorCode := ERR_INCORRECT_STREAM;
+      end if;
    end Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64;
 
    procedure Acn_Dec_Int_TwosComplement_VarSize_LengthEmbedded
@@ -1514,7 +1627,8 @@ is
    end Acn_Dec_UInt_ASCII_ConstSize;
 
    procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminated
-     (bs : in out Bitstream; IntVal : out Asn1UInt; nullChars : OctetBuffer;
+     (bs     : in out Bitstream; IntVal : out Asn1UInt; minVal : Asn1UInt;
+      maxVal :        Asn1UInt; nullChars : OctetBuffer;
       Result :    out ASN1_RESULT)
    is
       digit    : Asn1Byte;
@@ -1560,8 +1674,12 @@ is
          Ch       := Character'Val (digit);
          intDigit := Character'Pos (Ch) - Character'Pos ('0');
 
+         --  IntVal * 10 + intDigit must not wrap around (Asn1UInt is
+         --  modular): 20 digits on x86, 10 on msp430 can exceed it
          Result.Success :=
-           intDigit >= 0 and intDigit <= 9 and IntVal < Powers_of_10 (i - 1);
+           intDigit >= 0 and then intDigit <= 9
+           and then IntVal < Powers_of_10 (i - 1)
+           and then IntVal <= (Asn1UInt'Last - Asn1UInt (intDigit)) / 10;
          if Result.Success then
             IntVal := IntVal * 10;
             IntVal := IntVal + Asn1UInt (intDigit);
@@ -1571,13 +1689,23 @@ is
            tmp (tmp'First .. tmp'First + (nullChars'Last - nullChars'First));
       end loop;
 
+      --  after Max_Int_Digits digits the next bytes must be the terminator;
+      --  the value must be in minVal .. maxVal (the range of the field)
+      Result.Success :=
+        Result.Success
+        and then nullChars (nullChars'First .. nullChars'Last) =
+          tmp (tmp'First .. tmp'First + (nullChars'Last - nullChars'First))
+        and then IntVal >= minVal and then IntVal <= maxVal;
+
       if not Result.Success then
          Result.ErrorCode := ERR_INCORRECT_STREAM;
+         IntVal           := minVal;
       end if;
    end Acn_Dec_UInt_ASCII_VarSize_NullTerminated;
 
    procedure Acn_Dec_Int_ASCII_VarSize_NullTerminated
-     (bs     : in out Bitstream; IntVal : out Asn1Int; nullChars : OctetBuffer;
+     (bs     : in out Bitstream; IntVal : out Asn1Int; minVal : Asn1Int;
+      maxVal :        Asn1Int; nullChars : OctetBuffer;
       Result :    out ASN1_RESULT)
    is
       digitAscii : Asn1Byte;
@@ -1595,7 +1723,7 @@ is
       Result.Success := Result.Success and (Ch = '+' or Ch = '-');
       if Result.Success then
          Acn_Dec_UInt_ASCII_VarSize_NullTerminated
-           (bs, absIntVal, nullChars, Result);
+           (bs, absIntVal, 0, Asn1UInt'Last, nullChars, Result);
 
          if Result.Success then
             if absIntVal = 0 then
@@ -1612,6 +1740,13 @@ is
          end if;
       end if;
 
+      --  the value must be in minVal .. maxVal (the range of the field)
+      Result.Success :=
+        Result.Success and then IntVal >= minVal and then IntVal <= maxVal;
+      if not Result.Success then
+         Result.ErrorCode := ERR_INCORRECT_STREAM;
+         IntVal           := minVal;
+      end if;
    end Acn_Dec_Int_ASCII_VarSize_NullTerminated;
 
    function Float_to_OctetArray4 (x : Float) return OctetArray4;
@@ -2310,6 +2445,15 @@ is
 
          I := I + 1;
       end loop;
+
+      --  after the longest string the next bytes must be the terminator
+      if null_characters (null_characters'First .. null_characters'Last) /=
+        tmp (tmp'First ..
+             tmp'First + (null_characters'Last - null_characters'First))
+      then
+         Result :=
+           ASN1_RESULT'(Success => False, ErrorCode => ERR_INCORRECT_STREAM);
+      end if;
 
       while I <= strVal'Last loop
          pragma Loop_Invariant (I >= strVal'First and I <= strVal'Last);
@@ -3175,139 +3319,87 @@ is
    end Acn_Dec_UInt_ASCII_ConstSizeUInt32;
 
    procedure Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt8
-     (bs : in out Bitstream; IntVal : out Integer_8;
-      nullChars : OctetBuffer; Result :    out ASN1_RESULT)
+     (bs : in out Bitstream; IntVal : out Integer_8; minVal : Integer_8;
+      maxVal : Integer_8; nullChars : OctetBuffer;
+      Result :    out ASN1_RESULT)
    is
       v : Asn1Int;
    begin
-      Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs, v,
-             nullChars, Result);
-      Result.Success := Result.Success and then
-        Asn1Int (Integer_8'First) <= v and then v <= Asn1Int (Integer_8'Last);
+      --  v is in minVal .. maxVal (Post), so it fits Integer_8
+      Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs, v, Asn1Int (minVal),
+             Asn1Int (maxVal), nullChars, Result);
 
-      if Result.Success then
-         IntVal := Integer_8 (v);
-      else
-         IntVal := 0;
-      end if;
-
+      IntVal := Integer_8 (v);
    end Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt8;
 
    procedure Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt16
-     (bs : in out Bitstream; IntVal : out Integer_16;
-      nullChars : OctetBuffer; Result :    out ASN1_RESULT)
+     (bs : in out Bitstream; IntVal : out Integer_16; minVal : Integer_16;
+      maxVal : Integer_16; nullChars : OctetBuffer;
+      Result :    out ASN1_RESULT)
    is
       v : Asn1Int;
    begin
-      Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs, v,
-             nullChars, Result);
-      Result.Success := Result.Success and then
-        Asn1Int (Integer_16'First) <= v and then
-        v <= Asn1Int (Integer_16'Last);
+      --  v is in minVal .. maxVal (Post), so it fits Integer_16
+      Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs, v, Asn1Int (minVal),
+             Asn1Int (maxVal), nullChars, Result);
 
-      if Result.Success then
-         IntVal := Integer_16 (v);
-      else
-         IntVal := 0;
-      end if;
-
+      IntVal := Integer_16 (v);
    end Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt16;
 
    procedure Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt32
-     (bs : in out Bitstream; IntVal : out Integer_32;
-      nullChars : OctetBuffer; Result :    out ASN1_RESULT)
+     (bs : in out Bitstream; IntVal : out Integer_32; minVal : Integer_32;
+      maxVal : Integer_32; nullChars : OctetBuffer;
+      Result :    out ASN1_RESULT)
    is
       v : Asn1Int;
    begin
-      Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs, v,
-                                                nullChars, Result);
-      pragma Warnings
-        (Off, "condition can only be False if invalid values present");
-      pragma Warnings
-        (Off, "condition is always True");
+      --  v is in minVal .. maxVal (Post), so it fits Integer_32
+      Acn_Dec_Int_ASCII_VarSize_NullTerminated (bs, v, Asn1Int (minVal),
+             Asn1Int (maxVal), nullChars, Result);
 
-      Result.Success := Result.Success and then
-        Asn1Int (Integer_32'First) <= v and then
-        v <= Asn1Int (Integer_32'Last);
-
-      pragma Warnings
-        (On, "condition can only be False if invalid values present");
-      pragma Warnings
-        (On, "condition is always True");
-
-      if Result.Success then
-         IntVal := Integer_32 (v);
-      else
-         IntVal := 0;
-      end if;
-
+      IntVal := Integer_32 (v);
    end Acn_Dec_Int_ASCII_VarSize_NullTerminatedInt32;
 
    procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt8
-     (bs : in out Bitstream; IntVal : out Unsigned_8;
-      nullChars : OctetBuffer; Result :    out ASN1_RESULT)
+     (bs : in out Bitstream; IntVal : out Unsigned_8; minVal : Unsigned_8;
+      maxVal : Unsigned_8; nullChars : OctetBuffer;
+      Result :    out ASN1_RESULT)
    is
       v : Asn1UInt;
    begin
-      Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs, v,
-             nullChars, Result);
-      Result.Success := Result.Success and then
-        v <= Asn1UInt (Unsigned_8'Last);
+      --  v is in minVal .. maxVal (Post), so it fits Unsigned_8
+      Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs, v, Asn1UInt (minVal),
+             Asn1UInt (maxVal), nullChars, Result);
 
-      if Result.Success then
-         IntVal := Unsigned_8 (v);
-      else
-         IntVal := 0;
-      end if;
-
+      IntVal := Unsigned_8 (v);
    end Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt8;
 
    procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt16
-     (bs : in out Bitstream; IntVal : out Unsigned_16;
-      nullChars : OctetBuffer; Result :    out ASN1_RESULT)
+     (bs : in out Bitstream; IntVal : out Unsigned_16; minVal : Unsigned_16;
+      maxVal : Unsigned_16; nullChars : OctetBuffer;
+      Result :    out ASN1_RESULT)
    is
       v : Asn1UInt;
    begin
-      Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs, v,
-             nullChars, Result);
-      Result.Success := Result.Success and then
-         v <= Asn1UInt (Unsigned_16'Last);
+      --  v is in minVal .. maxVal (Post), so it fits Unsigned_16
+      Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs, v, Asn1UInt (minVal),
+             Asn1UInt (maxVal), nullChars, Result);
 
-      if Result.Success then
-         IntVal := Unsigned_16 (v);
-      else
-         IntVal := 0;
-      end if;
-
+      IntVal := Unsigned_16 (v);
    end Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt16;
 
    procedure Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt32
-     (bs : in out Bitstream; IntVal : out Unsigned_32;
-      nullChars : OctetBuffer; Result :    out ASN1_RESULT)
+     (bs : in out Bitstream; IntVal : out Unsigned_32; minVal : Unsigned_32;
+      maxVal : Unsigned_32; nullChars : OctetBuffer;
+      Result :    out ASN1_RESULT)
    is
       v : Asn1UInt;
    begin
-      Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs, v,
-                                                 nullChars, Result);
-      pragma Warnings
-        (Off, "condition can only be False if invalid values present");
-      pragma Warnings
-        (Off, "condition is always True");
+      --  v is in minVal .. maxVal (Post), so it fits Unsigned_32
+      Acn_Dec_UInt_ASCII_VarSize_NullTerminated (bs, v, Asn1UInt (minVal),
+             Asn1UInt (maxVal), nullChars, Result);
 
-      Result.Success := Result.Success and then
-        v <= Asn1UInt (Unsigned_32'Last);
-
-      pragma Warnings
-        (On, "condition can only be False if invalid values present");
-      pragma Warnings
-        (On, "condition is always True");
-
-      if Result.Success then
-         IntVal := Unsigned_32 (v);
-      else
-         IntVal := 0;
-      end if;
-
+      IntVal := Unsigned_32 (v);
    end Acn_Dec_UInt_ASCII_VarSize_NullTerminatedUInt32;
 
    procedure Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N_FullRange
@@ -3316,7 +3408,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - total_bytes * 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes * 8
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + total_bytes * 8
       and then (if total_bytes * 8 < Asn1UInt'Size then
                   IntVal < Shift_Left (Asn1UInt (1), total_bytes * 8));
 

@@ -229,7 +229,7 @@ let checkIntHasEnoughSpace acnEncodingClass (hasMappingFunction:bool) acnErrLoc0
         |TwosComplement_ConstSize nBits                 -> checkBinary false nBits
         |ASCII_ConstSize nBits                          -> checkAscii false nBits
         |ASCII_VarSize_NullTerminated _                 -> ()
-        |ASCII_UINT_ConstSize nBits                     -> checkAscii false nBits
+        |ASCII_UINT_ConstSize nBits                     -> checkAscii true nBits
         |ASCII_UINT_VarSize_NullTerminated _            -> ()
         |BCD_ConstSize nBits                            -> checkBCD nBits
         |BCD_VarSize_NullTerminated _                   -> ()
@@ -342,7 +342,30 @@ let private mergeInteger (asn1:Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*Langua
         uperMaxSizeInBits=uperMaxSizeInBits; acnEncodingClass = acnEncodingClass; intClass=intClass;  acnMinSizeInBits=acnMinSizeInBits;
         acnMaxSizeInBits = acnMaxSizeInBits; isUnsigned= isUnsigned; typeDef=typeDef; defaultInitVal="0"; definitionOrRef=definitionOrRef}, us1
 
-let private mergeReal (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*LanguageMacros) list) (loc: SrcLoc) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) cons withcons (tdarg: GetTypeDefinition_arg) (us: Asn1AcnMergeState) =
+/// The class of the typedef of a REAL type assignment (Issue 99): a type assignment that references another type has
+/// the referenced typedef (`typedef MyR0 MyR;`), so its class is the referenced one's; a REAL type assignment has a
+/// typedef of the class of its own ACN encoding (-slim: IEEE754-1985-32 -> 32-bit, IEEE754-1985-64 -> 64-bit).
+let rec private realTasStorageClass (asn1: Asn1Ast.AstRoot) (acn: AcnAst) (modName: string) (tasName: string) : RealClass option =
+    let tas =
+        asn1.Modules |> Seq.tryFind (fun m -> m.Name.Value = modName) |>
+        Option.bind (fun m -> m.TypeAssignments |> Seq.tryFind (fun t -> t.Name.Value = tasName))
+    match tas with
+    | None     -> None
+    | Some tas ->
+        match tas.Type.Kind with
+        | Asn1Ast.ReferenceType rf -> realTasStorageClass asn1 acn rf.modName.Value rf.tasName.Value
+        | Asn1Ast.Real             ->
+            let props =
+                acn.files |> List.collect (fun f -> f.modules) |> List.filter (fun m -> m.name.Value = modName) |>
+                List.collect (fun m -> m.typeAssignments) |> List.filter (fun t -> t.name.Value = tasName) |>
+                List.collect (fun t -> t.typeEncodingSpec.acnProperties)
+            match asn1.args.slim, tryGetProp props (fun x -> match x with ENCODING e -> Some e | _ -> None) with
+            | true, Some GP_IEEE754_32  -> Some ASN1SCC_FP32
+            | true, Some GP_IEEE754_64  -> Some ASN1SCC_FP64
+            | _                         -> Some ASN1SCC_REAL
+        | _                        -> None
+
+let private mergeReal (asn1: Asn1Ast.AstRoot) (acn: AcnAst) (lms:(ProgrammingLanguage*LanguageMacros) list) (loc: SrcLoc) (acnErrLoc: SrcLoc option) (props: GenericAcnProperty list) cons withcons (tdarg: GetTypeDefinition_arg) (us: Asn1AcnMergeState) =
     let acnErrLoc0 = match acnErrLoc with Some a -> a | None -> loc
     let getRtlTypeName  (l:ProgrammingLanguage) = (asn1.args.getBasicLang l).getRealRtlTypeName
     //check for invalid properties
@@ -381,13 +404,37 @@ let private mergeReal (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*Language
          | false -> ())
     | Real_uPER | Real_IEEE754_32_big_endian | Real_IEEE754_32_little_endian
     | Real_IEEE754_64_big_endian | Real_IEEE754_64_little_endian                     -> ()
-    let typeDef, us1 = getPrimitiveTypeDefinition {tdarg with rtlFnc = Some getRtlTypeName} us
+    // With -slim an IEEE 754 32-bit encoding is decoded into a 32-bit float (the _fp32 RTL twins): a component needs a
+    // typedef of its own (Declare_Real32, as a type assignment gets in createReal_u), not the RTL REAL type (Issue 99).
+    let rtlFnc =
+        match Asn1AcnAstUtilFunctions.getRealEncodingClass asn1.args.slim acnEncodingClass with
+        | ASN1SCC_FP32                -> None
+        | ASN1SCC_REAL | ASN1SCC_FP64 -> Some getRtlTypeName
+    let ownClass = Asn1AcnAstUtilFunctions.getRealEncodingClass asn1.args.slim acnEncodingClass
+    let storageClass =
+        match getTypedefKind {tdarg with rtlFnc = rtlFnc} with
+        | FEI_NewTypeDefinition
+        | FEI_Reference2RTL                 -> ownClass
+        | FEI_NewSubTypeDefinition refId
+        | FEI_Reference2OtherType refId     ->
+            match refId.tasInfo with
+            | Some ti   -> realTasStorageClass asn1 acn ti.modName ti.tasName |> Option.defaultValue ownClass
+            | None      -> ownClass
+    // With -slim, a REAL type encoded as IEEE754-1985-32 is stored in 32 bits; a reference site (or a type assignment
+    // that references it) cannot change its encoding: there is no RTL decoder of a 64-bit IEEE 754 encoding into 32 bits
+    // (no _fp32 twin), and the Ada scaled-integer templates convert from / to Asn1Real only.
+    match storageClass, acnEncodingClass with
+    | ASN1SCC_FP32, (Real_IEEE754_64_big_endian | Real_IEEE754_64_little_endian | Real_ScaledInt _) ->
+        raise(SemanticError(acnErrLoc0, "With -slim, a REAL type encoded as IEEE754-1985-32 is stored in 32 bits and its encoding cannot be changed here"))
+    | ASN1SCC_FP32, (Real_uPER | Real_IEEE754_32_big_endian | Real_IEEE754_32_little_endian)
+    | (ASN1SCC_REAL | ASN1SCC_FP64), _ -> ()
+    let typeDef, us1 = getPrimitiveTypeDefinition {tdarg with rtlFnc = rtlFnc} us
     let definitionOrRef = 
         lms |> List.map(fun (l,lm) ->
            (l, DAstTypeDefinition.createReal_u asn1.args lm (ReferenceToType tdarg.curPath) typeDef acnEncodingClass )) |> Map.ofList
 
     {Real.acnProperties = acnProperties; cons = cons; withcons = withcons; uperRange=uperRange; uperMaxSizeInBits=uperMaxSizeInBits;
-        uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass;  acnMinSizeInBits=acnMinSizeInBits;
+        uperMinSizeInBits=uperMinSizeInBits; acnEncodingClass = acnEncodingClass; storageClass = storageClass; acnMinSizeInBits=acnMinSizeInBits;
         acnMaxSizeInBits = acnMaxSizeInBits; typeDef=typeDef; definitionOrRef=definitionOrRef; defaultInitVal="0"}, us1
 
 
@@ -489,7 +536,10 @@ let private mergeStringType (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*La
 
     let charSize =  GetNumberOfBitsForNonNegativeInteger (BigInteger (uperCharSet.Length-1))
     let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.uper maxSize.uper charSize
-    let acnUperMinSizeInBits, acnUperMaxSizeInBits = uPER.getSizeableTypeSize minSize.acn maxSize.acn charSize
+    // the sizes of the default ACN class (Acn_Enc_String_uPER), which encodes with the uPER body: the uPER length field
+    // and the narrowed characters of a WITH COMPONENT(S) site (Issue 168; before, a length field of the narrowed range,
+    // narrower than the one the encoder writes: REQUIRED_BITS too small)
+    let acnUperMinSizeInBits, acnUperMaxSizeInBits = uPER.getNarrowedSizeableTypeSize minSize.uper maxSize.uper minSize.acn maxSize.acn charSize
     let alignment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
 
     let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetStringEncodingClass alignment loc acnProperties acnUperMinSizeInBits acnUperMaxSizeInBits minSize.acn maxSize.acn uperCharSet
@@ -603,7 +653,9 @@ let private mergeBitStringType (asn1:Asn1Ast.AstRoot)
     let maxSize = {SIZE.uper = umaxSize; acn = amaxSize }
     let hasNCount = minSize.uper <> maxSize.uper
     let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.uper maxSize.uper 1I
-    let acnUperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.acn maxSize.acn 1I
+    // (Issue 92 / 168: this pair used to rebind uperMaxSizeInBits, so the uPER maximum of a BIT STRING narrowed at a
+    // WITH COMPONENT(S) site counted the narrowed bits while its uPER encoder writes the PER-visible length field)
+    let acnUperMinSizeInBits, acnUperMaxSizeInBits = uPER.getSizeableTypeSize minSize.acn maxSize.acn 1I
     //let fixAsn1Size = match minSize = maxSize with true -> Some minSize | false -> None
 
     let acnProperties =
@@ -619,7 +671,7 @@ let private mergeBitStringType (asn1:Asn1Ast.AstRoot)
     let acnArgsSubsted = substAcnArgs acnParamSubst (sizeDetArg |> Option.toList)
 
     let alignment = tryGetProp props (fun x -> match x with ALIGNTONEXT e -> Some e | _ -> None)
-    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetBitStringEncodingClass alignment loc acnProperties acnUperMinSizeInBits uperMaxSizeInBits minSize.acn maxSize.acn hasNCount
+    let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits= AcnEncodingClasses.GetBitStringEncodingClass alignment loc acnProperties acnUperMinSizeInBits acnUperMaxSizeInBits minSize.acn maxSize.acn hasNCount
 
     let typeDef, us1 = getSizeableTypeDefinition tdarg us
     let definitionOrRef = 
@@ -1013,24 +1065,18 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (lms:
             let uperRange    = uPER.getIntTypeConstraintUperRange cons  ts.Location
             let uperMinSizeInBits, uperMaxSizeInBits = uPER.getRequiredBitsForIntUperEncoding asn1.args.integerSizeInBytes uperRange
             let acnProperties = {IntegerAcnProperties.encodingProp = getIntEncodingProperty ts.Location props; sizeProp = getIntSizeProperty ts.Location props; endiannessProp = getEndiannessProperty props; mappingFunction = getMappingFunctionProperty ts.Location props}
+            // The local of the field has the C / Ada type of the referenced INTEGER (intClass, from its range), so the
+            // encoding class follows the range too, as for an ASN.1 INTEGER component (Issue 98): an ASCII encoding of an
+            // unsigned range is ASCII_UINT_* (no sign character), pos-int / BCD of a signed range and twos-complement of an
+            // unsigned range are rejected by GetIntEncodingClass. Before, the signedness came from the encoding (ASCII and
+            // twos-complement signed, pos-int and BCD unsigned) and every mismatch generated code that did not compile.
+            let intClass = getIntEncodingClassByUperRange asn1.args uperRange
             let isUnsigned =
                 match acnProperties.encodingProp with
-                | Some encProp ->
-                    match encProp with
-                    | PosInt            -> true
-                    | TwosComplement    -> false
-                    | IntAscii          -> false
-                    | BCD               -> true
-                | None         ->
+                | Some _ -> intClass.IsPositive
+                | None   ->
                     match acnProperties.sizeProp.IsNone && acnProperties.endiannessProp.IsNone with
-                    | true  ->
-                        match uperRange with
-                        | Concrete  (a,b) when a >= 0I -> true      //[a, b]
-                        | Concrete  _                  -> false
-                        | NegInf    _                  -> false    //(-inf, b]
-                        | PosInf   a when a >= 0I  -> true     //[a, +inf)
-                        | PosInf  _                    -> false    //[a, +inf)
-                        | Full                         -> false    // (-inf, +inf)
+                    | true  -> intClass.IsPositive
                     | false -> raise(SemanticError(ts.Location, "Mandatory ACN property 'encoding' is missing"))
 
             let acnEncodingClass,  acnMinSizeInBits, acnMaxSizeInBits  =
@@ -1039,7 +1085,6 @@ let rec private mapAcnParamTypeToAcnAcnInsertedType (asn1:Asn1Ast.AstRoot) (lms:
             let checkIntHasEnoughSpace asn1Min asn1Max =
                 checkIntHasEnoughSpace acnEncodingClass acnProperties.mappingFunction.IsSome ts.Location asn1Min asn1Max
 
-            let  intClass = getIntEncodingClassByUperRange asn1.args uperRange
             AcnInteger ({AcnInteger.acnProperties=acnProperties; acnAlignment=acnAlignment; acnEncodingClass = acnEncodingClass;  Location = ts.Location; acnMinSizeInBits=acnMinSizeInBits; acnMaxSizeInBits = acnMaxSizeInBits;cons=cons;withcons=[];isUnsigned=isUnsigned; uperRange= uperRange; intClass=intClass; defaultValue="0"; checkIntHasEnoughSpace=checkIntHasEnoughSpace; inheritInfo=Some {InheritanceInfo.modName=md.Value; tasName=ts.Value;hasAdditionalConstraints=false;}}), us
         | _                               ->
             let newParma  =
@@ -1091,6 +1136,19 @@ let rec mapAnyConstraint (asn1:Asn1Ast.AstRoot) (t:Asn1Ast.Asn1Type) (cons:Asn1A
         let oldBaseType  = Asn1Ast.GetBaseTypeByName rf.modName rf.tasName asn1
         mapAnyConstraint asn1 oldBaseType cons
 
+/// q/issues.md Issue 135: whether an ACN property in the specification of a CONTAINING (at a site or on the CONTAINING
+/// type assignment) changes the encoding of the contents, i.e. whether the contents' merged encoding can differ from
+/// the encoding of the referenced type assignment. The properties of the container are not: its alignment (removed from
+/// the contents' spec, Issue 134), its presence (`present-when` of an OPTIONAL CONTAINING child), its saved position,
+/// and its length (`size`, `termination-pattern`: the region; for non-deduced contents they still leak into the
+/// contents' spec, the legacy "property leak", which leaves the contents' encoding as it is). Exhaustive on purpose: a
+/// new property must be classified here.
+let private acnPropertyOfContents (p:GenericAcnProperty) : bool =
+    match p with
+    | ALIGNTONEXT _ | PRESENT_WHEN _ | PRESENT_WHEN_EXP _ | SAVE_POSITION | SIZE _ | TERMINATION_PATTERN _ -> false
+    | ENCODING _ | ENCODE_VALUES | TRUE_VALUE _ | FALSE_VALUE _ | PATTERN _ | CHOICE_DETERMINANT _ | ENDIANNESS _
+    | ENUM_SET_VALUE _ | MAPPING_FUNCTION _ | POST_ENCODING_FUNCTION _ | PRE_DECODING_FUNCTION _ -> true
+
 let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map<String,int>) (lms:(ProgrammingLanguage*LanguageMacros) list) 
                            (m:Asn1Ast.Asn1Module) 
                            (t:Asn1Ast.Asn1Type) 
@@ -1141,7 +1199,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
         | Asn1Ast.Real                     ->
             let cons =  t.Constraints@refTypeCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getRealTypeConstraint asn1 t)
             let wcons = withCons |> List.collect fixConstraint |> List.map (ConstraintsMapping.getRealTypeConstraint asn1 t)
-            let o, us1 = mergeReal asn1 lms t.Location acnErrLoc combinedProperties cons wcons tfdArg us
+            let o, us1 = mergeReal asn1 acn lms t.Location acnErrLoc combinedProperties cons wcons tfdArg us
             Real o, us1
         | Asn1Ast.ObjectIdentifier
         | Asn1Ast.RelativeObjectIdentifier         ->
@@ -1585,6 +1643,21 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
             let maxChildSize = mergedChildren  |> List.map(fun x -> x.Type.uperMaxSizeInBits) |> Seq.max
 
             let acnMinSizeInBits, acnMaxSizeInBits = AcnEncodingClasses.GetChoiceEncodingClass  mergedChildren alignment t.Location acnProperties
+            // q/issues.md Issue 141: --acn-v2 encodes a CHOICE whose own parameter sizes OCTET STRING CONTAINING
+            // alternatives as one region padded to whole octets from its start (choiceContainingRegion); the CHOICE's
+            // sizes (and so every enclosing REQUIRED_BITS, the Ada contracts and stream sizes, the ICD) count the padding.
+            // Before, they counted the CHOICE's bits: the C encoder of a maximal value wrote one octet past a buffer of
+            // REQUIRED_BYTES, Ada encoder postconditions failed. The alignment of the CHOICE is inside the region.
+            // Legacy has no such region (it rejects the shape).
+            let containingRegion =
+                match asn1.args.acnDeferred with
+                | true  -> choiceContainingRegion acnParameters mergedChildren |> Option.map (fun (prm, kind) -> prm.name, kind)
+                | false -> None
+            let acnMinSizeInBits, acnMaxSizeInBits =
+                match containingRegion with
+                | Some (_, ContainedInOctString) -> ((acnMinSizeInBits + 7I) / 8I) * 8I, ((acnMaxSizeInBits + 7I) / 8I) * 8I
+                | Some (_, ContainedInBitString)
+                | None -> acnMinSizeInBits, acnMaxSizeInBits
             // TODO: Voir si cela ne prove pas de dup? + SequenceOf
             // let detArg = acnType |> Option.bind (fun acnType -> acnType.acnProperties |> List.tryFindMap (fun prop ->
             //     match prop with
@@ -1603,7 +1676,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
 
             Choice ({Choice.children = mergedChildren; acnProperties = acnProperties; cons=cons; withcons = wcons;
                 uperMaxSizeInBits=indexSize+maxChildSize; uperMinSizeInBits=indexSize+minChildSize; acnMinSizeInBits =acnMinSizeInBits;
-                acnMaxSizeInBits=acnMaxSizeInBits; (*acnParameters = acnParameters;*) acnArgs = allAcnArgsSubsted; acnLoc = acnLoc; typeDef=typeDef; definitionOrRef=definitionOrRef; maxAlignment=maxAlignment}), chus
+                acnMaxSizeInBits=acnMaxSizeInBits; (*acnParameters = acnParameters;*) acnArgs = allAcnArgsSubsted; acnLoc = acnLoc; typeDef=typeDef; definitionOrRef=definitionOrRef; maxAlignment=maxAlignment; containingRegion=containingRegion}), chus
 
         | Asn1Ast.ReferenceType rf    ->
             let acnArguments = acnArgs
@@ -1632,13 +1705,22 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                 //the contained sizeable type into an external-field one, see
                 //Docs/deduced-size-spec.md).  For non-deduced contained types the legacy
                 //merging behaviour is preserved.
+                //An align-to-next of a CONTAINING aligns the octet/bit string (its own alignment, emitted once before
+                //the region), never the contents (q/issues.md Issue 134): merged into the contents it added up to
+                //7 / 15 / 31 bits to their maximum size, so the region's length range grew by one octet (a spurious
+                //length field for fixed-size contents) and the legacy decoders wrote past their temporary buffer.
                 let baseIsDeduced =
                     match baseTypeAcnEncSpec with
                     | Some baseSpec -> baseSpec.acnProperties |> List.exists(fun p -> match p with SIZE GP_Deduced -> true | _ -> false)
                     | None          -> false
                 match rf.refEnc, acnType with
-                | Some _, Some ts when baseIsDeduced ->
-                    Some {ts with acnProperties = ts.acnProperties |> List.filter(fun p -> match p with SIZE _ | TERMINATION_PATTERN _ -> false | _ -> true)}
+                | Some _, Some ts ->
+                    let staysWithTheContainer p =
+                        match p with
+                        | ALIGNTONEXT _                  -> true
+                        | SIZE _ | TERMINATION_PATTERN _ -> baseIsDeduced
+                        | _                              -> false
+                    Some {ts with acnProperties = ts.acnProperties |> List.filter(fun p -> not (staysWithTheContainer p))}
                 | _ -> acnType
             let mergedAcnEncSpec =
                 //if a reference type has a component constraint (i.e. it is actually a SEQUENCE, CHOICE or SEQUENCE OF) then we should not merge the ACN spec
@@ -1684,6 +1766,13 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                 | ReferenceType baseRef   -> b1 || baseRef.hasExtraConstrainsOrChildrenOrAcnArgs
                 | _                       -> b1
 
+            // q/issues.md Issue 135: the ACN specification of this CONTAINING changes the encoding of its contents
+            // (DAstUtilFunctions.containingSiteSpecialised): children, or a property of the contents. acnTypeForMerge
+            // has the container's ALIGNTONEXT already removed.
+            let contentsSpecOverride =
+                match rf.refEnc, acnTypeForMerge with
+                | Some _, Some ts -> ts.children.Length > 0 || ts.acnProperties |> List.exists acnPropertyOfContents
+                | Some _, None | None, _ -> false
             let refCons = mapAnyConstraint asn1 t t.Constraints
 
             let toByte sizeInBits =
@@ -1697,8 +1786,10 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                 | Some  ContainedInBitString ->
                     let minSize = {SIZE.uper = resolvedType.uperMinSizeInBits; acn = resolvedType.acnMinSizeInBits}
                     let maxSize = {SIZE.uper = resolvedType.uperMaxSizeInBits; acn = resolvedType.acnMaxSizeInBits}
-                    let hasNCount = minSize.uper <> maxSize.uper
-                    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.uper maxSize.uper 1I
+                    // The ACN length of the contents follows their ACN sizes (Issue 96): before, it followed the uPER
+                    // sizes, so contents of a fixed uPER but a variable ACN size got no length.
+                    let hasNCount = minSize.acn <> maxSize.acn
+                    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getContainingSize resolvedType.uperMinSizeInBits resolvedType.uperMaxSizeInBits 1I
                     let acnProperties =
                         match acnErrLoc with
                         | Some acnErrLoc    -> { SizeableAcnProperties.sizeProp  = getSizeableSizeProperty minSize.acn maxSize.acn acnErrLoc combinedProperties}
@@ -1710,8 +1801,9 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
                 | Some  ContainedInOctString  ->
                     let minSize = {SIZE.uper = toByte resolvedType.uperMinSizeInBits; acn = toByte resolvedType.acnMinSizeInBits}
                     let maxSize = {SIZE.uper = toByte resolvedType.uperMaxSizeInBits; acn = toByte resolvedType.acnMaxSizeInBits}
-                    let hasNCount = (minSize.uper <> maxSize.uper) || (minSize.acn <> maxSize.acn)
-                    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getSizeableTypeSize minSize.uper maxSize.uper 8I
+                    // ACN sizes only (Issue 96), as for BIT STRING.
+                    let hasNCount = minSize.acn <> maxSize.acn
+                    let uperMinSizeInBits, uperMaxSizeInBits = uPER.getContainingSize resolvedType.uperMinSizeInBits resolvedType.uperMaxSizeInBits 8I
 
                     let acnProperties =
                         match acnErrLoc with
@@ -1725,7 +1817,7 @@ let rec private mergeType  (asn1:Asn1Ast.AstRoot) (acn:AcnAst) (typeIdsSet : Map
             let maxAlignment = maxAlignmentOf [alignment; resolvedType.maxAlignment]
 
             let definitionOrRef = resolvedType.typeDefinitionOrReference
-            let newRef       = {ReferenceType.modName = rf.modName; tasName = rf.tasName; tabularized = rf.tabularized; acnArguments = acnArguments; resolvedType=resolvedType; hasConstraints = hasAdditionalConstraints; typeDef=typeDef; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits = uperMinSizeInBits; acnMaxSizeInBits  = acnMaxSizeInBits; acnMinSizeInBits  = acnMinSizeInBits; encodingOptions=encodingOptions; hasExtraConstrainsOrChildrenOrAcnArgs=hasExtraConstrainsOrChildrenOrAcnArgs; refCons = refCons;definitionOrRef=definitionOrRef; maxAlignment=maxAlignment}
+            let newRef       = {ReferenceType.modName = rf.modName; tasName = rf.tasName; tabularized = rf.tabularized; acnArguments = acnArguments; resolvedType=resolvedType; hasConstraints = hasAdditionalConstraints; typeDef=typeDef; uperMaxSizeInBits = uperMaxSizeInBits; uperMinSizeInBits = uperMinSizeInBits; acnMaxSizeInBits  = acnMaxSizeInBits; acnMinSizeInBits  = acnMinSizeInBits; encodingOptions=encodingOptions; hasExtraConstrainsOrChildrenOrAcnArgs=hasExtraConstrainsOrChildrenOrAcnArgs; contentsSpecOverride=contentsSpecOverride; refCons = refCons;definitionOrRef=definitionOrRef; maxAlignment=maxAlignment}
             ReferenceType newRef, us2
 
     {
@@ -1905,4 +1997,4 @@ let mergeAsn1WithAcnAst (asn1: Asn1Ast.AstRoot) (lms:(ProgrammingLanguage*Langua
                     for tas in m.TypeAssignments do
                         yield (m.Name.Value, tas.Name.Value), tas
         } |> Map.ofSeq
-    {AstRoot.Files = files; args = asn1.args; acnConstants = acn.acnConstants; acnParseResults=acnParseResults; modulesMap = modulesMap; typeAssignmentsMap = typeAssignmentsMap; allDependencies= finalState.allDependencies; tassesWithExportedDeterminants = Set.empty}, acn
+    {AstRoot.Files = files; args = asn1.args; acnConstants = acn.acnConstants; acnParseResults=acnParseResults; modulesMap = modulesMap; typeAssignmentsMap = typeAssignmentsMap; allDependencies= finalState.allDependencies; tassesWithExportedDeterminants = Set.empty; closureParamDeterminants = Map.empty}, acn

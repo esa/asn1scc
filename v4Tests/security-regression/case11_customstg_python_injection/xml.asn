@@ -1,0 +1,8 @@
+XM DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+MyStr ::= IA5String (SIZE(0..200))
+
+-- "]]>" ended the CDATA section of xml.stg's Print_StringValue
+cdataValue MyStr ::= "a]]><Injected/><![CDATA[b"
+
+END

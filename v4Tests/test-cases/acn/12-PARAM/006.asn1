@@ -1,0 +1,35 @@
+-- An ACN parameter of an enclosing type is not visible inside a type it references: the argument 'kind' of
+-- InnerBox.payload is InnerBox's own field, also where InnerBox is reached from inside OuterPayload, which has a
+-- parameter of the same name. Before, the front end resolved it to OuterPayload's parameter (legacy: the update of
+-- OuterBox.kind read an unset SEQUENCE OF index and the C code did not compile; acn-v2: one consumer too many).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+OuterBox ::= SEQUENCE {
+    payload OuterPayload
+}
+
+OuterPayload ::= CHOICE {
+    nested Nested,
+    value  Byte
+}
+
+Nested ::= SEQUENCE {
+    boxes Boxes
+}
+
+Boxes ::= SEQUENCE (SIZE (1..2)) OF InnerBox
+
+InnerBox ::= SEQUENCE {
+    payload InnerPayload
+}
+
+Byte ::= INTEGER (0..255)
+
+InnerPayload ::= CHOICE {
+    a Byte,
+    b BOOLEAN
+}
+
+END
+
+--TCLS  OuterBox [] { kind INTEGER [encoding pos-int, size 8], payload <kind> [] } OuterPayload <INTEGER:kind> [] { nested [present-when kind == 1], value [present-when kind == 4, encoding pos-int, size 8] } InnerBox [] { kind INTEGER [encoding pos-int, size 8], payload <kind> [] } InnerPayload <INTEGER:kind> [] { a [present-when kind == 2, encoding pos-int, size 8], b [present-when kind == 3] }

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import os
+import re
 import sys
 import shutil
 import getopt
@@ -51,6 +52,7 @@ class TestConfig:
     path_to_asn1scc: str = ""
     jobs: int = 1
     workDir: Optional[str] = None  # user-specified override for base working dir
+    adaAssertions: bool = False    # --ada-assertions: Ada tests built with -gnata, no line gate, no SPARK
 
 
 @dataclass
@@ -71,6 +73,7 @@ class TestRunResults:
     def __init__(self):
         self._lock = threading.Lock()
         self.errors: List[str] = []
+        self.known_failures: List[str] = []
         self.nTests = 0
 
     def add_error(self, msg: str):
@@ -80,6 +83,22 @@ class TestRunResults:
     def add_pass(self):
         with self._lock:
             self.nTests += 1
+
+    def remove_error(self, msg: str) -> bool:
+        """Drop one recorded error with this text (a known failure); False if there is none."""
+        with self._lock:
+            if msg in self.errors:
+                self.errors.remove(msg)
+                return True
+            return False
+
+    def add_known_failure(self, msg: str):
+        with self._lock:
+            self.known_failures.append(msg)
+
+    def get_known_failures(self) -> List[str]:
+        with self._lock:
+            return list(self.known_failures)
 
     def get_errors(self) -> List[str]:
         with self._lock:
@@ -156,6 +175,48 @@ def isTestSelected(cfg: TestConfig, asn1file: str) -> bool:
     return True
 
 
+# What GNAT prints for a failed Pre / Post / Assert / Assume / Loop_Invariant (also in the harness's sweep reports):
+# a KNOWN_FAILURE(...,gnata) marker accepts only a failure that shows it (same rule in regression/Program.fs).
+ASSERTION_FAILURE_TEXT = "ADA.ASSERTIONS.ASSERTION_ERROR"
+
+
+# --ada-assertions: the run of the test executable writes its output to this file in its directory, then prints it
+# (addAdaAssertionSwitches): it exists only when the build succeeded and the executable ran, and holds nothing of the
+# build (same rule in regression/Program.fs).
+GNATA_RUN_LOG = "mainprogram-gnata.log"
+
+
+def assertionFailed(targetDir: str) -> bool:
+    """Whether the test executable ran and failed a run-time contract ("raised ADA.ASSERTIONS.ASSERTION_ERROR" in its
+    own output: an exception out of a test, or a sweep report)."""
+    try:
+        text = open(os.path.join(targetDir, "obj_x86", "debug", GNATA_RUN_LOG), errors="replace").read()
+    except OSError:
+        return False   # not run: the build failed (whatever its messages say)
+    return ("raised " + ASSERTION_FAILURE_TEXT) in text
+
+
+def knownFailureMarker(cfg: TestConfig, asn1file: str) -> Optional[str]:
+    """KNOWN_FAILURE(<lang>[,<mode>...]) on the first line (same rules in regression/Program.fs): the test cases of
+    the file are known to fail in the configurations it names; every mode must match (legacy, acn-v2, slim, ig, ws4,
+    ws8, gnata = --ada-assertions; this script always runs ws=8 with -ig). The cases still run: a failure is reported as a known failure, a pass
+    fails the case, so that the marker is removed once the defect is fixed. Returns the matching marker text."""
+    import re
+    for m in re.finditer(r"KNOWN_FAILURE\(([^)]*)\)", firstLineMarkers(asn1file)):
+        tokens = [t.strip() for t in m.group(1).split(",") if t.strip() != ""]
+        if not tokens or tokens[0] != cfg.language:
+            continue
+        modes = {"legacy": cfg.acnV2 == "", "acn-v2": cfg.acnV2 != "", "slim": cfg.slim != "",
+                 "ig": True, "ws4": False, "ws8": True, "gnata": cfg.adaAssertions}
+        unknown = [t for t in tokens[1:] if t not in modes]
+        if unknown:
+            raise ValueError(f"{asn1file}: unknown mode {unknown} in KNOWN_FAILURE "
+                             "(legacy, acn-v2, slim, ig, ws4, ws8, gnata)")
+        if all(modes[t] for t in tokens[1:]):
+            return m.group(0)
+    return None
+
+
 def extraFlags(cfg: TestConfig, asn1file: str) -> str:
     """Compiler options requested by first-line markers (same rules in regression/Program.fs):
     ADA_BITSTRING_ALIGNMENT adds -adaBitStringAlignment to the Ada runs."""
@@ -175,6 +236,29 @@ def isWarningOnly(err_msg: str) -> bool:
     does not look at stderr of passing test cases either)."""
     lines = [l for l in err_msg.splitlines() if l.strip() != ""]
     return all(": warning: " in l for l in lines)
+
+
+def addAdaAssertionSwitches(cfg: TestConfig, targetDir: str, asn1: str, acn: str):
+    """--ada-assertions (Issue 115, same as regression/Program.fs): -gnata -gnatwn after the compiler switches of the
+    gprbuild calls of the generated Makefile, i.e. after -gnatwe -gnatwa (a later warning switch wins): with assertions
+    enabled GNAT warns about the assertion code itself, which -gnatwe would make errors."""
+    path = os.path.join(targetDir, "Makefile")
+    try:
+        out = []
+        for line in open(path).read().split("\n"):
+            # the run of the tests: its own output file, so that a known failure can be told from a build failure
+            m = re.match(r"^\t(cd \S+ ; \./mainprogram)\s*$", line)
+            if m:
+                line = f"\t{m.group(1)} > {GNATA_RUN_LOG} 2>&1 ; rc=$$? ; cat {GNATA_RUN_LOG} ; exit $$rc"
+            elif line.startswith("\tgprbuild") and " -cargs " in line:
+                i = line.find(" -largs")
+                line = line + " -gnata -gnatwn" if i < 0 else line[:i] + " -gnata -gnatwn" + line[i:]
+            out.append(line)
+        open(path, "w").write("\n".join(out))
+    except OSError as e:
+        PrintFailed(f"--ada-assertions: cannot add the switches to {path}: {e}")
+        results.add_error(f'Failed {asn1} {acn} in {cfg.language}')
+        raise Exception('TestFailed')
 
 
 def CreateACNFile(targetDir: str, content: str):
@@ -254,6 +338,8 @@ def RunTestCase(cfg: TestConfig, item: WorkItem):
             res = mysystem(cfg, targetDir, "CC=gcc make", False, asn1, acn)
             return
         elif language == 'Ada':
+            if cfg.adaAssertions:
+                addAdaAssertionSwitches(cfg, targetDir, asn1, acn)
             res = mysystem(cfg, targetDir, "CC=gcc make", False, asn1, acn)
             return
         elif language == 'Rust':
@@ -335,6 +421,8 @@ def RunTestCase(cfg: TestConfig, item: WorkItem):
                 results.add_error(f'Failed {asn1} {acn} in {language}')
                 raise Exception('TestFailed')
     elif language == 'Ada':
+        if cfg.adaAssertions:
+            addAdaAssertionSwitches(cfg, targetDir, asn1, acn)
         # NOCOVERAGE exempts the line gate; the coverage target also runs the tests.
         res = mysystem(cfg, targetDir, "make coverage >covlog.txt 2>&1", True, asn1, acn)
         if res != 0 and behavior != 2:
@@ -352,8 +440,11 @@ def RunTestCase(cfg: TestConfig, item: WorkItem):
             results.add_error(f'Failed {asn1} {acn} in {language}')
             raise Exception('TestFailed')
         elif behavior == 0 and res == 0:
-            runSpark = "RUN_SPARK" in open(os.path.join(targetDir, "sample1.asn1"), 'r').readlines()[0]
-            if bRunCodeCoverage:
+            # the RUN_SPARK proof runs without -slim only, as in the regression tool
+            runSpark = "RUN_SPARK" in open(os.path.join(targetDir, "sample1.asn1"), 'r').readlines()[0] and cfg.slim == "" \
+                and not cfg.adaAssertions
+            # --ada-assertions: no line gate (the raise branch of every Pre / Post line never runs)
+            if bRunCodeCoverage and not cfg.adaAssertions:
                 gcov_path = os.path.join(targetDir, "obj_x86", "debug", "test_case.adb.gcov")
                 try:
                     with open(gcov_path, 'r') as f:
@@ -559,10 +650,27 @@ def prepare_and_run_item(cfg: TestConfig, item: WorkItem):
         else:
             CreateACNFile(targetDir, item.acn_content)
 
+    failed = False
+    label = f'Failed {item.asn1_label} {item.acn_label} in {cfg.language}'
     try:
         RunTestCase(cfg, item)
-    except Exception:
-        pass  # errors already recorded in results
+    except Exception as e:
+        failed = True
+        if str(e) != 'TestFailed':
+            # not recorded yet (an error of the runner itself): a failure, never a known one
+            PrintFailed(f"unexpected error: {e!r}")
+            results.add_error(f'{label}: unexpected error {e!r}')
+    marker = knownFailureMarker(cfg, item.asn1file_path)
+    if marker is not None:
+        if failed and "gnata" in marker and not assertionFailed(targetDir):
+            # a gnata marker stands for a run-time contract failure: generation / build failures stay failures
+            PrintFailed(f"{marker} expects a run-time assertion failure ({ASSERTION_FAILURE_TEXT} while the tests "
+                        "run), but the case failed otherwise")
+        elif failed and results.remove_error(label):
+            PrintWarning(f"known failure: {marker}")
+            results.add_known_failure(f'{label}: {marker}')
+        elif not failed:
+            results.add_error(f'{label}: {marker}, but the test case passed: remove the marker')
 
 
 def submain(cfg: TestConfig, testCaseSet: str, cntTest: bool):
@@ -635,6 +743,8 @@ def usage():
     safe_print("     --icd-pdus <types>")
     safe_print("           comma-separated list of PDU type names (passed as -icdPdus to asn1scc)")
     safe_print("     -j N, --jobs N    number of parallel threads (default: 1 = sequential)")
+    safe_print("     --ada-assertions  Ada only: build the tests with -gnata (contracts checked at run time),")
+    safe_print("                       no line gate, no SPARK proof; KNOWN_FAILURE mode gnata")
     safe_print("     ASN1SCC=<path>    environment variable overriding the compiler path")
     sys.exit(1)
 
@@ -653,7 +763,7 @@ def main():
         args = sys.argv[1:]
         optlist, args = getopt.gnu_getopt(
             args, "al:t:cso:j:", ['all', 'lang=', 'testCaseSet=', 'cntTest', 'slim',
-                                   'acn-v2', 'xer', 'output-dir=', 'icd-pdus=', 'jobs='])
+                                   'acn-v2', 'xer', 'output-dir=', 'icd-pdus=', 'jobs=', 'ada-assertions'])
     except:
         usage()
     if args != []:
@@ -670,6 +780,7 @@ def main():
     xerMode = False
     workDir = None
     jobs = 1
+    adaAssertions = False
     for opt, arg in optlist:
         if opt in ("-a", "--all"):
             bAll = True
@@ -685,6 +796,8 @@ def main():
             acnV2 = " --acn-v2 "
         elif opt in ("--xer",):
             xerMode = True
+        elif opt in ("--ada-assertions",):
+            adaAssertions = True
         elif opt in ("-o", "--output-dir"):
             workDir = arg
         elif opt in ("--icd-pdus",):
@@ -702,6 +815,9 @@ def main():
         "ASN1SCC",
         os.path.abspath(rootDir + "/../asn1scc/bin/Debug/net10.0/asn1scc"))
 
+    if adaAssertions and (bAll or lang != "Ada"):
+        safe_print("--ada-assertions needs -l Ada")
+        usage()
     if bAll:
         for l in ["c", "Ada", "Scala", "Rust", "python"]:
             cfg = TestConfig(
@@ -728,11 +844,15 @@ def main():
         cfg = TestConfig(
             language=lang, rootDir=rootDir, slim=slim, acnV2=acnV2,
             icdPdus=icdPdus, xerMode=xerMode,
-            path_to_asn1scc=path_to_asn1scc, jobs=jobs, workDir=workDir)
+            path_to_asn1scc=path_to_asn1scc, jobs=jobs, workDir=workDir, adaAssertions=adaAssertions)
 
         submain(cfg, testCaseSet, cntTest)
 
     safe_print("Test run ended succesfully. Number of test cases run :", results.get_nTests())
+    known = results.get_known_failures()
+    if known:
+        safe_print(f"Known failures ({len(known)}, KNOWN_FAILURE markers):")
+        safe_print('\n'.join(known))
     errs = results.get_errors()
     if errs:
         safe_print('\n'.join(errs))

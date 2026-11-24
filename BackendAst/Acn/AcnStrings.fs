@@ -25,24 +25,41 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) (us:State) =
         let pp, resultExpr = adaptArgument lm codec p
-        let td = (lm.lg.getStrTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)
+        let td = (lm.lg.getStrTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName) lm.lg.constructCrossModuleTypeDefPrefix
         let tk = lm.lg.getTypeDefinition t.FT_TypeDefinition
         let sType = lm.lg.getLongTypedefNameBasedOnModule tk p.modName
+        // A string subtype whose typedef is the longer array of its base type (Str (SIZE(3)) of Str = IA5String
+        // (SIZE(1..10)): an Ada String(1..11)) passes only its own characters + 1 to the ASCII RTL calls, which encode /
+        // decode up to strVal'Length - 1 characters; before, the fixed-size encoder wrote the typedef's 10 characters
+        // into a stream sized for 3 (Ada index check, out of bounds with -gnatp)
+        let ppSub (nMax:BigInteger) =
+            match typedefMaxSize r t > nMax with
+            | true  -> lm.acn.Acn_String_Ascii_FixSize_prefix pp nMax
+            | false -> pp
         let funcBodyContent, ns =
             match o.acnEncodingClass with
             | Acn_Enc_String_uPER  _ ->
-                uperFunc.funcBody_e errCode nestingScope p true |> Option.map(fun x -> x.funcBody, x.errCodes, x.localVariables, x.auxiliaries), us
+                uperFunc.funcBody_e errCode nestingScope p true |> Option.map(fun x -> x.funcBody, x.errCodes, x.localVariables, x.auxiliaries, x.encOutcome), us
             | Acn_Enc_String_uPER_Ascii _ ->
                 match o.maxSize.uper = o.minSize.uper with
-                | true      ->  Some (Acn_String_Ascii_FixSize pp errCode.errCodeName ( o.maxSize.uper) codec, [errCode], [], []), us
+                | true      ->
+                    // coverage step 14j (G5): the fixed-size ASCII decode cannot fail (every byte is a character) and
+                    // writes all of result: no error code
+                    let body =
+                        match codec, DecodeOutcome.acnStringAsciiFixSizeCannotFail lm o with
+                        | Decode, true          -> lm.acn.Acn_String_Ascii_FixSize_cannotFail (ppSub o.maxSize.uper)
+                        | Decode, false
+                        | Encode, _             -> Acn_String_Ascii_FixSize (ppSub o.maxSize.uper) errCode.errCodeName ( o.maxSize.uper) codec
+                    Some (body, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncStringFixedSize)), us
                 | false     ->
                     let nSizeInBits = GetNumberOfBitsForNonNegativeInteger ( (o.maxSize.acn - o.minSize.acn))
-                    Some (Acn_String_Ascii_Internal_Field_Determinant pp errCode.errCodeName ( o.maxSize.acn) ( o.minSize.acn) nSizeInBits sType codec, [errCode], [], []), us
+                    // (Ada checks the length first, as the uPER variable-size string)
+                    Some (Acn_String_Ascii_Internal_Field_Determinant (ppSub o.maxSize.acn) errCode.errCodeName ( o.maxSize.acn) ( o.minSize.acn) nSizeInBits sType codec, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncStringVarSize)), us
             | Acn_Enc_String_Ascii_Null_Terminated (_,nullChars) ->
-                Some (Acn_String_Ascii_Null_Terminated pp errCode.errCodeName ( o.maxSize.acn) nullChars sType codec, [errCode], [], []), us
+                Some (Acn_String_Ascii_Null_Terminated (ppSub o.maxSize.acn) errCode.errCodeName ( o.maxSize.acn) nullChars sType codec, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)), us
             | Acn_Enc_String_Ascii_External_Field_Determinant _ ->
                 let extField = getExternalField lm r deps t.id
-                Some(Acn_String_Ascii_External_Field_Determinant pp errCode.errCodeName ( o.maxSize.acn) extField sType codec, [errCode], [], []), us
+                Some(Acn_String_Ascii_External_Field_Determinant (ppSub o.maxSize.acn) errCode.errCodeName ( o.maxSize.acn) extField sType codec, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)), us
             | Acn_Enc_String_CharIndex_External_Field_Determinant _ ->
                 let extField = getExternalField lm r deps t.id
                 let nBits = GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length-1))
@@ -52,15 +69,15 @@ let createStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                         let arrAsciiCodes = o.uperCharSet |> Array.map(fun x -> BigInteger (System.Convert.ToInt32 x))
                         Acn_String_CharIndex_External_Field_Determinant pp errCode.errCodeName ( o.maxSize.acn) arrAsciiCodes (BigInteger o.uperCharSet.Length) extField td nBits sType codec
                     | true -> Acn_IA5String_CharIndex_External_Field_Determinant pp errCode.errCodeName o.maxSize.acn extField td nBits (nestingScope.acnOuterMaxSize - nestingScope.acnOffset) sType codec
-                Some(encDecStatement, [errCode], [], []), us
+                Some(encDecStatement, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)), us
             | Acn_Enc_String_Ascii_Deduced _ ->
-                Some (lm.acn.str_ascii_deduced pp errCode.errCodeName o.maxSize.acn nestingScope.deducedTrailingBits sType codec, [errCode], [], []), us
+                Some (lm.acn.str_ascii_deduced pp errCode.errCodeName o.maxSize.acn nestingScope.deducedTrailingBits sType codec, [errCode], [], [], (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)), us
         match funcBodyContent with
         | None -> None, ns
-        | Some (funcBodyContent,errCodes, localVars, auxiliaries) ->
+        | Some (funcBodyContent,errCodes, localVars, auxiliaries, encOutcome) ->
             let icd = AcnPrimitiveFactory.buildStringIcdAux t.acnAlignment o (getASN1Name t) (getASN1Name t) (constraintsToIcdStr (DAstAsn1.createStringFunction r t o)) t.unitsOfMeasure
             let funcBodyContent = DAstUPer.withStringTypedefPadding r lm codec t o p funcBodyContent
-            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVars; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult = Some icd} ), ns
+            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; localVariables = localVars; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult = Some icd; encOutcome = encodeOutcomeOf codec encOutcome} ), ns
     AcnPrimitiveFactory.createAsn1PrimitiveStateful r deps lm codec t typeDefinition isValidFunc [] us
         (fun us e acnArgs nestingScope p -> funcBody e acnArgs nestingScope p us)
 
@@ -80,8 +97,8 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             let md = r.GetModuleByName t.modName
             let tas = md.GetTypeAssignmentByName t.tasName r
             match tas.Type.ActualType.Kind with
-            | Asn1AcnAst.IA5String     z -> (lm.lg.getStrTypeDefinition z.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)
-            | Asn1AcnAst.NumericString z -> (lm.lg.getStrTypeDefinition z.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)
+            | Asn1AcnAst.IA5String     z -> (lm.lg.getStrTypeDefinition z.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName) lm.lg.constructCrossModuleTypeDefPrefix
+            | Asn1AcnAst.NumericString z -> (lm.lg.getStrTypeDefinition z.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName) lm.lg.constructCrossModuleTypeDefPrefix
             | _                           -> raise(SemanticError(t.tasName.Location, (sprintf "Type assignment %s.%s does not point to a string type" t.modName.Value t.modName.Value)))
         let ii = p.accessPath.SequenceOfLevel + 1
         let i = sprintf "i%d" ii
@@ -134,17 +151,17 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
             | _ when o.maxSize.uper < 65536I && o.maxSize.uper=o.minSize.uper  ->
                 str_FixedSize pp typeDefinitionName i internalItem o.minSize.uper nBits nBits 0I initExpr introSnap callAux codec, charIndex@nStringLength
             | _ when o.maxSize.uper < 65536I && o.maxSize.uper<>o.minSize.uper  ->
-                str_VarSize pp (p.accessPath.joined lm.lg) typeDefinitionName i internalItem o.minSize.uper o.maxSize.uper nSizeInBits nBits nBits 0I initExpr callAux typeDefinitionName errCode.errCodeName codec, charIndex@nStringLength
+                str_VarSize pp (p.accessPath.joined lm.lg) typeDefinitionName i internalItem o.minSize.uper o.maxSize.uper nSizeInBits nBits nBits 0I initExpr callAux typeDefinitionName errCode.errCodeName None codec, charIndex@nStringLength
             | _                                                ->
-                let funcBodyContent,localVariables = DAstUPer.handleFragmentation lm p codec errCode ii o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper internalItem nBits false true
+                let funcBodyContent,localVariables = DAstUPer.handleFragmentation lm p codec errCode ii o.uperMaxSizeInBits o.minSize.uper o.maxSize.uper internalItem nBits false true (lm.lg.encodeTemplateOutcome EncRtlWritesOnly) DecodeOutcome.Character
                 funcBodyContent,charIndex@localVariables
 
-        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = lv::localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries}
+        {UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = lv::localVariables; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries; encOutcome = EncodeOutcome.unknown}
 
 
     AcnPrimitiveFactory.createAcnOnlyPrimitive lm codec typeId us (fun errCode ->
         fun (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) ->
-            let td = (lm.lg.getStrTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)
+            let td = (lm.lg.getStrTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName) lm.lg.constructCrossModuleTypeDefPrefix
             let pp, resultExpr = adaptArgument lm codec p
             let sType = (ToC typeId.dropModule.AsString)
             let funcBodyContent =
@@ -182,4 +199,4 @@ let createAcnStringFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedF
                 let icd =
                     AcnPrimitiveFactory.buildStringIcdAux t.acnAlignment o "IA5String" "IA5String" (constraintsToIcdStr (o.AllCons |> List.map DAstAsn1.foldStringCon)) None
                     |> icdAuxAddNamedTypeSuffix (Some t.tasName.Value)
-                Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::errCodes |> List.distinct ; localVariables = lvs; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult = Some icd}))
+                Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCode::errCodes |> List.distinct ; localVariables = lvs; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult = Some icd; encOutcome = EncodeOutcome.unknown}))

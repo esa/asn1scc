@@ -1,0 +1,17 @@
+-- C_ADA_ONLY (the Python backend fails narrowed sites, as in 010)
+-- A WITH COMPONENTS site that narrows a default-encoding IA5String whose PER-visible length field and characters fill
+-- their fields (SIZE(0..7): 3-bit length, 7-bit characters), followed by a part that cannot fail. The site's ACN
+-- decoder reads the length with the PER-visible range: it now rejects a length above the narrowed maximum before the
+-- characters, and the part is no longer classified "cannot fail" (before, the Ada decoder had Post => result.Success
+-- and read up to 7 characters past REQUIRED_BITS: with -gnata the decode sweep failed an RTL precondition). SubO4: a
+-- type-assignment subtype with an OCTET STRING value set whose typedef allows length 0 (Ada OctetString_equal was
+-- called with a decoded length 0, against its RTL precondition). Rejection rows: v4Tests/test-cases/acn-wire/017.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    InnerF  ::= SEQUENCE { s IA5String (SIZE(0..7)), b BOOLEAN }
+    OuterF  ::= SEQUENCE { x InnerF (WITH COMPONENTS { ..., s ("ab" | "a") }) }
+    InnerO4 ::= SEQUENCE { o OCTET STRING (SIZE(0..10)), k BOOLEAN }
+    SubO4   ::= InnerO4 (WITH COMPONENTS { ..., o ('0102'H | '03'H) })
+    PDU     ::= SEQUENCE { f OuterF, k SEQUENCE (SIZE(4)) OF BOOLEAN, o SubO4 }
+END
+
+--TCLS     PDU[]

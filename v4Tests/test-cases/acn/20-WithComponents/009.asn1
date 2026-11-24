@@ -1,0 +1,14 @@
+-- NOCOVERAGE C_ADA_ONLY (the f2 selector arms are unreachable: f2 is ABSENT at the site)
+-- A reference with a WITH COMPONENT(S) constraint takes its ACN encoding properties only from the reference site,
+-- not from the referenced type: an ACN parameter of the referenced type that only the referenced type's own ACN
+-- spec used has no consumer at such a site. The compiler crashed ("Could not find dependency for parameter
+-- TEST-CASE.PDU.t.s", legacy and --acn-v2); it now reports the unused parameter at the argument. Repeating the
+-- property at the site (second directive) compiles.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+Sel ::= ENUMERATED { f1, f2, f3 }
+Thing ::= CHOICE { f1 INTEGER (0..255), f2 INTEGER (0..255), f3 INTEGER (0..255) }
+PDU ::= SEQUENCE { t Thing (WITH COMPONENTS {f2 ABSENT}) }
+END
+
+--TCLFC    Sel [encoding pos-int, size 8] Thing <Sel:s> [determinant s] { f1 [], f2 [], f3 [] } PDU [] { sel Sel [], t <sel> [] }          $$$ sample1.acn:4:110: error: ACN parameter 's' of type 'Thing' is not used by the encoding of this component. A reference with a WITH COMPONENT(S) constraint takes its ACN encoding properties only from the reference site, not from 'Thing': repeat at the reference site the properties that use 's'.
+--TCLS     Sel [encoding pos-int, size 8] Thing <Sel:s> [determinant s] { f1 [], f2 [], f3 [] } PDU [] { sel Sel [], t <sel> [determinant s] }

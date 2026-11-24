@@ -53,8 +53,12 @@ is
      (val : Asn1ObjectIdentifier) return Boolean
    is
    begin
+      --  X.660: the second arc is limited to 39 only below the first arc 2;
+      --  the encoder adds 80 to it (X.690 8.19.4), so it must not wrap
       return val.Length >= 2 and then val.values (1) <= 2
-        and then val.values (2) <= 39;
+        and then
+        (if val.values (1) = 2 then val.values (2) <= Asn1UInt'Last - 80
+         else val.values (2) <= 39);
    end ObjectIdentifier_isValid;
 
    function RelativeOID_isValid (val : Asn1ObjectIdentifier) return Boolean is

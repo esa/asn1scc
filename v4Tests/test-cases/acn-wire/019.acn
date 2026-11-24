@@ -1,0 +1,6 @@
+ACN-WIRE-RANGE DEFINITIONS ::= BEGIN
+    U1p [encoding pos-int, size 8]
+    U2p [encoding pos-int, size 8]
+    WA [] { x [] { s [encoding ASCII], b [] } }
+    WC [] { x [] { s [encoding ASCII], b [] } }
+END

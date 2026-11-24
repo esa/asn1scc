@@ -321,20 +321,31 @@ function parameter: **the bitstream view itself carries the region, and `budgetE
 always `⟨end of stream view⟩ − ⟨compile-time trailing constant⟩`.**
 
 ```
-budgetEnd(bits) =  C:   pBitStrm->count * 8      − trailingBits
-                   Ada: bs.Size_In_Bytes * 8     − trailingBits
+budgetEnd(bits) =  C:   pBitStrm->count * 8 − pBitStrm->unusedTailBits − trailingBits
+                   Ada: bs.End_Bit_Pos                                 − trailingBits
 ```
 
-No decode-function signature changes anywhere; no new runtime state. What makes this
-sound in each context:
+The end of the view is exact to the bit: a region need not end on a byte boundary (an
+OCTET STRING CONTAINING region that does not start on one, §6.1). C: `unusedTailBits`
+(0..7) = the bits of the last byte of the view (`buf[count - 1]`) that lie outside it, 0
+after `BitStream_Init` / `BitStream_AttachBuffer`. Ada: `End_Bit_Pos` = the first bit
+after the view, `Size_In_Bytes * 8` after `BitStream_init` (`Size_In_Bytes` is a
+discriminant and cannot be reduced). Only the deduced decoders read these fields.
+
+No decode-function signature changes anywhere. What makes this sound in each context:
 
 ### 6.1 Context B1 — CONTAINING container
 
-* **`--acn-v2` (deferred), octet container**: the decode wrapper *already* limits the
-  stream view to the region (`pBitStrm->count = currentByte + size` — the
-  `octet_string_containing_deferred_*_decode` macros, `StgC/acn_c.stg:1268-1320`) and
-  repositions to the region end afterwards. Inside the contained decode,
-  `budgetEnd = count*8 − 0`. **Nothing extra to implement.**
+* **`--acn-v2` (deferred), octet container**: the region is whole octets from its first
+  bit, decoded in place. The C decode wrapper limits the stream view to it (`count` =
+  the bytes it touches, `unusedTailBits` = the bits of its last byte after its end, the
+  `octet_string_containing_deferred_*_decode` macros of `StgC/acn_c.stg`); the Ada
+  wrapper sets `bs.End_Bit_Pos` to the region end. Both restore the view and reposition
+  to the region end afterwards. Inside the contained decode, `budgetEnd` is the region
+  end. Before 4.9.76.0 the view ended at the byte after the region: off a byte boundary
+  the deduced decoder saw up to 7 bits more and could fail or decode one element too many
+  (the Ada decoders copied the region to the stack, and rejected or mis-measured an
+  unaligned one).
 * **Legacy, octet container**: decode copies the region into a temporary bitstream.
   Today the temp stream is initialized with the *maximum* capacity
   (`BitStream_Init(&bitStrm, arr, sizeof(arr))`, `StgC/acn_c.stg:1516-1523`); when the
@@ -395,11 +406,12 @@ the feature composes with both modes.
   the `Codec_Decode` call arity (`StgC/test_cases_c.stg:78-83`) is unchanged. The only
   harness change: attach the decode stream with the **actual encoded length** instead
   of `_REQUIRED_BYTES_FOR_ACN_ENCODING` (§10).
-* **Runtime additions: none required.** C: position = `currentByte*8 + currentBit`
-  (existing idiom), view end = `count*8`. Ada: `bs.Current_Bit_Pos`,
-  `bs.Size_In_Bytes*8`. Optional cosmetic helpers (`BitStream_getBitPosition` in C, a
-  `remaining_bits` expression function in Ada for SPARK contract readability) may be
-  added but are not needed for correctness.
+* **Runtime additions: one field per bitstream (4.9.76.0).** C: position =
+  `currentByte*8 + currentBit` (existing idiom), view end = `count*8 − unusedTailBits`
+  (the last member of `BitStream`, so a zero-initialized struct keeps the old meaning).
+  Ada: `bs.Current_Bit_Pos`, view end = `bs.End_Bit_Pos` (a component of `Bitstream`: an
+  application that writes a full `Bitstream'(...)` aggregate must give it, e.g.
+  `End_Bit_Pos => <size> * 8`; `BitStream_init` sets it).
 
 ---
 
@@ -531,7 +543,8 @@ The generated decode functions keep their exact current signatures. In exchange,
 
 > The `BitStream` passed to `X_ACN_Decode` must be attached to exactly the received
 > PDU: `count` (C) / `Size_In_Bytes` (Ada) must equal the PDU's size in bytes as
-> reported by the transport layer.
+> reported by the transport layer (with `unusedTailBits` = 0 / `End_Bit_Pos` =
+> `Size_In_Bytes * 8`, as `BitStream_AttachBuffer` / `BitStream_init` set them).
 
 This replaces the 2023 proposal's extra `totalEncodedBytes` parameter: the value the
 application would have passed is exactly the value it must already use to attach the

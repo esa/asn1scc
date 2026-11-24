@@ -21,7 +21,7 @@ EmitAcnParameter(sName, sType, sDefaultValue) ::= "<sType> <sName> /*TODO acn:11
 EmitEncodingSizeConstants(sTypeDefName, nMaxBytesInACN, nMaxBitsInACN) ::= <<
 >>
 
-EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut) ::= <<
+EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut, bDeferredSpecialization, bValInitUnused) ::= <<
 <arrsErrcodes; separator="\n">
 @inline @cCode.inline val <sTypeDefName>_REQUIRED_BYTES_FOR_ACN_ENCODING = <nMaxBytesInACN>
 @inline @cCode.inline val <sTypeDefName>_REQUIRED_BITS_FOR_ACN_ENCODING = <nMaxBitsInACN>
@@ -48,7 +48,7 @@ def <sFuncName>(<if(bVarNameIsUnreferenced)>@annotation.unused <endif><sVarName>
 }
 >>
 
-EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut) ::= <<
+EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut, bDeferredSpecialization, bValInitUnused) ::= <<
 <arrsErrcodes; separator="\n">
 >>
 
@@ -91,6 +91,9 @@ MF(soMF) ::= /*nogen*/ <<
 <endif>
 >>
 
+/* not used: the field is decoded and mapped in place (ILangGeneric.acnMappedIntDecodeViaTemporary, Ada only) */
+acn_int_mapped_read(p, sWireRead, sMF, soMFM, sTmpType, noMin, noMax, nFieldMin) ::= "// not used"
+
 MappingFunctionDeclaration_encode(sTypeName, sMF) ::= <<
 extern <sTypeName> <sMF>_encode(<sTypeName>);
 >>
@@ -108,7 +111,7 @@ loopFixedItem (i, fixedSize,  sInternalItem)::= /*nogen*/ <<
 }).invariant(0 \<= <i> && <i> \<= <fixedSize>.toInt)
 >>
 
-alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
+alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bByteAlignment) ::= <<
 locally {
     @ghost val unalignedCodec = snapshot(codec)
     codec.base.bitStream.alignTo<sAlignmentValue>()
@@ -120,7 +123,7 @@ locally {
 <sMainBody>
 >>
 
-alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
+alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bByteAlignment) ::= <<
 locally {
     @ghost val unalignedCodec = snapshot(codec)
     codec.base.bitStream.alignTo<sAlignmentValue>()
@@ -475,6 +478,9 @@ EnumeratedEncValues_no_switch_decode(p, td/*:FE_EnumeratedTypeDefinition*/, sAct
 
 
 /* Strings */
+/* Ada only: a fixed-size string subtype that shares a longer typedef (the calls here take nAsn1Max). */
+Acn_String_Ascii_FixSize_prefix(p, nAsn1Max) ::= "<p>"
+
 Acn_String_Ascii_FixSize_encode(p, sErrCode, nAsn1Max) ::= "codec.enc_String_Ascii_FixSize(<nAsn1Max>, <p>)"
 Acn_String_Ascii_FixSize_decode(p, sErrCode, nAsn1Max) ::= <<
 val <p> = codec.dec_String_Ascii_FixSize(<nAsn1Max>)
@@ -581,7 +587,7 @@ val <p> =
     else return LeftMut(<sErrCode>)
 >>
 
-seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType) ::= <<
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType, bItemCannotFail, bItemWritesResult, bLengthEnforced) ::= <<
 <if(bIntroSnap)>
 @ghost val codec_0_1 = snapshot(codec)
 <endif>
@@ -601,7 +607,7 @@ locally {
 <soCallAux>
 >>
 
-seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType) ::= <<
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType, bItemCannotFail, bItemWritesResult, bLengthEnforced) ::= <<
 <if(bIntroSnap)>
 @ghost val codec_0_1 = snapshot(codec)
 <endif>
@@ -622,7 +628,7 @@ val <p>_nCount = locally {
 <soCallAux>
 >>
 
-sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
+sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux, bItemCannotFail, bItemWritesResult) ::= <<
 <if(bIntroSnap)>
 @ghost val codec_0_1 = snapshot(codec)
 <endif>
@@ -630,7 +636,7 @@ sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nS
 <soCallAux>
 >>
 
-sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
+sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux, bItemCannotFail, bItemWritesResult) ::= <<
 <if(bIntroSnap)>
 @ghost val codec_0_1 = snapshot(codec)
 <endif>
@@ -643,7 +649,7 @@ val <p> =
     else return LeftMut(<sErrCode>)
 >>
 
-sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
+sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux, bItemCannotFail, bItemWritesResult) ::= <<
 <if(bIntroSnap)>
 @ghost val codec_0_1 = snapshot(codec)
 <endif>
@@ -651,7 +657,7 @@ sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSi
 <soCallAux>
 >>
 
-sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
+sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux, bItemCannotFail, bItemWritesResult) ::= <<
 <if(bIntroSnap)>
 @ghost val codec_0_1 = snapshot(codec)
 <endif>
@@ -663,12 +669,12 @@ val <p> =
     else return LeftMut(<sErrCode>)
 >>
 
-oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType, bFixedSize) ::= <<
+oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType, bFixedSize, bItemCannotFail, bItemWritesResult) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
 codec.base.bitStream.appendBitsMSBFirstVec(Array({<arruNullBytes; separator=", ">}), <nBitPatternLength>)
 >>
 
-oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType, bFixedSize) ::= <<
+oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType, bFixedSize, bItemCannotFail, bItemWritesResult) ::= <<
 // TODO: check if it works as intended
 <i> = 0
 
@@ -776,6 +782,29 @@ sequence_presence_optChild_pres_int_decode(p, sAcc, sChName, sExtFldName, nIntVa
 sequence_presence_optChild_pres_str_encode(p, sAcc, sChName, sExtFldName, sVal) ::= ""
 sequence_presence_optChild_pres_str_decode(p, sAcc, sChName, sExtFldName, sVal) ::= ""
 
+/* not called: ILangGeneric.decodeFailsWhenHolderAbsent is false for this backend */
+acn_dec_absent_holder_guard(arrsGuards, sBody, sErrCode, sFields, sHolders) ::= <<
+<sBody>
+>>
+
+acn_dec_absent_holder_fail(sBody, sErrCode, sFields, sHolders) ::= <<
+<sBody>
+>>
+
+acn_dec_absent_holder_reset(sLocal, sInitValue, sField, sHolders) ::= <<
+>>
+
+/* not called: ILangGeneric.encodeFailsWhenHolderAbsent is false for this backend */
+acn_enc_absent_holder_guard(arrsGuards, sBody, sErrCode, sFields, sHolders, bTestsCannotReach) ::= <<
+<sBody>
+>>
+
+acn_enc_absent_holder_no_bits() ::= ""
+
+acn_enc_absent_holder_fail(sBody, sErrCode, sFields, sHolders, bTestsCannotReach) ::= <<
+<sBody>
+>>
+
 sequence_save_bitStream_start_encode(sBitStreamPositionsLocalVar) ::=<<
 <sBitStreamPositionsLocalVar> = pBitStrm // save the initial position of the bit stream at
 >>
@@ -792,13 +821,13 @@ sequence_save_bitstream_decode(sBitStreamPositionsLocalVar, sChName) ::=<<
 <sBitStreamPositionsLocalVar>.<sChName> = pBitStrm // save position of the bit stream
 >>
 
-sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
+sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive, bAlwaysInitialized) ::= <<
 /* Encode <sChName> */
 <soSaveBitStrmPosStatement>
 <sChildContent>
 >>
 
-sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
+sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive, bAlwaysInitialized) ::= <<
 /* Decode <sChName> */
 <soSaveBitStrmPosStatement>
 <sChildContent>
@@ -903,12 +932,12 @@ sequence_call_post_decoding_validator_prototype(sTypedefName, sFncName, sExtFunc
 
 
 /* Choice like uper */
-ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
+ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName, sCaseLabel, soCovExempt) ::= <<
 case <sChildID> =>
     return Left(<sErrorCodeName>)
 >>
 
-ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
+ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName, sCaseLabel, soCovExempt) ::= <<
 case <nChildIndex> =>
     return LeftMut(<sErrorCodeName>)
 >>
@@ -960,12 +989,12 @@ else if (<arrsConditions; separator=" && ">) {
 }
 >>
 
-Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
+Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode, soCovExempt) ::= <<
 <p> match
     <arrsChildren; separator="\n">
 >>
 
-Choice_preWhen_decode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
+Choice_preWhen_decode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode, soCovExempt) ::= <<
 <arrsChildren; separator="\n">
 else return LeftMut(<sErrCode>)
 >>
@@ -982,28 +1011,28 @@ case <sEnmName> =>
     <sChildID>(<sChildName>)
 >>
 
-Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred) ::= <<
+Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred, soCovExempt) ::= <<
 <p> match
     <arrsChildren; separator="\n">
 >>
 
-Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred) ::= <<
+Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred, soCovExempt) ::= <<
 val <p> = <sEnmExtFld> match
     <arrsChildren; separator="\n">
 >>
 
 /* Updates */
-SizeDependency(v, sCount, nMin, nMax, bCheckRange, bCheckMin, sTypedefName) ::= <<
+SizeDependency(v, sCount, nMin, nMax, bCheckRange, bCheckMin, sTypedefName, bSetInitFlag) ::= <<
 val <v> = <sCount>
 if <v> \< ULong.fromRaw(<nMin>) || <v> \> ULong.fromRaw(<nMax>) then
     return Left(860)
 >>
 
-SizeDependencyFixedSize(v, nFixedSize) ::= <<
+SizeDependencyFixedSize(v, nFixedSize, bSetInitFlag) ::= <<
 val <v> = <nFixedSize>
 >>
 
-ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, nChoiceIdx, bIsOptional) ::= <<
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, nChoiceIdx, bIsOptional, bSetInitFlag) ::= <<
 <if(bIsOptional)>
 case SomeMut(<sChildCIDHolder>.<sChildCID>(_)) =>
 <else>
@@ -1012,7 +1041,7 @@ case <sChildCIDHolder>.<sChildCID>(_) =>
     <sEnumCName>
 >>
 
-ChoiceDependencyEnum(sV, sChPath, sAcc, arrsChoiceEnumItems, bIsOptional, sDefaultExpr) ::= <<
+ChoiceDependencyEnum(sV, sChPath, sAcc, arrsChoiceEnumItems, bIsOptional, sDefaultExpr, soCovExempt) ::= <<
 val <sV> = <sChPath> match
     <arrsChoiceEnumItems; separator="\n">
 <if(bIsOptional)>
@@ -1020,21 +1049,21 @@ val <sV> = <sChPath> match
 <endif>
 >>
 
-PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
+PresenceDependency(v, sSeqPath, sAcc, sChildName, bSetInitFlag) ::= <<
 val <v> = <sSeqPath><sAcc><sChildName>.isDefined
 >>
 
-ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal, sChoiceTypeName) ::= <<
+ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal, sChoiceTypeName, bSetInitFlag) ::= <<
 case _: <sChildNamePresent> =>
     <sChildRetVal>
 >>
 
-ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChoiceTypeName, sInsertedFieldTypeName) ::= <<
+ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChoiceTypeName, sInsertedFieldTypeName, bSetInitFlag) ::= <<
 case _: <sChildNamePresent> =>
     Vector.fromList(List(<arruChildRetValBytes:{b|UByte.fromRaw(0x<b;format="X2">)}; separator=", ">))
 >>
 
-ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems, sChoiceTypeName) ::= <<
+ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems, sChoiceTypeName, soCovExempt) ::= <<
 val <v> = <sChPath> match
     <arrsChoiceItems; separator="\n">
 >>
@@ -1071,7 +1100,7 @@ MultiAcnUpdate_checkEqual_str(sV0, sVi, sChPath, bIsAlwaysInit) ::= <<
 <MultiAcnUpdate_checkEqual_pri(sV0=sV0, sVi=sVi, sChPath=sChPath, bIsAlwaysInit=bIsAlwaysInit)>
 >>
 
-MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr) ::= <<
+MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr, bSetInitFlag, bNoSourceDefault, bNoSourceLeavesUnset) ::= <<
 val <v> = {
     <arrsLocalDeclarations; separator="\n">
 
@@ -1090,7 +1119,7 @@ val <v> = {
 >>
 
 
-checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr) ::= <<
+checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr, bDefaultWhenAbsent) ::= <<
 val <v> =
     if <arrsCheckPaths; separator=" && "> then
         <sUpdateStatement>
@@ -1099,7 +1128,7 @@ val <v> =
 >>
 
 
-SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner, sLocalVarType) ::= <<
+SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner, sLocalVarType, bSetInitFlag, soNoCheckNote) ::= <<
 {
     /*first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string*/
     val pBitStrm_save: BitStream = pBitStrm
@@ -1111,11 +1140,11 @@ SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIs
 
 >>
 
-octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner, bDeducedContent) ::= <<
+octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, nReqBytes, sExtField, sErrCode, soInner, bDeducedContent) ::= <<
 codec.base.encodeOctetString_no_length_vec(arr, <sExtField>.toInt)
 >>
 
-octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner, bDeducedContent) ::= <<
+octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, nReqBytes, sExtField, sErrCode, soInner, bDeducedContent) ::= <<
 /*open new scope to declare some variables*/
 {
     /* decode to a temporary bitstream */
@@ -1136,43 +1165,43 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 >>
 
 /* CONTAINING with deferred patching — TODO Scala implementation */
-octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 // TODO: Scala deferred CONTAINING encode
 >>
 
-octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 // TODO: Scala deferred CONTAINING decode
 >>
 
-octet_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
+octet_string_containing_deferred_fixed_func_encode(p, sFuncName, nOctets, sErrCode, soFixedOctets, soNoCheckNote) ::= <<
 // TODO: Scala deferred CONTAINING fixed encode
 >>
 
-octet_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
+octet_string_containing_deferred_fixed_func_decode(p, sFuncName, nOctets, sErrCode, soFixedOctets, soNoCheckNote) ::= <<
 // TODO: Scala deferred CONTAINING fixed decode
 >>
 
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits, soNoCheckNote) ::= <<
 // TODO: Scala deferred CONTAINING embedded encode
 >>
 
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits, soNoCheckNote) ::= <<
 // TODO: Scala deferred CONTAINING embedded decode
 >>
 
-octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 // TODO: Scala deferred CONTAINING wrapper encode
 >>
 
-octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 // TODO: Scala deferred CONTAINING wrapper decode
 >>
 
-bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
+bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 // TODO: Scala bit_string_containing_deferred_func
 >>
 
-bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
+bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 // TODO: Scala bit_string_containing_deferred_func
 >>
 
@@ -1184,27 +1213,27 @@ bit_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
 // TODO: Scala bit_string_containing_deferred_fixed_func
 >>
 
-bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
+bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, soNoCheckNote) ::= <<
 // TODO: Scala bit_string_containing_deferred_embedded_func
 >>
 
-bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
+bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, soNoCheckNote) ::= <<
 // TODO: Scala bit_string_containing_deferred_embedded_func
 >>
 
-bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
+bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 // TODO: Scala bit_string_containing_deferred_wrapper
 >>
 
-bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
+bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 // TODO: Scala bit_string_containing_deferred_wrapper
 >>
 
-bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
+bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nReqBits, sExtField, sErrCode) ::= <<
 codec.base.bitStream.appendBitsMSBFirstVec(arr, <sExtField>.toInt)
 >>
 
-bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
+bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nReqBits, sExtField, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
     /* decode to a temporary bitstream */
@@ -1227,7 +1256,7 @@ sparkAnnotations_encode(sTypeDefName) ::= ""
 sparkAnnotations_decode(sTypeDefName) ::= ""
 sparkAnnotations_deducedFixed(sTypeDefName) ::= ""
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent, soNoCheckNote) ::= <<
 /*open new scope to declare some variables*/
 {
     /* encode to a temporary bitstream */
@@ -1248,7 +1277,7 @@ octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAc
 }
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent, soNoCheckNote) ::= <<
 /*open new scope to declare some variables*/
 {
     /* decode to a temporary bitstream */
@@ -1281,7 +1310,7 @@ octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAc
 }
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, soNoCheckNote) ::= <<
 /* open new scope to declare some variables */
 {
     /* encode to a temporary bitstream */
@@ -1303,7 +1332,7 @@ bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnE
 }
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, soNoCheckNote) ::= <<
 /*open new scope to declare some variables*/
 {
     /* decode to a temporary bitstream */
@@ -1363,16 +1392,16 @@ acn_deferred_det_init_ptr_decode(sInitFuncName, sDetName) ::= <<
 // TODO: ACN deferred patching not supported for Scala
 >>
 
-acn_deferred_det_patch_value_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_encode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 // TODO: ACN deferred patching not supported for Scala
 >>
-acn_deferred_det_patch_value_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_decode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 // TODO: ACN deferred patching not supported for Scala
 >>
-acn_deferred_det_patch_ptr_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_ptr_encode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 // TODO: ACN deferred patching not supported for Scala
 >>
-acn_deferred_det_patch_ptr_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_ptr_decode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 // TODO: ACN deferred patching not supported for Scala
 >>
 
@@ -1388,29 +1417,29 @@ acn_deferred_det_init_ptr_with_size_encode(sInitFuncName, nBits, sDetName) ::= <
 acn_deferred_det_init_ptr_with_size_decode(sInitFuncName, nBits, sDetName) ::= <<
 // TODO: ACN deferred patching not supported for Scala
 >>
-acn_deferred_det_patch_value_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 // TODO: ACN deferred patching not supported for Scala
 >>
-acn_deferred_det_patch_value_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 // TODO: ACN deferred patching not supported for Scala
 >>
-acn_deferred_det_patch_ptr_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_ptr_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 // TODO: ACN deferred patching not supported for Scala
 >>
-acn_deferred_det_patch_ptr_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_ptr_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 // TODO: ACN deferred patching not supported for Scala
 >>
 
-acn_deferred_det_patch_value_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 // TODO: ACN deferred patching not supported for Scala
 >>
-acn_deferred_det_patch_value_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 // TODO: ACN deferred patching not supported for Scala
 >>
-acn_deferred_det_patch_ptr_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_ptr_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 // TODO: ACN deferred patching not supported for Scala
 >>
-acn_deferred_det_patch_ptr_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_ptr_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 // TODO: ACN deferred patching not supported for Scala
 >>
 
@@ -1430,11 +1459,14 @@ acn_deferred_det_distance_bytes_decode(sStart, sEnd) ::= "0"
 acn_deferred_det_kind_access(p, sAcc) ::= "// TODO"
 acn_deferred_det_value_presence_bool(p, sAcc, sChildName) ::= "// TODO"
 acn_deferred_det_switch_case_int(sCaseName, sVarName, sValue) ::= "// TODO"
-acn_deferred_det_switch_int(sVarName, sKindAccess, arrsCaseItems) ::= "// TODO"
+acn_deferred_det_switch_int(sVarName, sKindAccess, arrsCaseItems, soCovExempt) ::= "// TODO"
 acn_deferred_det_switch_case_str(sCaseName, sVarName, sValue) ::= "// TODO"
-acn_deferred_det_switch_str(sVarName, sKindAccess, arrsCaseItems) ::= "// TODO"
+acn_deferred_det_switch_str(sVarName, sKindAccess, arrsCaseItems, soCovExempt) ::= "// TODO"
 
 /* Group B: Fallback PatchDet */
+/* coverage step 13c: the fallback is omitted when a consumer patches the field on every path */
+acn_deferred_det_fallback_omitted(sDetName, sConsumer) ::= "// no fallback PatchDet of <sDetName>: <sConsumer> patches it on every path"
+
 acn_deferred_det_fallback_value_encode(sPatchFuncName, sDefaultVal, sDetName) ::= "// TODO"
 acn_deferred_det_fallback_value_decode(sPatchFuncName, sDefaultVal, sDetName) ::= ""
 acn_deferred_det_fallback_value_with_size_encode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= "// TODO"
@@ -1443,18 +1475,18 @@ acn_deferred_det_fallback_value_str_encode(sPatchFuncName, sDefaultVal, nBits, s
 acn_deferred_det_fallback_value_str_decode(sPatchFuncName, sDefaultVal, nBits, sDetName) ::= ""
 
 /* Group C: Decode redirect */
-acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= "// TODO"
-acn_deferred_det_copy_signed_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_signed_tmp_decode(sDetAccess, sTmpName) ::= "// TODO"
-acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName) ::= "// TODO"
-acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName) ::= ""
-acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName) ::= "// TODO"
+acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName, bReadCannotFail) ::= "// TODO"
+acn_deferred_det_copy_signed_tmp_encode(sDetAccess, sTmpName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_signed_tmp_decode(sDetAccess, sTmpName, bReadCannotFail) ::= "// TODO"
+acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName, bReadCannotFail) ::= "// TODO"
+acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName, bReadCannotFail) ::= "// TODO"
 
 acn_deferred_det_enum_wire_case(sItemName, sDetAccess, sValue) ::= "// TODO"
-acn_deferred_det_copy_enum_wire_tmp_encode(sDetAccess, sTmpName, arrsCases) ::= ""
-acn_deferred_det_copy_enum_wire_tmp_decode(sDetAccess, sTmpName, arrsCases) ::= "// TODO"
+acn_deferred_det_copy_enum_wire_tmp_encode(sDetAccess, sTmpName, arrsCases, bReadCannotFail) ::= ""
+acn_deferred_det_copy_enum_wire_tmp_decode(sDetAccess, sTmpName, arrsCases, bReadCannotFail) ::= "// TODO"
 
 /* Group D: Access paths */
 acn_deferred_det_access_value(sDetName) ::= "// TODO"
@@ -1466,11 +1498,26 @@ acn_deferred_det_relative_access(sRootId, sFieldPath) ::= "// TODO"
 
 /* Group E: Miscellaneous */
 acn_deferred_det_uper_offset_sub(sValue, sOffset) ::= "// TODO"
+acn_deferred_det_mapped_value(sValue, sMF, soMFM, sRtlType) ::= "// TODO"
+
+/* q/issues.md Issue 65 (--acn-v2 BOOLEAN determinant with a pattern): not used by this backend */
+acn_deferred_det_bool_pattern_value(sValue, sTrueValue, sFalseValue) ::= "<sValue>"
+
+acn_deferred_det_patch_loop(sIdx, sLength, sBody) ::= "// TODO"
 acn_deferred_det_preblock_wrap(sPreBlock, sPatchCall) ::= "// TODO"
 acn_deferred_det_optional_producer_check(sParent, sAcc, sProducer, sConsumer, sErrCode) ::= "// TODO"
 acn_deferred_det_optional_producer_wrap(sParent, sAcc, sProducer, sBody) ::= "// TODO"
 acn_deferred_det_type_name() ::= "// TODO"
 acn_deferred_det_init_expr() ::= "// TODO"
+
+/* q/issues.md Issue 107: C and Ada only (ILangGeneric.deferredRefTracksStream) */
+acn_deferred_det_in_stream_value(sDetName) ::= ""
+
+acn_deferred_det_in_stream_ptr(sDetName) ::= ""
+
+acn_deferred_det_mark_in_stream(sInStream, sField) ::= ""
+
+acn_deferred_det_reset(sDetName, sField, sHolders) ::= ""
 
 
 // 'size deduced' is not supported for Scala (empty stubs for interface parity)
@@ -1480,15 +1527,22 @@ str_ascii_deduced_decode(p, sErrCode, nAsn1Max, nTrailingBits, sType) ::= ""
 oct_deduced_encode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, nTrailingBits, sErrCode) ::= ""
 oct_deduced_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, nTrailingBits, sErrCode) ::= ""
 
-sqf_deduced_fix_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemSize, sErrCode) ::= ""
-sqf_deduced_fix_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemSize, sErrCode) ::= ""
+sqf_deduced_fix_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemSize, sErrCode, bItemCannotFail, bItemWritesResult) ::= ""
+sqf_deduced_fix_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemSize, sErrCode, bItemCannotFail, bItemWritesResult) ::= ""
 
-sqf_deduced_var_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemMinSize, sErrCode) ::= ""
-sqf_deduced_var_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemMinSize, sErrCode) ::= ""
+sqf_deduced_var_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemMinSize, sErrCode, bItemCannotFail, bItemWritesResult) ::= ""
+sqf_deduced_var_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemMinSize, sErrCode, bItemCannotFail, bItemWritesResult) ::= ""
 
 
 /* Coverage step 10b, Ada only (never used here). */
 AcnIntFullRange(p, sKind, sWidth, sSsuffix, noBits) ::= ""
+Real_64_cannotFail(p, sEndianness) ::= ""
+Real_32_cannotFail(p, sEndianness) ::= ""
+Real_ScaledInt_uint_cannotFail(p, sTmpVar, sIntBody, sLow, sScale) ::= ""
+Real_ScaledInt_sint_cannotFail(p, sTmpVar, sIntBody, sLow, sScale, sIntMin) ::= ""
+Acn_String_Ascii_FixSize_cannotFail(p) ::= ""
+EnumeratedEncValues_fullIndex(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sFirstItemName, sIntVal, soCovExempt) ::= ""
+Choice_fullIndex(p, sAcc, arrsChildren, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= ""
 
 sequence_presence_optChild_noErrCode(p, sChName, soExistVar) ::= ""
 

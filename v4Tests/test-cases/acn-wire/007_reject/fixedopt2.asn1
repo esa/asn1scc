@@ -1,0 +1,4 @@
+-- the same next to a direct consumer of variable size (legacy and --acn-v2 reject; Codex i124a F3)
+REJ DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    T ::= SEQUENCE { d OCTET STRING (SIZE(1..4)), items SEQUENCE (SIZE(1..2)) OF SEQUENCE { o OCTET STRING (SIZE(3)) OPTIONAL } }
+END

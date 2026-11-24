@@ -82,13 +82,18 @@ type LangGeneric_rust() =
         /// with underscores and a leading underscore is added if the name starts
         /// with a digit.
         override _.sanitizeModuleName (name: string) =
+            // Rust module names must be valid identifiers: alphanumeric + underscore,
+            // cannot start with a digit.  Hyphens in ASN.1 module names are replaced
+            // with underscores.  Since isFilenameCaseSensitive=false for Rust,
+            // file names are lowercase, so we also lowercase the module name to
+            // match the file name and avoid #[path] workarounds.
             let sb = new System.Text.StringBuilder()
             for c in name do
                 if System.Char.IsLetterOrDigit(c) || c = '_' then
                     sb.Append(c) |> ignore
                 else
                     sb.Append('_') |> ignore
-            let result = sb.ToString()
+            let result = sb.ToString().ToLower()
             if System.String.IsNullOrEmpty(result) then "_"
             elif System.Char.IsDigit(result.[0]) then "_" + result
             else result
@@ -202,7 +207,7 @@ type LangGeneric_rust() =
 
         override _.getValueAssignmentName (vas: ValueAssignment) = vas.rust_name
 
-        override this.hasModules = false
+        override this.hasModules = true
         override _.usesBooleanPresenceBits = true
         override this.allowsSrcFilesWithNoFunctions = true
         override this.requiresValueAssignmentsInSrcFile = true
@@ -289,7 +294,55 @@ type LangGeneric_rust() =
             | TypeDefinition  td -> td.typedefName
             | ReferenceToExistingDefinition ref -> ref.typedefName
 
+        /// With hasModules=true, types from other modules are qualified.
+        /// The default implementation uses '.' as separator (for Ada packages);
+        /// Rust needs '::' for module path separation.
+        override this.longTypedefName2 (td: TypeDefinitionOrReference) (hasModules: bool) (moduleName: string) : string =
+            match td with
+            | TypeDefinition  td -> td.typedefName
+            | ReferenceToExistingDefinition ref ->
+                match ref.programUnit with
+                | Some pu ->
+                    match hasModules with
+                    | true   ->
+                        let safePu = this.sanitizeModuleName pu
+                        let safeMod = this.sanitizeModuleName moduleName
+                        match pu with
+                        | "" -> ref.typedefName
+                        | k when safePu = safeMod -> ref.typedefName
+                        // Types and constants live in the Def file, so a cross-module
+                        // type reference must go through the Def module.
+                        | _ -> "crate::" + safePu + "Def::" + ref.typedefName
+                    | false     -> ref.typedefName
+                | None    -> ref.typedefName
+
+        /// With hasModules=true, functions from other modules must be qualified.
+        /// Functions live in the body file, so cross-module function calls use
+        /// pu::func (the body module), not puDef::func. The programUnit name must
+        /// be sanitized to match the Rust module name on disk.
+        override this.atcQualifiedFuncName (programUnit:string) (funcName:string) : string =
+            this.sanitizeModuleName programUnit + "::" + funcName
+
+        /// Cross-module function calls use the sanitized (lowercase) module name
+        /// with '::' separator, since functions live in the body module file.
+        override this.constructCrossModuleFuncPrefix (moduleName: string) : string =
+            "crate::" + this.sanitizeModuleName moduleName + "::"
+
+        /// Types and constants live in the Def file, so cross-module type/constant
+        /// references must use the Def module (crate::puDef::), not the body module.
+        override this.constructCrossModuleTypeDefPrefix (moduleName: string) : string =
+            "crate::" + this.sanitizeModuleName moduleName + "Def::" 
+
         override this.toHex n = sprintf "0x%x" n
+
+        override this.formatValueAssignmentTestCase (typeKind:Asn1TypeKind) (valueType:string) (initStmt:string) : string =
+            // The test case file already imports types via 'use crate::xxxDef::*;'
+            // so the init statement should use unqualified type names.
+            // Strip module-qualified prefixes (e.g. "test_caseDef::" or "crate::test_caseDef::")
+            // from type references in the init statement.
+            // Use regex to replace patterns like (crate::)?wordDef::TypeName with just TypeName
+            let regex = System.Text.RegularExpressions.Regex(@"(?:(?:crate::)?[a-zA-Z_][a-zA-Z0-9_]*Def)::")
+            regex.Replace(initStmt, "")
 
         override this.bitStringValueToByteArray (v : BitStringValue) = FsUtils.bitStringValueToByteArray (StringLoc.ByValue v)
 
@@ -351,12 +404,14 @@ type LangGeneric_rust() =
                 let formatMod (modName: string) =
                     let safeName = this.sanitizeModuleName modName
                     let safeNameDef = safeName + "Def"
+                    let fileBase =
+                        if this.isFilenameCaseSensitive then safeName
+                        else safeName.ToLower()
                     if String.IsNullOrEmpty(modName) then ""
-                    elif modName <> safeName then
-                        // Original name is not a valid Rust identifier; use #[path = ...]
-                        sprintf "#[path = \"%s.rs\"] mod %s;\n#[path = \"%sDef.rs\"] mod %s;" modName safeName modName safeNameDef
+                    elif fileBase <> safeName then
+                        sprintf "#[path = \"%s.rs\"] mod %s;\n#[path = \"%sDef.rs\"] mod %s;" fileBase safeName fileBase safeNameDef
                     else
-                        sprintf "mod %s;\nmod %s;" modName safeNameDef
+                        sprintf "pub mod %s;\npub mod %s;" safeName safeNameDef
                 let pduMods = r.programUnits |> List.collect (fun pu -> [formatMod pu.name; formatMod pu.testcase_name])
                 let tcMods = arrsSrcTstFiles |> List.map (fun f -> formatMod (Path.GetFileNameWithoutExtension(f)))
                 let content = printMain "testsuite" (pduMods @ tcMods)

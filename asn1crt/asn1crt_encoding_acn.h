@@ -21,6 +21,7 @@ d8'          `8b  `"Y8888Y"'   88      `888           88        `"YbbdP'Y8  88  
 */
 
 flag Acn_AlignToNextByte(BitStream* pBitStrm, flag bEncode);
+void Acn_Dec_AlignToNextByte(BitStream* pBitStrm);   /* the byte alignment of a decoder: cannot fail */
 flag Acn_AlignToNextWord(BitStream* pBitStrm, flag bEncode);
 flag Acn_AlignToNextDWord(BitStream* pBitStrm, flag bEncode);
 
@@ -315,10 +316,14 @@ typedef struct {
 } AcnBitStreamPos;
 
 /* Reference to an ACN-inserted field that will be patched later.
- * is_set + value enable consistency checking for shared determinants. */
+ * is_set + value enable consistency checking for shared determinants.
+ * in_stream: the field is in the stream (encode: set by InitDet; decode: set
+ * by the generated code where the field is read). FALSE (as in {0}) when the
+ * component holding the field is absent: a PatchDet then writes nothing. */
 typedef struct {
     AcnBitStreamPos pos;      /* where in the bitstream the field was reserved */
     flag            is_set;   /* TRUE after first PatchDet call */
+    flag            in_stream; /* TRUE after InitDet (encode) / the field's read (decode) */
     asn1SccUint     value;    /* the value that was written (for consistency checking) */
     char            str_value[256]; /* for IA5String determinants (consistency checking) */
 } AcnInsertedFieldRef;
@@ -378,11 +383,13 @@ static inline void Acn_InitDet_##name(BitStream* bs,                            
                                       AcnInsertedFieldRef* det) {               \
     det->pos = Acn_BitStream_GetPos(bs);                                        \
     det->is_set = FALSE;                                                        \
+    det->in_stream = TRUE;                                                      \
     det->value = 0;                                                             \
     encoder_fn(bs, 0);                                                          \
 }                                                                               \
 static inline flag Acn_PatchDet_##name(asn1SccUint v, BitStream* bs,            \
                                        AcnInsertedFieldRef* det, int* err) {    \
+    if (!det->in_stream) return TRUE; /* holder absent: not in the stream */    \
     if (!det->is_set) {                                                         \
         AcnBitStreamPos cur = Acn_BitStream_GetPos(bs);                         \
         Acn_BitStream_SetPos(bs, det->pos);                                     \
@@ -415,11 +422,13 @@ static inline void Acn_InitDet_##name(BitStream* bs,                            
                                       AcnInsertedFieldRef* det) {               \
     det->pos = Acn_BitStream_GetPos(bs);                                        \
     det->is_set = FALSE;                                                        \
+    det->in_stream = TRUE;                                                      \
     det->value = 0;                                                             \
     encoder_fn(bs, 0);                                                          \
 }                                                                               \
 static inline flag Acn_PatchDet_##name(asn1SccUint v, BitStream* bs,            \
                                        AcnInsertedFieldRef* det, int* err) {    \
+    if (!det->in_stream) return TRUE; /* holder absent: not in the stream */    \
     if (!det->is_set) {                                                         \
         AcnBitStreamPos cur = Acn_BitStream_GetPos(bs);                         \
         Acn_BitStream_SetPos(bs, det->pos);                                     \
@@ -462,12 +471,14 @@ static inline void Acn_InitDet_##name(BitStream* bs, int nBits,                 
     (void)nBits;                                                                \
     det->pos = Acn_BitStream_GetPos(bs);                                        \
     det->is_set = FALSE;                                                        \
+    det->in_stream = TRUE;                                                      \
     det->value = 0;                                                             \
     encoder_fn(bs, 0, nBits);                                                   \
 }                                                                               \
 static inline flag Acn_PatchDet_##name(asn1SccUint v, BitStream* bs, int nBits, \
                                        AcnInsertedFieldRef* det, int* err) {    \
     (void)nBits;                                                                \
+    if (!det->in_stream) return TRUE; /* holder absent: not in the stream */    \
     if (!det->is_set) {                                                         \
         int _i;                                                                 \
         AcnBitStreamPos cur = Acn_BitStream_GetPos(bs);                         \
@@ -496,12 +507,14 @@ static inline void Acn_InitDet_##name(BitStream* bs, int nBits,                 
     (void)nBits;                                                                \
     det->pos = Acn_BitStream_GetPos(bs);                                        \
     det->is_set = FALSE;                                                        \
+    det->in_stream = TRUE;                                                      \
     det->value = 0;                                                             \
     encoder_fn(bs, 0, nBits);                                                   \
 }                                                                               \
 static inline flag Acn_PatchDet_##name(asn1SccUint v, BitStream* bs, int nBits, \
                                        AcnInsertedFieldRef* det, int* err) {    \
     (void)nBits;                                                                \
+    if (!det->in_stream) return TRUE; /* holder absent: not in the stream */    \
     if (!det->is_set) {                                                         \
         int _i;                                                                 \
         AcnBitStreamPos cur = Acn_BitStream_GetPos(bs);                         \

@@ -1,0 +1,4 @@
+-- a size consumer inline in the elements, same function (legacy and --acn-v2 reject)
+REJ DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    S ::= SEQUENCE { a INTEGER(0..255), items SEQUENCE (SIZE(0..2)) OF OCTET STRING (SIZE(0..15)), tail INTEGER(0..255) }
+END

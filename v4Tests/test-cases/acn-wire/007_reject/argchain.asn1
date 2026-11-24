@@ -1,0 +1,6 @@
+-- as argopt, through a chain of two references, the inner one OPTIONAL (legacy rejects, --acn-v2 accepts; R2-1)
+REJ DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    RR ::= SEQUENCE { o OCTET STRING (SIZE(3)) }
+    QQ ::= SEQUENCE { r RR OPTIONAL }
+    T ::= SEQUENCE { c CHOICE { list SEQUENCE (SIZE(1..2)) OF QQ, z BOOLEAN } }
+END

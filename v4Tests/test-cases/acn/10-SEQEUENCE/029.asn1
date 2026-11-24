@@ -1,0 +1,14 @@
+-- Two automatic values of an OCTET STRING that are the same value ('01'H and '00000001'B): an Equal test must not
+-- assert that they compare unequal (the referenced type's inner variants are lifted to its parents for the Equal tests
+-- only when they flip a presence flag).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+   Inner ::= SEQUENCE { data OCTET STRING (SIZE(1)), b BOOLEAN }
+
+   Outer ::= SEQUENCE {
+      x Inner (WITH COMPONENTS { ..., data ('01'H | '00000001'B) })
+   }
+
+END
+
+--TCLS     Inner []

@@ -199,9 +199,9 @@ let Define_new_ia5string (td:FE_StringTypeDefinition) (nMin:BigInteger) (nMax:Bi
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "header_rust" "Define_new_ia5string" [("td",td :>Object);("nMin",nMin :>Object);("nMax",nMax :>Object);("nCMax",nCMax :>Object);("arrnAlphaChars",arrnAlphaChars|>Seq.toArray :>Object);("arr_Asn1Encoding",arr_Asn1Encoding|>Seq.toArray :>Object)]
 
-let Define_subType_ia5string (td:FE_StringTypeDefinition) (prTd:FE_StringTypeDefinition) (soParentTypePackage:string option) (arr_Asn1Encoding:seq<Asn1Encoding>) =
+let Define_subType_ia5string (td:FE_StringTypeDefinition) (prTd:FE_StringTypeDefinition) (soParentTypePackage:string option) (arrnAlphaChars:seq<BigInteger>) (arr_Asn1Encoding:seq<Asn1Encoding>) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "header_rust" "Define_subType_ia5string" [("td",td :>Object);("prTd",prTd :>Object);("soParentTypePackage",(if soParentTypePackage.IsNone then null else ST.StrHelper soParentTypePackage.Value:>Object) );("arr_Asn1Encoding",arr_Asn1Encoding|>Seq.toArray :>Object)]
+    ST.call "header_rust" "Define_subType_ia5string" [("td",td :>Object);("prTd",prTd :>Object);("soParentTypePackage",(if soParentTypePackage.IsNone then null else ST.StrHelper soParentTypePackage.Value:>Object) );("arrnAlphaChars",arrnAlphaChars|>Seq.toArray :>Object);("arr_Asn1Encoding",arr_Asn1Encoding|>Seq.toArray :>Object)]
 
 let Define_new_octet_string (td:FE_SizeableTypeDefinition) (nMin:BigInteger) (nMax:BigInteger) (bFixedSize:bool) (arrsInvariants:seq<string>) (arr_Asn1Encoding:seq<Asn1Encoding>) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true

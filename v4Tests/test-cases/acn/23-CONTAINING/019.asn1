@@ -1,0 +1,37 @@
+-- C_ADA_ONLY NOCOVERAGE (Ada: gcov reports the declare line of blocks that create a Bitstream object as uncovered, as in 003 / 009; Issue 134, the experimental backends are not checked on this file)
+-- An ACN align-to-next of a CONTAINING aligns the octet / bit string, not its contents. It was also merged into the
+-- contents, whose maximum grew by up to 7 / 15 / 31 bits: the length range of the region grew by one octet (fixed-size
+-- contents got a length field), REQUIRED_BITS counted the alignment twice (type assignment form) and the legacy decoders
+-- wrote a region longer than the contents' maximum past their temporary buffer. Shapes: a reference to a CONTAINING
+-- type assignment aligned at the site, an inline CONTAINING aligned, a CONTAINING type assignment aligned in its own
+-- ACN specification, BIT STRING forms, fixed-size contents, word and dword alignments, and contents with an alignment of
+-- their own (kept). Byte-exact tests: v4Tests/test-cases/acn-wire/008.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    T     ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN OPTIONAL, c INTEGER (0..255) OPTIONAL }
+    TA    ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN OPTIONAL, c INTEGER (0..255) OPTIONAL }
+    Fx    ::= SEQUENCE { a INTEGER (0..255), b INTEGER (0..255) }
+    Box   ::= OCTET STRING (CONTAINING T)
+    BoxA  ::= OCTET STRING (CONTAINING T)
+    BBox  ::= BIT STRING (CONTAINING T)
+    BoxF  ::= OCTET STRING (CONTAINING Fx)
+    BoxTA ::= OCTET STRING (CONTAINING TA)
+
+    MyPDU ::= SEQUENCE {
+        y   BOOLEAN,
+        f1  Box,
+        f2  OCTET STRING (CONTAINING T),
+        f3  BoxA,
+        f4  BBox,
+        f5  BIT STRING (CONTAINING T),
+        f6  BoxF,
+        f7  OCTET STRING (CONTAINING Fx),
+        f8  Box,
+        f9  OCTET STRING (CONTAINING T),
+        f10 BoxTA,
+        z   BOOLEAN
+    }
+
+END
+
+--TCLS     T[] TA[align-to-next byte] Fx[] Box[] BoxA[align-to-next byte] BBox[] BoxF[] BoxTA[] MyPDU[] { y[], f1[align-to-next byte], f2[align-to-next byte], f3[], f4[align-to-next byte], f5[align-to-next byte], f6[align-to-next byte], f7[align-to-next byte], f8[align-to-next word], f9[align-to-next dword], f10[], z[] }

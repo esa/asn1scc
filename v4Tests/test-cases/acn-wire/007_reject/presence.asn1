@@ -1,0 +1,4 @@
+-- a present-when consumer inline in the elements, same function (legacy and --acn-v2 reject)
+REJ DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    S ::= SEQUENCE { a INTEGER(0..255), items SEQUENCE (SIZE(1..2)) OF SEQUENCE { x INTEGER(0..7) OPTIONAL, y INTEGER(0..7) } }
+END

@@ -42,6 +42,25 @@ if ret {
 }
 >>
 
+/* Coverage step 12b, C and Ada only (encode outcomes are unknown here: never used); kept identical to JoinItems2. */
+JoinItemsCannotFail(sPart, sNestedPart, soCallee, bAssumed) ::= <<
+<sPart>
+if ret {
+    <sNestedPart>
+}
+>>
+
+JoinItemsNoWrite(sPart, sNestedPart, bComment) ::= <<
+<sPart>
+if ret {
+    <sNestedPart>
+}
+>>
+
+/* Coverage step 14q: used by C and Ada only (the templates of this backend keep their checks). */
+EncodeNoCheckNote(soCallee, bAssumed, bWritesResult) ::= <<
+>>
+
 
 
 
@@ -124,7 +143,7 @@ GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp, bBinarySearch)
 >>
 
 ExpEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
-ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
+ExpStringEqual(sExp1, sExp2, nLen) ::= "(<sExp1> == <sExp2>)"
 ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)"
 ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>)"
 ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)"

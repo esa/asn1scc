@@ -1,0 +1,2816 @@
+ASW-PACKET DEFINITIONS ::=
+BEGIN
+IMPORTS
+   ROOT-EMPTY,
+   ROOT-UINT8,
+   ROOT-UINT16,
+   ROOT-UINT32,
+   ROOT-BOOLEAN,
+   ROOT-STRING,
+   TYPE-ID,
+   ROOT-APPLICATION-PROCESS-USER-ID,
+   ROOT-TIME-REFERENCE-STATUS,
+   ROOT-MESSAGE-TYPE-COUNTER,
+   ROOT-STRING-SEQUENCE-OF,
+   ROOT-BOOLEAN-SEQUENCE-OF,
+   ROOT-UINT32-SEQUENCE-OF,
+   ROOT-ENDIANNESS,
+   ROOT-SPACE-PACKET-TELEMETRY
+FROM CCSDS-SPACE-PACKET;
+
+-- For ACN, as it does not see ASN.1 imports and has no imports of its own
+ASW-TYPE-ID ::= TYPE-ID
+ASW-BOOLEAN ::= BOOLEAN
+
+asw-endianness ROOT-ENDIANNESS ::= endianness-big
+
+asw-apid ROOT-UINT32 ::= 1
+
+asw-perform-acceptance-verification-for-a-request-that-it-receives-present ROOT-BOOLEAN ::= TRUE
+
+asw-report-the-successful-acceptance-verification-of-requests-present ROOT-BOOLEAN ::= TRUE
+
+asw-report-the-failed-acceptance-verification-of-requests-present ROOT-BOOLEAN ::= TRUE
+
+asw-perform-routing-verification-for-the-requests-that-it-receives-present ROOT-BOOLEAN ::= TRUE
+
+asw-report-the-failed-routing-of-requests-present ROOT-BOOLEAN ::= TRUE
+
+asw-generate-the-successful-start-of-execution-verification-reports-present ROOT-BOOLEAN ::= TRUE
+
+asw-generate-the-failed-start-of-execution-verification-reports-present ROOT-BOOLEAN ::= TRUE
+
+asw-generate-the-successful-progress-of-execution-verification-reports-present ROOT-BOOLEAN ::= FALSE
+
+asw-generate-the-failed-progress-of-execution-verification-reports-present ROOT-BOOLEAN ::= FALSE
+
+asw-generate-the-successful-completion-of-execution-verification-reports-present ROOT-BOOLEAN ::= TRUE
+
+asw-generate-the-failed-completion-of-execution-verification-reports-present ROOT-BOOLEAN ::= TRUE
+
+asw-generate-housekeeping-parameter-reports-present ROOT-BOOLEAN ::= TRUE
+
+asw-enable-the-periodic-generation-of-housekeeping-parameter-reports-present ROOT-BOOLEAN ::= TRUE
+
+asw-disable-the-periodic-generation-of-housekeeping-parameter-reports-present ROOT-BOOLEAN ::= TRUE
+
+asw-create-a-housekeeping-parameter-report-structure-present ROOT-BOOLEAN ::= TRUE
+
+asw-delete-housekeeping-parameter-report-structures-present ROOT-BOOLEAN ::= TRUE
+
+asw-report-housekeeping-parameter-report-structures-present ROOT-BOOLEAN ::= TRUE
+
+asw-generate-a-one-shot-report-for-housekeeping-parameter-report-structures-present ROOT-BOOLEAN ::= TRUE
+
+asw-append-parameters-to-a-housekeeping-parameter-report-structure-present ROOT-BOOLEAN ::= TRUE
+
+asw-modify-the-collection-interval-of-housekeeping-parameter-report-structures-present ROOT-BOOLEAN ::= TRUE
+
+asw-report-the-periodic-generation-properties-of-housekeeping-parameter-report-structures-present ROOT-BOOLEAN ::= TRUE
+
+asw-housekeeping-parameter-report-structure-present ROOT-BOOLEAN ::= TRUE
+
+asw-managing-the-periodic-generation-of-housekeeping-parameter-reports-present ROOT-BOOLEAN ::= TRUE
+
+asw-creating-and-deleting-housekeeping-parameter-report-structures-present ROOT-BOOLEAN ::= TRUE
+
+asw-apply-parameter-functional-reporting-configurations-present ROOT-BOOLEAN ::= TRUE
+
+asw-create-a-parameter-functional-reporting-definition-present ROOT-BOOLEAN ::= TRUE
+
+asw-delete-parameter-functional-reporting-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-report-parameter-functional-reporting-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-add-parameter-report-definitions-to-a-parameter-functional-reporting-definition-present ROOT-BOOLEAN ::= TRUE
+
+asw-remove-parameter-report-definitions-from-a-parameter-functional-reporting-definition-present ROOT-BOOLEAN ::= TRUE
+
+asw-modify-the-periodic-generation-properties-of-parameter-report-definitions-of-a-parameter-functional-reporting-definition-present ROOT-BOOLEAN ::= TRUE
+
+asw-parameter-functional-reporting-definition-present ROOT-BOOLEAN ::= TRUE
+
+asw-managing-parameter-functional-reporting-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-modifying-the-parameter-functional-reporting-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-event-reporting-present ROOT-BOOLEAN ::= TRUE
+
+asw-report-informative-event-present ROOT-BOOLEAN ::= TRUE
+
+asw-report-low-severity-anomaly-present ROOT-BOOLEAN ::= TRUE
+
+asw-report-medium-severity-anomaly-present ROOT-BOOLEAN ::= TRUE
+
+asw-report-high-severity-anomaly-present ROOT-BOOLEAN ::= TRUE
+
+asw-controlling-the-generation-of-event-reports-present ROOT-BOOLEAN ::= TRUE
+
+asw-event-report-generation-status-present ROOT-BOOLEAN ::= TRUE
+
+asw-enable-the-report-generation-of-event-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-disable-the-report-generation-of-event-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-report-the-list-of-disabled-event-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-enable-the-parameter-monitoring-function-present ROOT-BOOLEAN ::= TRUE
+
+asw-disable-the-parameter-monitoring-function-present ROOT-BOOLEAN ::= TRUE
+
+asw-enable-parameter-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-disable-parameter-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-report-the-contents-of-the-check-transition-list-present ROOT-BOOLEAN ::= TRUE
+
+asw-change-the-maximum-transition-reporting-delay-present ROOT-BOOLEAN ::= TRUE
+
+asw-add-parameter-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-delete-all-parameter-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-delete-parameter-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-modify-parameter-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-report-parameter-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-report-the-status-of-each-parameter-monitoring-definition-present ROOT-BOOLEAN ::= TRUE
+
+asw-report-the-out-of-limits-present ROOT-BOOLEAN ::= TRUE
+
+asw-process-several-parameter-monitoring-definitions-for-the-same-on-board-parameter-present ROOT-BOOLEAN ::= TRUE
+
+asw-perform-conditional-checking-of-parameter-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-support-definition-specific-monitoring-intervals-present ROOT-BOOLEAN ::= TRUE
+
+asw-support-the-evaluation-of-the-delta-check-type-present ROOT-BOOLEAN ::= TRUE
+
+asw-check-types-present ROOT-BOOLEAN ::= TRUE
+
+asw-minimum-capability-present ROOT-BOOLEAN ::= TRUE
+
+asw-additional-capability-present ROOT-BOOLEAN ::= TRUE
+
+asw-parameter-monitoring-definition-present ROOT-BOOLEAN ::= TRUE
+
+asw-parameter-monitoring-statuses-present ROOT-BOOLEAN ::= TRUE
+
+asw-controlling-the-parameter-monitoring-function-present ROOT-BOOLEAN ::= TRUE
+
+asw-controlling-the-parameter-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-parameter-monitoring-process-present ROOT-BOOLEAN ::= TRUE
+
+asw-managing-parameter-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-enable-the-functional-monitoring-function-present ROOT-BOOLEAN ::= TRUE
+
+asw-disable-the-functional-monitoring-function-present ROOT-BOOLEAN ::= TRUE
+
+asw-enable-functional-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-disable-functional-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-protect-functional-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-unprotect-functional-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-add-functional-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-delete-functional-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-report-functional-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-report-the-status-of-each-functional-monitoring-definition-present ROOT-BOOLEAN ::= TRUE
+
+asw-perform-conditional-checking-of-functional-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-specify-the-minimum-number-of-contemporaneously-violated-parameter-monitoring-definitions-that-establishes-a-checking-failure-present ROOT-BOOLEAN ::= TRUE
+
+asw-functional-monitoring-definition-present ROOT-BOOLEAN ::= TRUE
+
+asw-general-present ROOT-BOOLEAN ::= TRUE
+
+asw-functional-monitoring-statuses-present ROOT-BOOLEAN ::= TRUE
+
+asw-controlling-the-functional-monitoring-function-present ROOT-BOOLEAN ::= TRUE
+
+asw-controlling-the-functional-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-monitoring-transitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-protecting-functional-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-modifying-functional-monitoring-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-perform-an-are-you-alive-connection-test-present ROOT-BOOLEAN ::= TRUE
+
+asw-end-to-end-is-application-process-alive-connection-testing-present ROOT-BOOLEAN ::= TRUE
+
+asw-perform-an-on-board-connection-test-present ROOT-BOOLEAN ::= TRUE
+
+asw-enable-the-event-action-function-present ROOT-BOOLEAN ::= TRUE
+
+asw-disable-the-event-action-function-present ROOT-BOOLEAN ::= TRUE
+
+asw-enable-event-action-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-disable-event-action-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-add-event-action-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-delete-event-action-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-delete-all-event-action-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-report-the-status-of-each-event-action-definition-present ROOT-BOOLEAN ::= TRUE
+
+asw-report-event-action-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-event-action-definition-present ROOT-BOOLEAN ::= TRUE
+
+asw-processing-logic-present ROOT-BOOLEAN ::= TRUE
+
+asw-event-action-statuses-present ROOT-BOOLEAN ::= TRUE
+
+asw-action-initiation-present ROOT-BOOLEAN ::= TRUE
+
+asw-controlling-the-event-action-function-present ROOT-BOOLEAN ::= TRUE
+
+asw-controlling-the-event-action-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-maintaining-event-action-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-parameter-definition-present ROOT-BOOLEAN ::= TRUE
+
+asw-managing-parameter-values-present ROOT-BOOLEAN ::= TRUE
+
+asw-report-parameter-values-present ROOT-BOOLEAN ::= TRUE
+
+asw-set-parameter-values-present ROOT-BOOLEAN ::= TRUE
+
+asw-managing-parameter-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-accessibility-present ROOT-BOOLEAN ::= TRUE
+
+asw-change-raw-memory-parameter-definitions-present ROOT-BOOLEAN ::= TRUE
+
+asw-change-object-memory-parameter-definitions-present ROOT-BOOLEAN ::= FALSE
+
+asw-report-parameter-definitions-present ROOT-BOOLEAN ::= TRUE
+
+ASW-HOUSEKEEPING-REPORTING-MINIMUM-SAMPLING-INTERVAL ::= ASW-MINIMUM-SAMPLING-INTERVAL
+
+asw-housekeeping-reporting-minimum-sampling-interval-value ASW-HOUSEKEEPING-REPORTING-MINIMUM-SAMPLING-INTERVAL ::= {t-field {day 0, milisecond 100, submilisecond 0}}
+
+asw-housekeeping-reporting-maximum-number-of-contemporary-housekeeping-structures ROOT-UINT32 ::= 4
+
+asw-housekeeping-reporting-maximum-number-of-super-commuted-set-values ROOT-UINT32 ::= 64
+
+asw-parameter-functional-reporting-configuration-is-the-housekeeping-service-distributed-on-several-on-board-application-processes ROOT-BOOLEAN ::= TRUE
+
+asw-parameter-functional-reporting-configuration-maximum-number-of-contemporary-parameter-functional-reporting-definitions ROOT-UINT32 ::= 4
+
+asw-parameter-monitoring-is-spare-present ROOT-BOOLEAN ::= TRUE
+
+ASW-PARAMETER-MONITORING-MINIMUM-SAMPLING-INTERVAL ::= ASW-MINIMUM-SAMPLING-INTERVAL
+
+asw-parameter-monitoring-minimum-sampling-interval-value ASW-PARAMETER-MONITORING-MINIMUM-SAMPLING-INTERVAL ::= {t-field {day 0, milisecond 100, submilisecond 0}}
+
+asw-parameter-monitoring-maximum-number-of-contemporary-parameter-monitoring-definitions ROOT-UINT32 ::= 4
+
+asw-parameter-monitoring-monitoring-interval ROOT-UINT32 ::= 5
+
+asw-parameter-monitoring-default-maximum-transition-reporting-delay ROOT-UINT32 ::= 8
+
+asw-parameter-monitoring-maximum-number-of-transitions-required-for-issuing-a-report ROOT-UINT32 ::= 4
+
+asw-functional-monitoring-maximum-number-of-contemporary-functional-monitoring-definitions ROOT-UINT32 ::= 4
+
+asw-event-action-is-the-event-action-subservice-is-associated-to-more-than-one-event-reporting-subservice ROOT-BOOLEAN ::= TRUE
+
+asw-event-action-maximum-number-of-event-action-definitions ROOT-UINT32 ::= 4
+
+asw-parameter-management-subservice-parametermanagementsupportsstructuredmemory ROOT-BOOLEAN ::= TRUE
+
+asw-parameter-functional-reporting-definition-id ROOT-UINT32-SEQUENCE-OF ::= { 1, 2 }
+
+asw-parameter-functional-reporting-definition-name ROOT-STRING-SEQUENCE-OF ::= { "test-definition-1", "test-definition-2" }
+
+ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-PARAMETER-REPORT-DEFINITION-ID ::= ASW-PARAMETER-REPORT-DEFINITION-ID
+
+ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-PERIODIC-GENERATION-ACTION-STATUS ::= ASW-PERIODIC-GENERATION-ACTION-STATUS
+
+asw-parameter-functional-reporting-definition-collection-interval ROOT-UINT32-SEQUENCE-OF ::= { 3, 8 }
+
+asw-parameter-monitoring-definition-id ROOT-UINT32-SEQUENCE-OF ::= { 1, 2, 3, 4, 5, 6 }
+
+asw-parameter-monitoring-definition-name ROOT-STRING-SEQUENCE-OF ::= { "test pmon 1", "test pmon 2", "test pmon 3", "expected value monitoring", "range monitoring", "delta monitoring" }
+
+ASW-PARAMETER-MONITORING-DEFINITION-CHECK-VALIDITY-CONDITION ::= ASW-CHECK-VALIDITY-CONDITION
+
+ASW-PARAMETER-MONITORING-DEFINITION-CHECK-VALIDITY-CONDITION-SEQUENCE-OF ::= SEQUENCE (SIZE(0..255)) OF ASW-PARAMETER-MONITORING-DEFINITION-CHECK-VALIDITY-CONDITION
+asw-parameter-monitoring-definition-check-validity-condition-value ASW-PARAMETER-MONITORING-DEFINITION-CHECK-VALIDITY-CONDITION-SEQUENCE-OF ::= { { validity-parameter-id test-param-3, mask {TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, TRUE, FALSE}, expected-value { field-data '6C6C'H }}, { validity-parameter-id test-param-1, mask {TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, FALSE, FALSE}, expected-value { field-data '2C2C'H }}, { validity-parameter-id test-param-2, mask {TRUE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE}, expected-value { field-data '2B2B'H }}, { validity-parameter-id test-param-1, mask {TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, FALSE, FALSE}, expected-value { field-data '2C2C'H }}, { validity-parameter-id test-param-3, mask {TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, TRUE, FALSE}, expected-value { field-data '6C6C'H }}, { validity-parameter-id test-param-2, mask {TRUE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE}, expected-value { field-data '2B2B'H }} }
+
+asw-parameter-monitoring-definition-monitoring-interval ROOT-UINT32-SEQUENCE-OF ::= { 8, 13, 5, 13, 8, 5 }
+
+asw-parameter-monitoring-definition-repetition-number ROOT-UINT32-SEQUENCE-OF ::= { 13, 3, 5, 3, 13, 5 }
+
+ASW-PARAMETER-MONITORING-DEFINITION-CHECK-TYPE-DEPENDENT-CRITERIA ::= ASW-CHECK-TYPE-DEPENDENT-CRITERIA
+
+ASW-PARAMETER-MONITORING-DEFINITION-CHECK-TYPE-DEPENDENT-CRITERIA-SEQUENCE-OF ::= SEQUENCE (SIZE(0..255)) OF ASW-PARAMETER-MONITORING-DEFINITION-CHECK-TYPE-DEPENDENT-CRITERIA
+asw-parameter-monitoring-definition-check-type-dependent-criteria-value ASW-PARAMETER-MONITORING-DEFINITION-CHECK-TYPE-DEPENDENT-CRITERIA-SEQUENCE-OF ::= { limit-checking : { low-limit { field-data '6C6C'H },  low-limit-event-definition-id test-high-event, high-limit { field-data '8C8C'H }, high-limit-event-definition-id test-low-event }, expected-value-checking : { mask {TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, FALSE, FALSE},  spare {TRUE, TRUE, TRUE, FALSE, TRUE, FALSE, FALSE, FALSE}, expected-value { field-data '0C0C'H }, event-definition-id test-inf-event }, delta-checking : { low-delta-threshold { field-data '6E6E'H },  low-delta-event-definition-id test-low-event, high-delta-threshold { field-data '8F8F'H }, high-delta-event-definition-id test-mid-event, number-of-consecutive-delta-values 4 }, expected-value-checking : { mask {TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, FALSE, FALSE},  spare {TRUE, TRUE, TRUE, FALSE, TRUE, FALSE, FALSE, FALSE}, expected-value { field-data '0C0C'H }, event-definition-id test-inf-event }, limit-checking : { low-limit { field-data '6C6C'H },  low-limit-event-definition-id test-high-event, high-limit { field-data '8C8C'H }, high-limit-event-definition-id test-low-event }, delta-checking : { low-delta-threshold { field-data '6E6E'H },  low-delta-event-definition-id test-low-event, high-delta-threshold { field-data '8F8F'H }, high-delta-event-definition-id test-mid-event, number-of-consecutive-delta-values 4 } }
+
+ASW-PARAMETER-MONITORING-DEFINITION-MONITORED-PARAMETER-ID ::= ASW-PARAMETER-IDENTIFIER
+
+ASW-PARAMETER-MONITORING-DEFINITION-MONITORED-PARAMETER-ID-SEQUENCE-OF ::= SEQUENCE (SIZE(0..255)) OF ASW-PARAMETER-MONITORING-DEFINITION-MONITORED-PARAMETER-ID
+asw-parameter-monitoring-definition-monitored-parameter-id-value ASW-PARAMETER-MONITORING-DEFINITION-MONITORED-PARAMETER-ID-SEQUENCE-OF ::= { test-param-2, test-param-1, test-param-3, test-param-1, test-param-2, test-param-3 }
+
+asw-functional-monitoring-definition-id ROOT-UINT32-SEQUENCE-OF ::= { 1, 2, 3 }
+
+asw-functional-monitoring-definition-name ROOT-STRING-SEQUENCE-OF ::= { "test fmon 1", "test fmon 2", "test fmon 3" }
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-CHECK-VALIDITY-CONDITION ::= ASW-CHECK-VALIDITY-CONDITION
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-CHECK-VALIDITY-CONDITION-SEQUENCE-OF ::= SEQUENCE (SIZE(0..255)) OF ASW-FUNCTIONAL-MONITORING-DEFINITION-CHECK-VALIDITY-CONDITION
+asw-functional-monitoring-definition-check-validity-condition-value ASW-FUNCTIONAL-MONITORING-DEFINITION-CHECK-VALIDITY-CONDITION-SEQUENCE-OF ::= { { validity-parameter-id test-param-1, mask {TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, FALSE, FALSE}, expected-value { field-data '2C2C'H }}, { validity-parameter-id test-param-3, mask {TRUE, FALSE, TRUE, FALSE, TRUE, FALSE, TRUE, FALSE}, expected-value { field-data '6C6C'H }}, { validity-parameter-id test-param-2, mask {TRUE, FALSE, TRUE, FALSE, FALSE, FALSE, FALSE, FALSE}, expected-value { field-data '2B2B'H }} }
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-EVENT-DEFINITION-ID ::= ASW-EVENT-IDENTIFIER
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-EVENT-DEFINITION-ID-SEQUENCE-OF ::= SEQUENCE (SIZE(0..255)) OF ASW-FUNCTIONAL-MONITORING-DEFINITION-EVENT-DEFINITION-ID
+asw-functional-monitoring-definition-event-definition-id-value ASW-FUNCTIONAL-MONITORING-DEFINITION-EVENT-DEFINITION-ID-SEQUENCE-OF ::= { test-high-event, test-inf-event, test-low-event }
+
+asw-functional-monitoring-definition-minimum-pmon-failing-number ROOT-UINT32-SEQUENCE-OF ::= { 5, 14, 2 }
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-PMON-IDS ::= ASW-PMON-IDS
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-PMON-IDS-SEQUENCE-OF ::= SEQUENCE (SIZE(0..255)) OF ASW-FUNCTIONAL-MONITORING-DEFINITION-PMON-IDS
+asw-functional-monitoring-definition-pmon-ids-value ASW-FUNCTIONAL-MONITORING-DEFINITION-PMON-IDS-SEQUENCE-OF ::= { { field-data { test-pmon-2, test-pmon-1 } }, { field-data { test-pmon-3 } }, { field-data { test-pmon-3, test-pmon-2 } } }
+
+asw-housekeeping-parameter-report-structure-id ROOT-UINT32-SEQUENCE-OF ::= { 1, 2, 3 }
+
+asw-housekeeping-parameter-report-structure-name ROOT-STRING-SEQUENCE-OF ::= { "test housekeeping struct 1", "test housekeeping struct 2", "test housekeeping struct 3" }
+
+asw-housekeeping-parameter-report-structure-collection-interval ROOT-UINT32-SEQUENCE-OF ::= { 5, 8, 10 }
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-SIMPLY-COMMUTED-PARAMETERS ::= ASW-PARAMETER-IDS
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-SUPER-COMMUTED-PARAMETER-SETS ::= ASW-SUPER-COMMUTED-PARAMETER-SETS-SYSTEM-OBJECT-VALUE
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-PERIODIC-GENERATION-ACTION-STATUS ::= ASW-PERIODIC-GENERATION-ACTION-STATUS
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-SIMPLY-COMMUTED-PARAMETERS-SEQUENCE-OF ::= SEQUENCE (SIZE(0..255)) OF ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-SIMPLY-COMMUTED-PARAMETERS
+asw-housekeeping-parameter-report-structure-simply-commuted-parameters-value ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-SIMPLY-COMMUTED-PARAMETERS-SEQUENCE-OF ::= { { field-data { test-param-1 } }, { field-data { test-param-2, obj-param-1 } }, { field-data { test-param-2, test-param-3, obj-param-1 } } }
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-SUPER-COMMUTED-PARAMETER-SETS-SEQUENCE-OF ::= SEQUENCE (SIZE(0..255)) OF ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-SUPER-COMMUTED-PARAMETER-SETS
+asw-housekeeping-parameter-report-structure-super-commuted-parameter-sets-value ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-SUPER-COMMUTED-PARAMETER-SETS-SEQUENCE-OF ::= { { field-data { { super-commuted-sample-repetition-number 1, parameter-id { field-data { test-param-2, test-param-3 } } } } }, { field-data { { super-commuted-sample-repetition-number 5, parameter-id { field-data { test-param-3 } } } } }, { field-data { { super-commuted-sample-repetition-number 10, parameter-id { field-data { test-param-2, test-param-3, obj-param-1 } } } } } }
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-PERIODIC-GENERATION-ACTION-STATUS-SEQUENCE-OF ::= SEQUENCE (SIZE(0..255)) OF ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-PERIODIC-GENERATION-ACTION-STATUS
+asw-housekeeping-parameter-report-structure-periodic-generation-action-status-value ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-PERIODIC-GENERATION-ACTION-STATUS-SEQUENCE-OF ::= { enabled, disabled, enabled }
+
+asw-diagnostic-parameter-report-structure-id ROOT-UINT32-SEQUENCE-OF ::= { 1, 2, 3 }
+
+asw-diagnostic-parameter-report-structure-name ROOT-STRING-SEQUENCE-OF ::= { "test diagnostic struct 1", "test diagnostic struct 2", "test diagnostic struct 3" }
+
+asw-diagnostic-parameter-report-structure-collection-interval ROOT-UINT32-SEQUENCE-OF ::= { 5, 8, 10 }
+
+ASW-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURE-SIMPLY-COMMUTED-PARAMETERS ::= ASW-PARAMETER-IDS
+
+ASW-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURE-SUPER-COMMUTED-PARAMETER-SETS ::= ASW-SUPER-COMMUTED-PARAMETER-SETS-SYSTEM-OBJECT-VALUE
+
+ASW-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURE-PERIODIC-GENERATION-ACTION-STATUS ::= ASW-PERIODIC-GENERATION-ACTION-STATUS
+
+ASW-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURE-SIMPLY-COMMUTED-PARAMETERS-SEQUENCE-OF ::= SEQUENCE (SIZE(0..255)) OF ASW-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURE-SIMPLY-COMMUTED-PARAMETERS
+asw-diagnostic-parameter-report-structure-simply-commuted-parameters-value ASW-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURE-SIMPLY-COMMUTED-PARAMETERS-SEQUENCE-OF ::= { { field-data { test-param-1 } }, { field-data { test-param-2, obj-param-1 } }, { field-data { test-param-2, test-param-3, obj-param-1 } } }
+
+ASW-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURE-SUPER-COMMUTED-PARAMETER-SETS-SEQUENCE-OF ::= SEQUENCE (SIZE(0..255)) OF ASW-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURE-SUPER-COMMUTED-PARAMETER-SETS
+asw-diagnostic-parameter-report-structure-super-commuted-parameter-sets-value ASW-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURE-SUPER-COMMUTED-PARAMETER-SETS-SEQUENCE-OF ::= { { field-data { { super-commuted-sample-repetition-number 1, parameter-id { field-data { test-param-2, test-param-3 } } } } }, { field-data { { super-commuted-sample-repetition-number 5, parameter-id { field-data { test-param-3 } } } } }, { field-data { { super-commuted-sample-repetition-number 10, parameter-id { field-data { test-param-2, test-param-3, obj-param-1 } } } } } }
+
+ASW-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURE-PERIODIC-GENERATION-ACTION-STATUS-SEQUENCE-OF ::= SEQUENCE (SIZE(0..255)) OF ASW-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURE-PERIODIC-GENERATION-ACTION-STATUS
+asw-diagnostic-parameter-report-structure-periodic-generation-action-status-value ASW-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURE-PERIODIC-GENERATION-ACTION-STATUS-SEQUENCE-OF ::= { enabled, disabled, enabled }
+
+ASW-EVENT-ACTION-DEFINITION-SYSTEM-IDENTIFIER ::= ASW-SYSTEM-IDENTIFIER
+
+ASW-EVENT-ACTION-DEFINITION-SYSTEM-IDENTIFIER-SEQUENCE-OF ::= SEQUENCE (SIZE(0..255)) OF ASW-EVENT-ACTION-DEFINITION-SYSTEM-IDENTIFIER
+asw-event-action-definition-system-identifier-value ASW-EVENT-ACTION-DEFINITION-SYSTEM-IDENTIFIER-SEQUENCE-OF ::= { { application-process-id test-apid, event-definition-id test-mid-event }, { application-process-id test-apid, event-definition-id test-low-event }, { application-process-id test-apid, event-definition-id test-inf-event }, { application-process-id test-apid, event-definition-id test-mid-event }, { application-process-id test-apid, event-definition-id test-mid-event }, { application-process-id test-apid, event-definition-id test-mid-event } }
+
+ASW-EVENT-ACTION-DEFINITION-REQUEST ::= ASW-REQUEST
+
+ASW-EVENT-ACTION-DEFINITION-REQUEST-SEQUENCE-OF ::= SEQUENCE (SIZE(0..255)) OF ASW-EVENT-ACTION-DEFINITION-REQUEST
+asw-event-action-definition-request-value ASW-EVENT-ACTION-DEFINITION-REQUEST-SEQUENCE-OF ::= { { secondary-header-flag 1, application-process-id 5, packet-sequence-count 10, packet-data-field '6C6C'H }, { secondary-header-flag 1, application-process-id 5, packet-sequence-count 13, packet-data-field '6C6C'H }, { secondary-header-flag 1, application-process-id 7, packet-sequence-count 16, packet-data-field '4C4C'H }, { secondary-header-flag 1, application-process-id 5, packet-sequence-count 10, packet-data-field '6C6C'H }, { secondary-header-flag 1, application-process-id 5, packet-sequence-count 10, packet-data-field '6C6C'H }, { secondary-header-flag 1, application-process-id 5, packet-sequence-count 10, packet-data-field '6C6C'H } }
+
+ASW-EVENT-ACTION-DEFINITION-STATUS ::= ASW-EVENT-ACTION-STATUS
+
+ASW-EVENT-ACTION-DEFINITION-STATUS-SEQUENCE-OF ::= SEQUENCE (SIZE(0..255)) OF ASW-EVENT-ACTION-DEFINITION-STATUS
+asw-event-action-definition-status-value ASW-EVENT-ACTION-DEFINITION-STATUS-SEQUENCE-OF ::= { enabled, disabled, enabled, enabled, enabled, enabled }
+
+asw-event-action-definition-id ROOT-UINT32-SEQUENCE-OF ::= { 1, 2, 3, 4, 5, 6 }
+
+asw-event-action-definition-name ROOT-STRING-SEQUENCE-OF ::= { "event definition 1", "event definition 2", "event definition 3", "action for flight software low event", "action for flight software medium event", "action for flight software high event" }
+
+asw-on-board-memory-id ROOT-UINT32-SEQUENCE-OF ::= { 1, 2 }
+
+asw-on-board-memory-name ROOT-STRING-SEQUENCE-OF ::= { "ram memory", "db memory" }
+
+asw-on-board-memory-isprotected ROOT-BOOLEAN-SEQUENCE-OF ::= { FALSE, FALSE }
+
+asw-on-board-memory-iswriteable ROOT-BOOLEAN-SEQUENCE-OF ::= { TRUE, TRUE }
+
+asw-on-board-memory-isbaseaddressable ROOT-BOOLEAN-SEQUENCE-OF ::= { FALSE, TRUE }
+
+asw-on-board-memory-isoffsetaddressable ROOT-BOOLEAN-SEQUENCE-OF ::= { TRUE, FALSE }
+
+asw-on-board-memory-size ROOT-UINT32-SEQUENCE-OF ::= { 65536, 65536 }
+
+asw-on-board-memory-alignment ROOT-UINT32-SEQUENCE-OF ::= { 4, 4 }
+
+asw-on-board-memory-isreadable ROOT-BOOLEAN-SEQUENCE-OF ::= { TRUE, TRUE }
+
+asw-on-board-memory-isscrubbingsupported ROOT-BOOLEAN-SEQUENCE-OF ::= { FALSE, FALSE }
+
+asw-on-board-memory-iswriteprotectionsupported ROOT-BOOLEAN-SEQUENCE-OF ::= { FALSE, FALSE }
+
+asw-on-board-parameter-id ROOT-UINT32-SEQUENCE-OF ::= { 1, 2, 3, 4, 5, 6 }
+
+asw-on-board-parameter-name ROOT-STRING-SEQUENCE-OF ::= { "test param 1", "test param 2", "test param 3", "obj param 1", "current", "temperature" }
+
+asw-on-board-parameter-ptc ROOT-UINT32-SEQUENCE-OF ::= { 3, 3, 3, 3, 3, 3 }
+
+asw-on-board-parameter-pfc ROOT-UINT32-SEQUENCE-OF ::= { 14, 14, 14, 14, 14, 14 }
+
+asw-on-board-parameter-memory-address ROOT-STRING-SEQUENCE-OF ::= { "0", "4", "8", "{ memory_base {field_data \'file.dat\'}, offset 32 }", "0", "0" }
+
+asw-on-board-parameter-memory-name ROOT-STRING-SEQUENCE-OF ::= { "ram memory", "ram memory", "ram memory", "db_memory", "ram memory", "ram memory" }
+
+ASW-ON-BOARD-PARAMETER-DEFAULT-SAMPLING-INTERVAL ::= ASW-TIME-INTERVAL
+
+ASW-ON-BOARD-PARAMETER-DEFAULT-SAMPLING-INTERVAL-SEQUENCE-OF ::= SEQUENCE (SIZE(0..255)) OF ASW-ON-BOARD-PARAMETER-DEFAULT-SAMPLING-INTERVAL
+asw-on-board-parameter-default-sampling-interval-value ASW-ON-BOARD-PARAMETER-DEFAULT-SAMPLING-INTERVAL-SEQUENCE-OF ::= { { t-field {day 0, milisecond 100, submilisecond 0}}, { t-field {day 0, milisecond 50, submilisecond 0}}, { t-field {day 0, milisecond 200, submilisecond 0}}, { t-field {day 0, milisecond 5000, submilisecond 0}}, { t-field {day 0, milisecond 100, submilisecond 0}}, { t-field {day 0, milisecond 100, submilisecond 0}} }
+
+ASW-ON-BOARD-PARAMETER-DEFAULT-VALUE-TYPE ::= ASW-PARAMETER-VALUE
+
+ASW-ON-BOARD-PARAMETER-DEFAULT-VALUE-TYPE-SEQUENCE-OF ::= SEQUENCE (SIZE(0..255)) OF ASW-ON-BOARD-PARAMETER-DEFAULT-VALUE-TYPE
+asw-on-board-parameter-default-value ASW-ON-BOARD-PARAMETER-DEFAULT-VALUE-TYPE-SEQUENCE-OF ::= { { field-data '00ff00ff'H }, { field-data '00ff00ff'H }, { field-data '00ff00ff'H }, { field-data '00ff00ff'H }, { field-data '64'H }, { field-data '14'H } }
+
+asw-event-definition-id ROOT-UINT32-SEQUENCE-OF ::= { 0, 1, 2, 3, 4, 5, 6 }
+
+asw-event-definition-name ROOT-STRING-SEQUENCE-OF ::= { "test inf event", "test low event", "test mid event", "test high event", "flight software low event", "flight software medium event", "flight software high event" }
+
+asw-event-definition-severity ROOT-STRING-SEQUENCE-OF ::= { "informative", "low severity", "medium severity", "high severity", "low", "medium", "high" }
+
+asw-application-process-name ROOT-STRING-SEQUENCE-OF ::= { "test-apid-0", "test-apid-1", "test-apid-2" }
+
+asw-application-process-identifier ROOT-UINT32-SEQUENCE-OF ::= { 0, 1, 2 }
+
+ASW-ENABLE-THE-PERIODIC-GENERATION-OF-A-HOUSEKEEPING-PARAMETER-REPORT-COUNT ::= INTEGER (0..4)
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-ID-ENUM ::= ENUMERATED {
+	test-housekeeping-struct-1 (1),
+	test-housekeeping-struct-2 (2),
+	test-housekeeping-struct-3 (3)
+}
+
+asw-housekeeping-parameter-report-structure-id-enum-default-value ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-ID-ENUM ::= test-housekeeping-struct-1
+
+
+ASW-ENABLE-THE-PERIODIC-GENERATION-OF-A-HOUSEKEEPING-PARAMETER-REPORT-INSTRUCTION-GENERIC ::= SEQUENCE {
+	housekeeping-parameter-report-structure-id ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-ID-ENUM
+}
+
+ASW-ENABLE-THE-PERIODIC-GENERATION-OF-A-HOUSEKEEPING-PARAMETER-REPORT-INSTRUCTION ::= ASW-ENABLE-THE-PERIODIC-GENERATION-OF-A-HOUSEKEEPING-PARAMETER-REPORT-INSTRUCTION-GENERIC
+
+ASW-ENABLE-THE-PERIODIC-GENERATION-OF-HOUSEKEEPING-PARAMETER-REPORTS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..4)) OF ASW-ENABLE-THE-PERIODIC-GENERATION-OF-A-HOUSEKEEPING-PARAMETER-REPORT-INSTRUCTION
+}
+
+ASW-ENABLE-THE-PERIODIC-GENERATION-OF-HOUSEKEEPING-PARAMETER-REPORTS ::= ASW-ENABLE-THE-PERIODIC-GENERATION-OF-HOUSEKEEPING-PARAMETER-REPORTS-GENERIC
+
+ASW-DISABLE-THE-PERIODIC-GENERATION-OF-A-HOUSEKEEPING-PARAMETER-REPORT-COUNT ::= INTEGER (0..4)
+
+ASW-DISABLE-THE-PERIODIC-GENERATION-OF-A-HOUSEKEEPING-PARAMETER-REPORT-INSTRUCTION-GENERIC ::= SEQUENCE {
+	housekeeping-parameter-report-structure-id ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-ID-ENUM
+}
+
+ASW-DISABLE-THE-PERIODIC-GENERATION-OF-A-HOUSEKEEPING-PARAMETER-REPORT-INSTRUCTION ::= ASW-DISABLE-THE-PERIODIC-GENERATION-OF-A-HOUSEKEEPING-PARAMETER-REPORT-INSTRUCTION-GENERIC
+
+ASW-DISABLE-THE-PERIODIC-GENERATION-OF-HOUSEKEEPING-PARAMETER-REPORTS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..4)) OF ASW-DISABLE-THE-PERIODIC-GENERATION-OF-A-HOUSEKEEPING-PARAMETER-REPORT-INSTRUCTION
+}
+
+ASW-DISABLE-THE-PERIODIC-GENERATION-OF-HOUSEKEEPING-PARAMETER-REPORTS ::= ASW-DISABLE-THE-PERIODIC-GENERATION-OF-HOUSEKEEPING-PARAMETER-REPORTS-GENERIC
+
+ASW-COLLECTION-INTERVAL ::= INTEGER (1..255)
+
+ASW-PARAMETER-IDENTIFIER ::= ENUMERATED {
+	test-param-1 (1),
+	test-param-2 (2),
+	test-param-3 (3),
+	obj-param-1 (4),
+	current (5),
+	temperature (6)
+}
+
+asw-parameter-identifier-default-value ASW-PARAMETER-IDENTIFIER ::= test-param-1
+
+
+asw-parameter-ids-maximum-size ROOT-UINT32 ::= 16
+ASW-PARAMETER-IDS ::= SEQUENCE { field-data SEQUENCE (SIZE(0..16)) OF ASW-PARAMETER-IDENTIFIER }
+
+ASW-COUNT ::= INTEGER (0..8)
+
+ASW-SUPER-COMMUTED-SAMPLE-REPETITION-NUMBER ::= INTEGER (0..16)
+
+ASW-SUPER-COMMUTED-PARAMETER-SET-GENERIC ::= SEQUENCE {
+	super-commuted-sample-repetition-number ASW-SUPER-COMMUTED-SAMPLE-REPETITION-NUMBER,
+	parameter-id ASW-PARAMETER-IDS
+}
+
+ASW-SUPER-COMMUTED-PARAMETER-SET ::= ASW-SUPER-COMMUTED-PARAMETER-SET-GENERIC
+
+asw-super-commuted-parameter-sets-maximum-size ROOT-UINT32 ::= 8
+ASW-SUPER-COMMUTED-PARAMETER-SETS ::= SEQUENCE (SIZE(0..8)) OF ASW-SUPER-COMMUTED-PARAMETER-SET
+
+ASW-SUPER-COMMUTED-PARAMETER-SETS-STRUCT-GENERIC ::= SEQUENCE {
+	super-commuted-parameter-sets ASW-SUPER-COMMUTED-PARAMETER-SETS
+}
+
+ASW-SUPER-COMMUTED-PARAMETER-SETS-STRUCT ::= ASW-SUPER-COMMUTED-PARAMETER-SETS-STRUCT-GENERIC
+
+ASW-CREATE-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC ::= SEQUENCE {
+	housekeeping-parameter-report-structure-id ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-ID-ENUM,
+	collection-interval ASW-COLLECTION-INTERVAL,
+	parameter-id ASW-PARAMETER-IDS,
+	super-commuted-parameter-sets ASW-SUPER-COMMUTED-PARAMETER-SETS-STRUCT
+}
+
+ASW-CREATE-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION ::= ASW-CREATE-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC
+
+ASW-CREATE-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-GENERIC ::= SEQUENCE {
+	instruction ASW-CREATE-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION
+}
+
+ASW-CREATE-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE ::= ASW-CREATE-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-GENERIC
+
+ASW-DELETE-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-COUNT ::= INTEGER (0..4)
+
+ASW-DELETE-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC ::= SEQUENCE {
+	housekeeping-parameter-report-structure-id ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-ID-ENUM
+}
+
+ASW-DELETE-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION ::= ASW-DELETE-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC
+
+ASW-DELETE-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..4)) OF ASW-DELETE-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION
+}
+
+ASW-DELETE-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES ::= ASW-DELETE-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES-GENERIC
+
+ASW-REPORT-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-COUNT ::= INTEGER (0..4)
+
+ASW-REPORT-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC ::= SEQUENCE {
+	housekeeping-parameter-report-structure-id ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-ID-ENUM
+}
+
+ASW-REPORT-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION ::= ASW-REPORT-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC
+
+ASW-REPORT-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..4)) OF ASW-REPORT-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION
+}
+
+ASW-REPORT-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES ::= ASW-REPORT-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES-GENERIC
+
+ASW-GENERATE-A-ONE-SHOT-REPORT-FOR-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-COUNT ::= INTEGER (0..4)
+
+ASW-GENERATE-A-ONE-SHOT-REPORT-FOR-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC ::= SEQUENCE {
+	housekeeping-parameter-report-structure-id ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-ID-ENUM
+}
+
+ASW-GENERATE-A-ONE-SHOT-REPORT-FOR-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION ::= ASW-GENERATE-A-ONE-SHOT-REPORT-FOR-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC
+
+ASW-GENERATE-A-ONE-SHOT-REPORT-FOR-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..4)) OF ASW-GENERATE-A-ONE-SHOT-REPORT-FOR-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION
+}
+
+ASW-GENERATE-A-ONE-SHOT-REPORT-FOR-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES ::= ASW-GENERATE-A-ONE-SHOT-REPORT-FOR-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES-GENERIC
+
+ASW-APPEND-PARAMETERS-TO-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC ::= SEQUENCE {
+	housekeeping-parameter-report-structure-id ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-ID-ENUM,
+	parameter-id ASW-PARAMETER-IDS,
+	super-commutated-parameters ASW-SUPER-COMMUTED-PARAMETER-SETS-STRUCT
+}
+
+ASW-APPEND-PARAMETERS-TO-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION ::= ASW-APPEND-PARAMETERS-TO-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC
+
+ASW-APPEND-PARAMETERS-TO-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-GENERIC ::= SEQUENCE {
+	instruction ASW-APPEND-PARAMETERS-TO-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION
+}
+
+ASW-APPEND-PARAMETERS-TO-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE ::= ASW-APPEND-PARAMETERS-TO-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-GENERIC
+
+ASW-MODIFY-THE-COLLECTION-INTERVAL-OF-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-COUNT ::= INTEGER (0..4)
+
+ASW-MODIFY-THE-COLLECTION-INTERVAL-OF-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC ::= SEQUENCE {
+	housekeeping-parameter-report-structure-id ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-ID-ENUM,
+	collection-interval ASW-COLLECTION-INTERVAL
+}
+
+ASW-MODIFY-THE-COLLECTION-INTERVAL-OF-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION ::= ASW-MODIFY-THE-COLLECTION-INTERVAL-OF-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC
+
+ASW-MODIFY-THE-COLLECTION-INTERVAL-OF-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..4)) OF ASW-MODIFY-THE-COLLECTION-INTERVAL-OF-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION
+}
+
+ASW-MODIFY-THE-COLLECTION-INTERVAL-OF-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES ::= ASW-MODIFY-THE-COLLECTION-INTERVAL-OF-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES-GENERIC
+
+ASW-REPORT-THE-PERIODIC-GENERATION-PROPERTIES-OF-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-COUNT ::= INTEGER (0..4)
+
+ASW-REPORT-THE-PERIODIC-GENERATION-PROPERTIES-OF-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC ::= SEQUENCE {
+	housekeeping-parameter-report-structure-id ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-ID-ENUM
+}
+
+ASW-REPORT-THE-PERIODIC-GENERATION-PROPERTIES-OF-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION ::= ASW-REPORT-THE-PERIODIC-GENERATION-PROPERTIES-OF-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC
+
+ASW-REPORT-THE-PERIODIC-GENERATION-PROPERTIES-OF-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..4)) OF ASW-REPORT-THE-PERIODIC-GENERATION-PROPERTIES-OF-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION
+}
+
+ASW-REPORT-THE-PERIODIC-GENERATION-PROPERTIES-OF-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES ::= ASW-REPORT-THE-PERIODIC-GENERATION-PROPERTIES-OF-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES-GENERIC
+
+ASW-CONFIGURATION-EXECUTION-FLAG ::= ENUMERATED {
+	non-exclusive (0),
+	exclusive (1)
+}
+
+asw-configuration-execution-flag-default-value ASW-CONFIGURATION-EXECUTION-FLAG ::= non-exclusive
+
+
+ASW-APPLY-A-PARAMETER-FUNCTIONAL-REPORTING-CONFIGURATION-COUNT ::= INTEGER (0..4)
+
+ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-ID ::= ENUMERATED {
+	test-definition-1 (1),
+	test-definition-2 (2)
+}
+
+asw-parameter-functional-reporting-definition-id-default-value ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-ID ::= test-definition-1
+
+
+ASW-APPLY-A-PARAMETER-FUNCTIONAL-REPORTING-CONFIGURATION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	parameter-functional-reporting-definition-id ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-ID
+}
+
+ASW-APPLY-A-PARAMETER-FUNCTIONAL-REPORTING-CONFIGURATION-INSTRUCTION ::= ASW-APPLY-A-PARAMETER-FUNCTIONAL-REPORTING-CONFIGURATION-INSTRUCTION-GENERIC
+
+ASW-APPLY-PARAMETER-FUNCTIONAL-REPORTING-CONFIGURATIONS-GENERIC ::= SEQUENCE {
+	configuration-execution-flag ASW-CONFIGURATION-EXECUTION-FLAG,
+	instructions SEQUENCE (SIZE(0..4)) OF ASW-APPLY-A-PARAMETER-FUNCTIONAL-REPORTING-CONFIGURATION-INSTRUCTION
+}
+
+ASW-APPLY-PARAMETER-FUNCTIONAL-REPORTING-CONFIGURATIONS ::= ASW-APPLY-PARAMETER-FUNCTIONAL-REPORTING-CONFIGURATIONS-GENERIC
+
+ASW-APPLICATION-PROCESS-IDENTIFIER ::= ENUMERATED {
+	test-apid-0 (0),
+	test-apid-1 (1),
+	test-apid-2 (2)
+}
+
+asw-application-process-identifier-default-value ASW-APPLICATION-PROCESS-IDENTIFIER ::= test-apid-0
+
+
+ASW-PARAMETER-REPORT-STRUCTURE-TYPE ::= ENUMERATED {
+	housekeeping (25),
+	diagnostic (26)
+}
+
+asw-parameter-report-structure-type-default-value ASW-PARAMETER-REPORT-STRUCTURE-TYPE ::= housekeeping
+
+
+ASW-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURE-ID-ENUM ::= ENUMERATED {
+	test-diagnostic-struct-1 (1),
+	test-diagnostic-struct-2 (2),
+	test-diagnostic-struct-3 (3)
+}
+
+asw-diagnostic-parameter-report-structure-id-enum-default-value ASW-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURE-ID-ENUM ::= test-diagnostic-struct-1
+
+
+ASW-PARAMETER-REPORT-STRUCTURE-ID-CHOICE ::= CHOICE {
+	housekeeping ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-ID-ENUM,
+	diagnostic ASW-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURE-ID-ENUM
+}
+
+ASW-PERIODIC-GENERATION-ACTION-STATUS ::= ENUMERATED {
+	disabled (0),
+	enabled (1)
+}
+
+asw-periodic-generation-action-status-default-value ASW-PERIODIC-GENERATION-ACTION-STATUS ::= disabled
+
+
+ASW-PARAMETER-REPORT-STRUCTURE-SPECIFICATION-GENERIC ::= SEQUENCE {
+	parameter-report-structure-id ASW-PARAMETER-REPORT-STRUCTURE-ID-CHOICE,
+	periodic-generation-action-status ASW-PERIODIC-GENERATION-ACTION-STATUS,
+	collection-interval ASW-COLLECTION-INTERVAL
+}
+
+ASW-PARAMETER-REPORT-STRUCTURE-SPECIFICATION ::= ASW-PARAMETER-REPORT-STRUCTURE-SPECIFICATION-GENERIC
+
+asw-parameter-report-structure-specifications-maximum-size ROOT-UINT32 ::= 8
+ASW-PARAMETER-REPORT-STRUCTURE-SPECIFICATIONS ::= SEQUENCE { field-data SEQUENCE (SIZE(0..8)) OF ASW-PARAMETER-REPORT-STRUCTURE-SPECIFICATION }
+
+ASW-PARAMETER-REPORTING-ENTRY-GENERIC ::= SEQUENCE {
+	application-process-id ASW-APPLICATION-PROCESS-IDENTIFIER OPTIONAL,
+	parameter-report-structure-identifiers ASW-PARAMETER-REPORT-STRUCTURE-SPECIFICATIONS
+}
+
+ASW-PARAMETER-REPORTING-ENTRY ::= ASW-PARAMETER-REPORTING-ENTRY-GENERIC (WITH COMPONENTS { application-process-id PRESENT })
+
+asw-parameter-reporting-entries-maximum-size ROOT-UINT32 ::= 8
+ASW-PARAMETER-REPORTING-ENTRIES ::= SEQUENCE { field-data SEQUENCE (SIZE(0..8)) OF ASW-PARAMETER-REPORTING-ENTRY }
+
+ASW-CREATE-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	parameter-functional-reporting-definition-id ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-ID,
+	parameter-reporting-entries ASW-PARAMETER-REPORTING-ENTRIES
+}
+
+ASW-CREATE-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION ::= ASW-CREATE-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-CREATE-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-GENERIC ::= SEQUENCE {
+	instruction ASW-CREATE-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION
+}
+
+ASW-CREATE-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION ::= ASW-CREATE-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-GENERIC
+
+ASW-DELETE-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-COUNT ::= INTEGER (0..4)
+
+ASW-DELETE-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	parameter-functional-reporting-definition-id ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-ID
+}
+
+ASW-DELETE-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION ::= ASW-DELETE-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-DELETE-PARAMETER-FUNCTIONAL-REPORTING-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..4)) OF ASW-DELETE-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION
+}
+
+ASW-DELETE-PARAMETER-FUNCTIONAL-REPORTING-DEFINITIONS ::= ASW-DELETE-PARAMETER-FUNCTIONAL-REPORTING-DEFINITIONS-GENERIC
+
+ASW-REPORT-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-COUNT ::= INTEGER (0..4)
+
+ASW-REPORT-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	parameter-functional-reporting-definition-id ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-ID
+}
+
+ASW-REPORT-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION ::= ASW-REPORT-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-REPORT-PARAMETER-FUNCTIONAL-REPORTING-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..4)) OF ASW-REPORT-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION
+}
+
+ASW-REPORT-PARAMETER-FUNCTIONAL-REPORTING-DEFINITIONS ::= ASW-REPORT-PARAMETER-FUNCTIONAL-REPORTING-DEFINITIONS-GENERIC
+
+ASW-ADD-A-PARAMETER-REPORT-DEFINITION-TO-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-COUNT ::= INTEGER (0..4)
+
+ASW-ADD-A-PARAMETER-REPORT-DEFINITION-TO-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	parameter-reporting-entry ASW-PARAMETER-REPORTING-ENTRY
+}
+
+ASW-ADD-A-PARAMETER-REPORT-DEFINITION-TO-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION ::= ASW-ADD-A-PARAMETER-REPORT-DEFINITION-TO-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-ADD-PARAMETER-REPORT-DEFINITIONS-TO-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-GENERIC ::= SEQUENCE {
+	parameter-functional-reporting-definition-id ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-ID,
+	instructions SEQUENCE (SIZE(0..4)) OF ASW-ADD-A-PARAMETER-REPORT-DEFINITION-TO-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION
+}
+
+ASW-ADD-PARAMETER-REPORT-DEFINITIONS-TO-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION ::= ASW-ADD-PARAMETER-REPORT-DEFINITIONS-TO-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-GENERIC
+
+ASW-REMOVE-A-PARAMETER-REPORT-DEFINITION-FROM-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-COUNT ::= INTEGER (0..4)
+
+ASW-PARAMETER-REPORT-STRUCTURE-ID-GENERIC ::= SEQUENCE {
+	parameter-report-structure-id ASW-PARAMETER-REPORT-STRUCTURE-ID-CHOICE
+}
+
+ASW-PARAMETER-REPORT-STRUCTURE-ID ::= ASW-PARAMETER-REPORT-STRUCTURE-ID-GENERIC
+
+asw-parameter-report-structure-ids-maximum-size ROOT-UINT32 ::= 8
+ASW-PARAMETER-REPORT-STRUCTURE-IDS ::= SEQUENCE { field-data SEQUENCE (SIZE(0..8)) OF ASW-PARAMETER-REPORT-STRUCTURE-ID }
+
+ASW-PARAMETER-REPORTING-ENTRY-TO-REMOVE-GENERIC ::= SEQUENCE {
+	application-process-id ASW-APPLICATION-PROCESS-IDENTIFIER OPTIONAL,
+	parameter-report-structure-id ASW-PARAMETER-REPORT-STRUCTURE-IDS
+}
+
+ASW-PARAMETER-REPORTING-ENTRY-TO-REMOVE ::= ASW-PARAMETER-REPORTING-ENTRY-TO-REMOVE-GENERIC (WITH COMPONENTS { application-process-id PRESENT })
+
+ASW-REMOVE-A-PARAMETER-REPORT-DEFINITION-FROM-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	parameter-reporting-definition-to-remove ASW-PARAMETER-REPORTING-ENTRY-TO-REMOVE
+}
+
+ASW-REMOVE-A-PARAMETER-REPORT-DEFINITION-FROM-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION ::= ASW-REMOVE-A-PARAMETER-REPORT-DEFINITION-FROM-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-REMOVE-PARAMETER-REPORT-DEFINITIONS-FROM-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-GENERIC ::= SEQUENCE {
+	parameter-functional-reporting-definition-id ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-ID,
+	instructions SEQUENCE (SIZE(0..4)) OF ASW-REMOVE-A-PARAMETER-REPORT-DEFINITION-FROM-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION
+}
+
+ASW-REMOVE-PARAMETER-REPORT-DEFINITIONS-FROM-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION ::= ASW-REMOVE-PARAMETER-REPORT-DEFINITIONS-FROM-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-GENERIC
+
+ASW-MODIFY-THE-PERIODIC-GENERATION-PROPERTIES-OF-A-PARAMETER-REPORT-DEFINITION-OF-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-COUNT ::= INTEGER (0..4)
+
+ASW-MODIFY-THE-PERIODIC-GENERATION-PROPERTIES-OF-A-PARAMETER-REPORT-DEFINITION-OF-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	parameter-reporting-entry ASW-PARAMETER-REPORTING-ENTRY
+}
+
+ASW-MODIFY-THE-PERIODIC-GENERATION-PROPERTIES-OF-A-PARAMETER-REPORT-DEFINITION-OF-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION ::= ASW-MODIFY-THE-PERIODIC-GENERATION-PROPERTIES-OF-A-PARAMETER-REPORT-DEFINITION-OF-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-MODIFY-THE-PERIODIC-GENERATION-PROPERTIES-OF-PARAMETER-REPORT-DEFINITIONS-OF-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-GENERIC ::= SEQUENCE {
+	parameter-functional-reporting-definition-id ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-ID,
+	instructions SEQUENCE (SIZE(0..4)) OF ASW-MODIFY-THE-PERIODIC-GENERATION-PROPERTIES-OF-A-PARAMETER-REPORT-DEFINITION-OF-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION
+}
+
+ASW-MODIFY-THE-PERIODIC-GENERATION-PROPERTIES-OF-PARAMETER-REPORT-DEFINITIONS-OF-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION ::= ASW-MODIFY-THE-PERIODIC-GENERATION-PROPERTIES-OF-PARAMETER-REPORT-DEFINITIONS-OF-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-GENERIC
+
+ASW-HOUSEKEEPING-TC ::= CHOICE {
+	enable-the-periodic-generation-of-housekeeping-parameter-reports ASW-ENABLE-THE-PERIODIC-GENERATION-OF-HOUSEKEEPING-PARAMETER-REPORTS,
+	disable-the-periodic-generation-of-housekeeping-parameter-reports ASW-DISABLE-THE-PERIODIC-GENERATION-OF-HOUSEKEEPING-PARAMETER-REPORTS,
+	create-a-housekeeping-parameter-report-structure ASW-CREATE-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE,
+	delete-housekeeping-parameter-report-structures ASW-DELETE-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES,
+	report-housekeeping-parameter-report-structures ASW-REPORT-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES,
+	generate-a-one-shot-report-for-housekeeping-parameter-report-structures ASW-GENERATE-A-ONE-SHOT-REPORT-FOR-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES,
+	append-parameters-to-a-housekeeping-parameter-report-structure ASW-APPEND-PARAMETERS-TO-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE,
+	modify-the-collection-interval-of-housekeeping-parameter-report-structures ASW-MODIFY-THE-COLLECTION-INTERVAL-OF-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES,
+	report-the-periodic-generation-properties-of-housekeeping-parameter-report-structures ASW-REPORT-THE-PERIODIC-GENERATION-PROPERTIES-OF-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES,
+	apply-parameter-functional-reporting-configurations ASW-APPLY-PARAMETER-FUNCTIONAL-REPORTING-CONFIGURATIONS,
+	create-a-parameter-functional-reporting-definition ASW-CREATE-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION,
+	delete-parameter-functional-reporting-definitions ASW-DELETE-PARAMETER-FUNCTIONAL-REPORTING-DEFINITIONS,
+	report-parameter-functional-reporting-definitions ASW-REPORT-PARAMETER-FUNCTIONAL-REPORTING-DEFINITIONS,
+	add-parameter-report-definitions-to-a-parameter-functional-reporting-definition ASW-ADD-PARAMETER-REPORT-DEFINITIONS-TO-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION,
+	remove-parameter-report-definitions-from-a-parameter-functional-reporting-definition ASW-REMOVE-PARAMETER-REPORT-DEFINITIONS-FROM-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION,
+	modify-the-periodic-generation-properties-of-parameter-report-definitions-of-a-parameter-functional-reporting-definition ASW-MODIFY-THE-PERIODIC-GENERATION-PROPERTIES-OF-PARAMETER-REPORT-DEFINITIONS-OF-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION
+}
+
+ASW-ENABLE-THE-REPORT-GENERATION-OF-AN-EVENT-DEFINITION-COUNT ::= INTEGER (0..4)
+
+ASW-EVENT-IDENTIFIER ::= ENUMERATED {
+	test-inf-event (0),
+	test-low-event (1),
+	test-mid-event (2),
+	test-high-event (3),
+	flight-software-low-event (4),
+	flight-software-medium-event (5),
+	flight-software-high-event (6)
+}
+
+asw-event-identifier-default-value ASW-EVENT-IDENTIFIER ::= test-inf-event
+
+
+ASW-ENABLE-THE-REPORT-GENERATION-OF-AN-EVENT-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	event-definition-id ASW-EVENT-IDENTIFIER
+}
+
+ASW-ENABLE-THE-REPORT-GENERATION-OF-AN-EVENT-DEFINITION-INSTRUCTION ::= ASW-ENABLE-THE-REPORT-GENERATION-OF-AN-EVENT-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-ENABLE-THE-REPORT-GENERATION-OF-EVENT-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..4)) OF ASW-ENABLE-THE-REPORT-GENERATION-OF-AN-EVENT-DEFINITION-INSTRUCTION
+}
+
+ASW-ENABLE-THE-REPORT-GENERATION-OF-EVENT-DEFINITIONS ::= ASW-ENABLE-THE-REPORT-GENERATION-OF-EVENT-DEFINITIONS-GENERIC
+
+ASW-DISABLE-THE-REPORT-GENERATION-OF-AN-EVENT-DEFINITION-COUNT ::= INTEGER (0..4)
+
+ASW-DISABLE-THE-REPORT-GENERATION-OF-AN-EVENT-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	event-definition-id ASW-EVENT-IDENTIFIER
+}
+
+ASW-DISABLE-THE-REPORT-GENERATION-OF-AN-EVENT-DEFINITION-INSTRUCTION ::= ASW-DISABLE-THE-REPORT-GENERATION-OF-AN-EVENT-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-DISABLE-THE-REPORT-GENERATION-OF-EVENT-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..4)) OF ASW-DISABLE-THE-REPORT-GENERATION-OF-AN-EVENT-DEFINITION-INSTRUCTION
+}
+
+ASW-DISABLE-THE-REPORT-GENERATION-OF-EVENT-DEFINITIONS ::= ASW-DISABLE-THE-REPORT-GENERATION-OF-EVENT-DEFINITIONS-GENERIC
+
+ASW-REPORT-THE-LIST-OF-DISABLED-EVENT-DEFINITIONS-INSTRUCTION-GENERIC ::= SEQUENCE {
+
+}
+
+ASW-REPORT-THE-LIST-OF-DISABLED-EVENT-DEFINITIONS-INSTRUCTION ::= ASW-REPORT-THE-LIST-OF-DISABLED-EVENT-DEFINITIONS-INSTRUCTION-GENERIC
+
+ASW-REPORT-THE-LIST-OF-DISABLED-EVENT-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instruction ASW-REPORT-THE-LIST-OF-DISABLED-EVENT-DEFINITIONS-INSTRUCTION
+}
+
+ASW-REPORT-THE-LIST-OF-DISABLED-EVENT-DEFINITIONS ::= ASW-REPORT-THE-LIST-OF-DISABLED-EVENT-DEFINITIONS-GENERIC
+
+ASW-EVENT-REPORTING-TC ::= CHOICE {
+	enable-the-report-generation-of-event-definitions ASW-ENABLE-THE-REPORT-GENERATION-OF-EVENT-DEFINITIONS,
+	disable-the-report-generation-of-event-definitions ASW-DISABLE-THE-REPORT-GENERATION-OF-EVENT-DEFINITIONS,
+	report-the-list-of-disabled-event-definitions ASW-REPORT-THE-LIST-OF-DISABLED-EVENT-DEFINITIONS
+}
+
+ASW-ENABLE-THE-PARAMETER-MONITORING-FUNCTION-INSTRUCTION-GENERIC ::= SEQUENCE {
+
+}
+
+ASW-ENABLE-THE-PARAMETER-MONITORING-FUNCTION-INSTRUCTION ::= ASW-ENABLE-THE-PARAMETER-MONITORING-FUNCTION-INSTRUCTION-GENERIC
+
+ASW-ENABLE-THE-PARAMETER-MONITORING-FUNCTION-GENERIC ::= SEQUENCE {
+	instruction ASW-ENABLE-THE-PARAMETER-MONITORING-FUNCTION-INSTRUCTION
+}
+
+ASW-ENABLE-THE-PARAMETER-MONITORING-FUNCTION ::= ASW-ENABLE-THE-PARAMETER-MONITORING-FUNCTION-GENERIC
+
+ASW-DISABLE-THE-PARAMETER-MONITORING-FUNCTION-INSTRUCTION-GENERIC ::= SEQUENCE {
+
+}
+
+ASW-DISABLE-THE-PARAMETER-MONITORING-FUNCTION-INSTRUCTION ::= ASW-DISABLE-THE-PARAMETER-MONITORING-FUNCTION-INSTRUCTION-GENERIC
+
+ASW-DISABLE-THE-PARAMETER-MONITORING-FUNCTION-GENERIC ::= SEQUENCE {
+	instruction ASW-DISABLE-THE-PARAMETER-MONITORING-FUNCTION-INSTRUCTION
+}
+
+ASW-DISABLE-THE-PARAMETER-MONITORING-FUNCTION ::= ASW-DISABLE-THE-PARAMETER-MONITORING-FUNCTION-GENERIC
+
+ASW-ENABLE-A-PARAMETER-MONITORING-DEFINITION-COUNT ::= INTEGER (0..255)
+
+ASW-PMON-ID ::= ENUMERATED {
+	test-pmon-1 (1),
+	test-pmon-2 (2),
+	test-pmon-3 (3),
+	expected-value-monitoring (4),
+	range-monitoring (5),
+	delta-monitoring (6)
+}
+
+asw-pmon-id-default-value ASW-PMON-ID ::= test-pmon-1
+
+
+ASW-ENABLE-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	pmon-id ASW-PMON-ID
+}
+
+ASW-ENABLE-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION ::= ASW-ENABLE-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-ENABLE-PARAMETER-MONITORING-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..255)) OF ASW-ENABLE-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION
+}
+
+ASW-ENABLE-PARAMETER-MONITORING-DEFINITIONS ::= ASW-ENABLE-PARAMETER-MONITORING-DEFINITIONS-GENERIC
+
+ASW-DISABLE-A-PARAMETER-MONITORING-DEFINITION-COUNT ::= INTEGER (0..255)
+
+ASW-DISABLE-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	pmon-id ASW-PMON-ID
+}
+
+ASW-DISABLE-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION ::= ASW-DISABLE-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-DISABLE-PARAMETER-MONITORING-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..255)) OF ASW-DISABLE-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION
+}
+
+ASW-DISABLE-PARAMETER-MONITORING-DEFINITIONS ::= ASW-DISABLE-PARAMETER-MONITORING-DEFINITIONS-GENERIC
+
+ASW-MAXIMUM-REPORTING-DELAY ::= INTEGER (0..255)
+
+ASW-CHANGE-THE-MAXIMUM-TRANSITION-REPORTING-DELAY-INSTRUCTION-GENERIC ::= SEQUENCE {
+	max-reporting-delay ASW-MAXIMUM-REPORTING-DELAY
+}
+
+ASW-CHANGE-THE-MAXIMUM-TRANSITION-REPORTING-DELAY-INSTRUCTION ::= ASW-CHANGE-THE-MAXIMUM-TRANSITION-REPORTING-DELAY-INSTRUCTION-GENERIC
+
+ASW-CHANGE-THE-MAXIMUM-TRANSITION-REPORTING-DELAY-GENERIC ::= SEQUENCE {
+	instruction ASW-CHANGE-THE-MAXIMUM-TRANSITION-REPORTING-DELAY-INSTRUCTION
+}
+
+ASW-CHANGE-THE-MAXIMUM-TRANSITION-REPORTING-DELAY ::= ASW-CHANGE-THE-MAXIMUM-TRANSITION-REPORTING-DELAY-GENERIC
+
+ASW-ADD-A-PARAMETER-MONITORING-DEFINITION-COUNT ::= INTEGER (0..255)
+
+ASW-MASK ::= SEQUENCE (SIZE (8)) OF BOOLEAN
+
+ASW-PARAMETER-VALUE-LENGTH ::= INTEGER (1..8)
+
+asw-parameter-value-maximum-size ROOT-UINT32 ::= 8
+ASW-PARAMETER-VALUE ::= SEQUENCE { field-data OCTET STRING (SIZE(1..8)) }
+
+ASW-CHECK-VALIDITY-CONDITION-GENERIC ::= SEQUENCE {
+	validity-parameter-id ASW-PARAMETER-IDENTIFIER,
+	mask ASW-MASK,
+	expected-value ASW-PARAMETER-VALUE
+}
+
+ASW-CHECK-VALIDITY-CONDITION ::= ASW-CHECK-VALIDITY-CONDITION-GENERIC
+
+ASW-MONITORING-INTERVAL ::= INTEGER (1..255)
+
+ASW-REPETITION-NUMBER ::= INTEGER (0..255)
+
+ASW-CHECK-TYPE ::= ENUMERATED {
+	expected-value-checking (0),
+	limit-checking (1),
+	delta-checking (2)
+}
+
+asw-check-type-default-value ASW-CHECK-TYPE ::= expected-value-checking
+
+
+ASW-SPARE ::= SEQUENCE (SIZE (8)) OF BOOLEAN
+
+ASW-EXPECTED-VALUE-CHECKING-CRITERIA-GENERIC ::= SEQUENCE {
+	mask ASW-MASK,
+	spare ASW-SPARE OPTIONAL,
+	expected-value ASW-PARAMETER-VALUE,
+	event-definition-id ASW-EVENT-IDENTIFIER
+}
+
+ASW-EXPECTED-VALUE-CHECKING-CRITERIA ::= ASW-EXPECTED-VALUE-CHECKING-CRITERIA-GENERIC (WITH COMPONENTS { spare PRESENT })
+
+ASW-LIMIT-CHECKING-CRITERIA-GENERIC ::= SEQUENCE {
+	low-limit ASW-PARAMETER-VALUE,
+	low-limit-event-definition-id ASW-EVENT-IDENTIFIER,
+	high-limit ASW-PARAMETER-VALUE,
+	high-limit-event-definition-id ASW-EVENT-IDENTIFIER
+}
+
+ASW-LIMIT-CHECKING-CRITERIA ::= ASW-LIMIT-CHECKING-CRITERIA-GENERIC
+
+ASW-NUMBER-OF-CONSECUTIVE-DELTA-VALUES ::= INTEGER (0..255)
+
+ASW-DELTA-CHECKING-CRITERIA-GENERIC ::= SEQUENCE {
+	low-delta-threshold ASW-PARAMETER-VALUE,
+	low-delta-event-definition-id ASW-EVENT-IDENTIFIER,
+	high-delta-threshold ASW-PARAMETER-VALUE,
+	high-delta-event-definition-id ASW-EVENT-IDENTIFIER,
+	number-of-consecutive-delta-values ASW-NUMBER-OF-CONSECUTIVE-DELTA-VALUES
+}
+
+ASW-DELTA-CHECKING-CRITERIA ::= ASW-DELTA-CHECKING-CRITERIA-GENERIC
+
+ASW-CHECK-TYPE-DEPENDENT-CRITERIA ::= CHOICE {
+	expected-value-checking ASW-EXPECTED-VALUE-CHECKING-CRITERIA,
+	limit-checking ASW-LIMIT-CHECKING-CRITERIA,
+	delta-checking ASW-DELTA-CHECKING-CRITERIA
+}
+
+ASW-CONTENT-OF-PARAMETER-MONITORING-DEFINITION-GENERIC ::= SEQUENCE {
+	pmon-id ASW-PMON-ID,
+	monitored-parameter-id ASW-PARAMETER-IDENTIFIER,
+	check-validity-condition ASW-CHECK-VALIDITY-CONDITION OPTIONAL,
+	monitoring-interval ASW-MONITORING-INTERVAL OPTIONAL,
+	repetition-number ASW-REPETITION-NUMBER,
+	check-type-dependent-criteria ASW-CHECK-TYPE-DEPENDENT-CRITERIA
+}
+
+ASW-CONTENT-OF-PARAMETER-MONITORING-DEFINITION ::= ASW-CONTENT-OF-PARAMETER-MONITORING-DEFINITION-GENERIC (WITH COMPONENTS { check-validity-condition PRESENT, monitoring-interval PRESENT })
+
+ASW-ADD-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	contents-of-parameter-monitoring-definition ASW-CONTENT-OF-PARAMETER-MONITORING-DEFINITION
+}
+
+ASW-ADD-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION ::= ASW-ADD-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-ADD-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTIONSDATA-LENGTH ::= INTEGER (0..6120)
+
+asw-add-a-parameter-monitoring-definition-instructionsdata-maximum-size ROOT-UINT32 ::= 6120
+ASW-ADD-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTIONSDATA ::= SEQUENCE { field-data OCTET STRING (SIZE(0..6120)) }
+
+ASW-ADD-PARAMETER-MONITORING-DEFINITIONS-GENERIC ::= SEQUENCE {
+	n ASW-ADD-A-PARAMETER-MONITORING-DEFINITION-COUNT, instructions-data ASW-ADD-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTIONSDATA
+}
+
+ASW-ADD-PARAMETER-MONITORING-DEFINITIONS ::= ASW-ADD-PARAMETER-MONITORING-DEFINITIONS-GENERIC
+
+ASW-DELETE-ALL-PARAMETER-MONITORING-DEFINITIONS-INSTRUCTION-GENERIC ::= SEQUENCE {
+
+}
+
+ASW-DELETE-ALL-PARAMETER-MONITORING-DEFINITIONS-INSTRUCTION ::= ASW-DELETE-ALL-PARAMETER-MONITORING-DEFINITIONS-INSTRUCTION-GENERIC
+
+ASW-DELETE-ALL-PARAMETER-MONITORING-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instruction ASW-DELETE-ALL-PARAMETER-MONITORING-DEFINITIONS-INSTRUCTION
+}
+
+ASW-DELETE-ALL-PARAMETER-MONITORING-DEFINITIONS ::= ASW-DELETE-ALL-PARAMETER-MONITORING-DEFINITIONS-GENERIC
+
+ASW-DELETE-A-PARAMETER-MONITORING-DEFINITION-COUNT ::= INTEGER (0..255)
+
+ASW-DELETE-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	pmon-id ASW-PMON-ID
+}
+
+ASW-DELETE-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION ::= ASW-DELETE-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-DELETE-PARAMETER-MONITORING-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..255)) OF ASW-DELETE-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION
+}
+
+ASW-DELETE-PARAMETER-MONITORING-DEFINITIONS ::= ASW-DELETE-PARAMETER-MONITORING-DEFINITIONS-GENERIC
+
+ASW-MODIFY-A-PARAMETER-MONITORING-DEFINITION-COUNT ::= INTEGER (0..255)
+
+ASW-MEANS-TO-MODIFY-PMON-GENERIC ::= SEQUENCE {
+	repetition-number ASW-REPETITION-NUMBER,
+	check-type-dependent-criteria ASW-CHECK-TYPE-DEPENDENT-CRITERIA
+}
+
+ASW-MEANS-TO-MODIFY-PMON ::= ASW-MEANS-TO-MODIFY-PMON-GENERIC
+
+ASW-MODIFY-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	pmon-id ASW-PMON-ID,
+	monitored-parameter-id ASW-PARAMETER-IDENTIFIER,
+	means-to-modify ASW-MEANS-TO-MODIFY-PMON
+}
+
+ASW-MODIFY-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION ::= ASW-MODIFY-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-MODIFY-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTIONSDATA-LENGTH ::= INTEGER (0..2550)
+
+asw-modify-a-parameter-monitoring-definition-instructionsdata-maximum-size ROOT-UINT32 ::= 2550
+ASW-MODIFY-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTIONSDATA ::= SEQUENCE { field-data OCTET STRING (SIZE(0..2550)) }
+
+ASW-MODIFY-PARAMETER-MONITORING-DEFINITIONS-GENERIC ::= SEQUENCE {
+	n ASW-MODIFY-A-PARAMETER-MONITORING-DEFINITION-COUNT, instructions-data ASW-MODIFY-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTIONSDATA
+}
+
+ASW-MODIFY-PARAMETER-MONITORING-DEFINITIONS ::= ASW-MODIFY-PARAMETER-MONITORING-DEFINITIONS-GENERIC
+
+ASW-REPORT-A-PARAMETER-MONITORING-DEFINITION-COUNT ::= INTEGER (0..255)
+
+ASW-REPORT-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	pmon-id ASW-PMON-ID
+}
+
+ASW-REPORT-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION ::= ASW-REPORT-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-REPORT-PARAMETER-MONITORING-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..255)) OF ASW-REPORT-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION
+}
+
+ASW-REPORT-PARAMETER-MONITORING-DEFINITIONS ::= ASW-REPORT-PARAMETER-MONITORING-DEFINITIONS-GENERIC
+
+ASW-REPORT-THE-STATUS-OF-EACH-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+
+}
+
+ASW-REPORT-THE-STATUS-OF-EACH-PARAMETER-MONITORING-DEFINITION-INSTRUCTION ::= ASW-REPORT-THE-STATUS-OF-EACH-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-REPORT-THE-STATUS-OF-EACH-PARAMETER-MONITORING-DEFINITION-GENERIC ::= SEQUENCE {
+	instruction ASW-REPORT-THE-STATUS-OF-EACH-PARAMETER-MONITORING-DEFINITION-INSTRUCTION
+}
+
+ASW-REPORT-THE-STATUS-OF-EACH-PARAMETER-MONITORING-DEFINITION ::= ASW-REPORT-THE-STATUS-OF-EACH-PARAMETER-MONITORING-DEFINITION-GENERIC
+
+ASW-REPORT-THE-OUT-OF-LIMITS-INSTRUCTION-GENERIC ::= SEQUENCE {
+
+}
+
+ASW-REPORT-THE-OUT-OF-LIMITS-INSTRUCTION ::= ASW-REPORT-THE-OUT-OF-LIMITS-INSTRUCTION-GENERIC
+
+ASW-REPORT-THE-OUT-OF-LIMITS-GENERIC ::= SEQUENCE {
+	instruction ASW-REPORT-THE-OUT-OF-LIMITS-INSTRUCTION
+}
+
+ASW-REPORT-THE-OUT-OF-LIMITS ::= ASW-REPORT-THE-OUT-OF-LIMITS-GENERIC
+
+ASW-ENABLE-THE-FUNCTIONAL-MONITORING-FUNCTION-INSTRUCTION-GENERIC ::= SEQUENCE {
+
+}
+
+ASW-ENABLE-THE-FUNCTIONAL-MONITORING-FUNCTION-INSTRUCTION ::= ASW-ENABLE-THE-FUNCTIONAL-MONITORING-FUNCTION-INSTRUCTION-GENERIC
+
+ASW-ENABLE-THE-FUNCTIONAL-MONITORING-FUNCTION-GENERIC ::= SEQUENCE {
+	instruction ASW-ENABLE-THE-FUNCTIONAL-MONITORING-FUNCTION-INSTRUCTION
+}
+
+ASW-ENABLE-THE-FUNCTIONAL-MONITORING-FUNCTION ::= ASW-ENABLE-THE-FUNCTIONAL-MONITORING-FUNCTION-GENERIC
+
+ASW-DISABLE-THE-FUNCTIONAL-MONITORING-FUNCTION-INSTRUCTION-GENERIC ::= SEQUENCE {
+
+}
+
+ASW-DISABLE-THE-FUNCTIONAL-MONITORING-FUNCTION-INSTRUCTION ::= ASW-DISABLE-THE-FUNCTIONAL-MONITORING-FUNCTION-INSTRUCTION-GENERIC
+
+ASW-DISABLE-THE-FUNCTIONAL-MONITORING-FUNCTION-GENERIC ::= SEQUENCE {
+	instruction ASW-DISABLE-THE-FUNCTIONAL-MONITORING-FUNCTION-INSTRUCTION
+}
+
+ASW-DISABLE-THE-FUNCTIONAL-MONITORING-FUNCTION ::= ASW-DISABLE-THE-FUNCTIONAL-MONITORING-FUNCTION-GENERIC
+
+ASW-ENABLE-A-FUNCTIONAL-MONITORING-DEFINITION-COUNT ::= INTEGER (0..255)
+
+ASW-FMON-ID ::= ENUMERATED {
+	test-fmon-1 (1),
+	test-fmon-2 (2),
+	test-fmon-3 (3)
+}
+
+asw-fmon-id-default-value ASW-FMON-ID ::= test-fmon-1
+
+
+ASW-ENABLE-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	fmon-id ASW-FMON-ID
+}
+
+ASW-ENABLE-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION ::= ASW-ENABLE-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-ENABLE-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..255)) OF ASW-ENABLE-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION
+}
+
+ASW-ENABLE-FUNCTIONAL-MONITORING-DEFINITIONS ::= ASW-ENABLE-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC
+
+ASW-DISABLE-A-FUNCTIONAL-MONITORING-DEFINITION-COUNT ::= INTEGER (0..255)
+
+ASW-DISABLE-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	fmon-id ASW-FMON-ID
+}
+
+ASW-DISABLE-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION ::= ASW-DISABLE-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-DISABLE-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..255)) OF ASW-DISABLE-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION
+}
+
+ASW-DISABLE-FUNCTIONAL-MONITORING-DEFINITIONS ::= ASW-DISABLE-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC
+
+ASW-PROTECT-A-FUNCTIONAL-MONITORING-DEFINITION-COUNT ::= INTEGER (0..255)
+
+ASW-PROTECT-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	fmon-id ASW-FMON-ID
+}
+
+ASW-PROTECT-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION ::= ASW-PROTECT-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-PROTECT-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..255)) OF ASW-PROTECT-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION
+}
+
+ASW-PROTECT-FUNCTIONAL-MONITORING-DEFINITIONS ::= ASW-PROTECT-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC
+
+ASW-UNPROTECT-A-FUNCTIONAL-MONITORING-DEFINITION-COUNT ::= INTEGER (0..255)
+
+ASW-UNPROTECT-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	fmon-id ASW-FMON-ID
+}
+
+ASW-UNPROTECT-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION ::= ASW-UNPROTECT-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-UNPROTECT-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..255)) OF ASW-UNPROTECT-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION
+}
+
+ASW-UNPROTECT-FUNCTIONAL-MONITORING-DEFINITIONS ::= ASW-UNPROTECT-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC
+
+ASW-ADD-A-FUNCTIONAL-MONITORING-DEFINITION-COUNT ::= INTEGER (0..255)
+
+ASW-MINIMUM-PMON-FAILING-NUMBER ::= INTEGER (0..255)
+
+asw-pmon-ids-maximum-size ROOT-UINT32 ::= 8
+ASW-PMON-IDS ::= SEQUENCE { field-data SEQUENCE (SIZE(0..8)) OF ASW-PMON-ID }
+
+ASW-CONTENT-OF-FUNCTIONAL-MONITORING-DEFINITION-GENERIC ::= SEQUENCE {
+	fmon-id ASW-FMON-ID,
+	check-validity-condition ASW-CHECK-VALIDITY-CONDITION OPTIONAL,
+	event-definition-id ASW-EVENT-IDENTIFIER,
+	minimum-pmon-failing-number ASW-MINIMUM-PMON-FAILING-NUMBER OPTIONAL,
+	pmon-ids ASW-PMON-IDS
+}
+
+ASW-CONTENT-OF-FUNCTIONAL-MONITORING-DEFINITION ::= ASW-CONTENT-OF-FUNCTIONAL-MONITORING-DEFINITION-GENERIC (WITH COMPONENTS { check-validity-condition PRESENT, minimum-pmon-failing-number PRESENT })
+
+ASW-ADD-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	content-of-the-functional-monitoring-definition ASW-CONTENT-OF-FUNCTIONAL-MONITORING-DEFINITION
+}
+
+ASW-ADD-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION ::= ASW-ADD-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-ADD-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTIONSDATA-LENGTH ::= INTEGER (0..12240)
+
+asw-add-a-functional-monitoring-definition-instructionsdata-maximum-size ROOT-UINT32 ::= 12240
+ASW-ADD-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTIONSDATA ::= SEQUENCE { field-data OCTET STRING (SIZE(0..12240)) }
+
+ASW-ADD-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC ::= SEQUENCE {
+	n ASW-ADD-A-FUNCTIONAL-MONITORING-DEFINITION-COUNT, instructions-data ASW-ADD-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTIONSDATA
+}
+
+ASW-ADD-FUNCTIONAL-MONITORING-DEFINITIONS ::= ASW-ADD-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC
+
+ASW-DELETE-A-FUNCTIONAL-MONITORING-DEFINITION-COUNT ::= INTEGER (0..255)
+
+ASW-DELETE-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	fmon-id ASW-FMON-ID
+}
+
+ASW-DELETE-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION ::= ASW-DELETE-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-DELETE-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..255)) OF ASW-DELETE-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION
+}
+
+ASW-DELETE-FUNCTIONAL-MONITORING-DEFINITIONS ::= ASW-DELETE-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC
+
+ASW-REPORT-A-FUNCTIONAL-MONITORING-DEFINITION-COUNT ::= INTEGER (0..255)
+
+ASW-REPORT-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	fmon-id ASW-FMON-ID
+}
+
+ASW-REPORT-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION ::= ASW-REPORT-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-REPORT-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..255)) OF ASW-REPORT-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION
+}
+
+ASW-REPORT-FUNCTIONAL-MONITORING-DEFINITIONS ::= ASW-REPORT-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC
+
+ASW-REPORT-THE-STATUS-OF-EACH-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+
+}
+
+ASW-REPORT-THE-STATUS-OF-EACH-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION ::= ASW-REPORT-THE-STATUS-OF-EACH-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-REPORT-THE-STATUS-OF-EACH-FUNCTIONAL-MONITORING-DEFINITION-GENERIC ::= SEQUENCE {
+	instruction ASW-REPORT-THE-STATUS-OF-EACH-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION
+}
+
+ASW-REPORT-THE-STATUS-OF-EACH-FUNCTIONAL-MONITORING-DEFINITION ::= ASW-REPORT-THE-STATUS-OF-EACH-FUNCTIONAL-MONITORING-DEFINITION-GENERIC
+
+ASW-ON-BOARD-MONITORING-TC ::= CHOICE {
+	enable-the-parameter-monitoring-function ASW-ENABLE-THE-PARAMETER-MONITORING-FUNCTION,
+	disable-the-parameter-monitoring-function ASW-DISABLE-THE-PARAMETER-MONITORING-FUNCTION,
+	enable-parameter-monitoring-definitions ASW-ENABLE-PARAMETER-MONITORING-DEFINITIONS,
+	disable-parameter-monitoring-definitions ASW-DISABLE-PARAMETER-MONITORING-DEFINITIONS,
+	change-the-maximum-transition-reporting-delay ASW-CHANGE-THE-MAXIMUM-TRANSITION-REPORTING-DELAY,
+	add-parameter-monitoring-definitions ASW-ADD-PARAMETER-MONITORING-DEFINITIONS,
+	delete-all-parameter-monitoring-definitions ASW-DELETE-ALL-PARAMETER-MONITORING-DEFINITIONS,
+	delete-parameter-monitoring-definitions ASW-DELETE-PARAMETER-MONITORING-DEFINITIONS,
+	modify-parameter-monitoring-definitions ASW-MODIFY-PARAMETER-MONITORING-DEFINITIONS,
+	report-parameter-monitoring-definitions ASW-REPORT-PARAMETER-MONITORING-DEFINITIONS,
+	report-the-status-of-each-parameter-monitoring-definition ASW-REPORT-THE-STATUS-OF-EACH-PARAMETER-MONITORING-DEFINITION,
+	report-the-out-of-limits ASW-REPORT-THE-OUT-OF-LIMITS,
+	enable-the-functional-monitoring-function ASW-ENABLE-THE-FUNCTIONAL-MONITORING-FUNCTION,
+	disable-the-functional-monitoring-function ASW-DISABLE-THE-FUNCTIONAL-MONITORING-FUNCTION,
+	enable-functional-monitoring-definitions ASW-ENABLE-FUNCTIONAL-MONITORING-DEFINITIONS,
+	disable-functional-monitoring-definitions ASW-DISABLE-FUNCTIONAL-MONITORING-DEFINITIONS,
+	protect-functional-monitoring-definitions ASW-PROTECT-FUNCTIONAL-MONITORING-DEFINITIONS,
+	unprotect-functional-monitoring-definitions ASW-UNPROTECT-FUNCTIONAL-MONITORING-DEFINITIONS,
+	add-functional-monitoring-definitions ASW-ADD-FUNCTIONAL-MONITORING-DEFINITIONS,
+	delete-functional-monitoring-definitions ASW-DELETE-FUNCTIONAL-MONITORING-DEFINITIONS,
+	report-functional-monitoring-definitions ASW-REPORT-FUNCTIONAL-MONITORING-DEFINITIONS,
+	report-the-status-of-each-functional-monitoring-definition ASW-REPORT-THE-STATUS-OF-EACH-FUNCTIONAL-MONITORING-DEFINITION
+}
+
+ASW-PERFORM-AN-ARE-YOU-ALIVE-CONNECTION-TEST-INSTRUCTION-GENERIC ::= SEQUENCE {
+
+}
+
+ASW-PERFORM-AN-ARE-YOU-ALIVE-CONNECTION-TEST-INSTRUCTION ::= ASW-PERFORM-AN-ARE-YOU-ALIVE-CONNECTION-TEST-INSTRUCTION-GENERIC
+
+ASW-PERFORM-AN-ARE-YOU-ALIVE-CONNECTION-TEST-GENERIC ::= SEQUENCE {
+	instruction ASW-PERFORM-AN-ARE-YOU-ALIVE-CONNECTION-TEST-INSTRUCTION
+}
+
+ASW-PERFORM-AN-ARE-YOU-ALIVE-CONNECTION-TEST ::= ASW-PERFORM-AN-ARE-YOU-ALIVE-CONNECTION-TEST-GENERIC
+
+ASW-TAILORABLE-APPLICATION-PROCESS-ID-ENUM ::= ENUMERATED {
+	test-apid (1)
+}
+
+asw-tailorable-application-process-id-enum-default-value ASW-TAILORABLE-APPLICATION-PROCESS-ID-ENUM ::= test-apid
+
+
+ASW-PERFORM-AN-ON-BOARD-CONNECTION-TEST-INSTRUCTION-GENERIC ::= SEQUENCE {
+	application-process-id ASW-TAILORABLE-APPLICATION-PROCESS-ID-ENUM
+}
+
+ASW-PERFORM-AN-ON-BOARD-CONNECTION-TEST-INSTRUCTION ::= ASW-PERFORM-AN-ON-BOARD-CONNECTION-TEST-INSTRUCTION-GENERIC
+
+ASW-PERFORM-AN-ON-BOARD-CONNECTION-TEST-GENERIC ::= SEQUENCE {
+	instruction ASW-PERFORM-AN-ON-BOARD-CONNECTION-TEST-INSTRUCTION
+}
+
+ASW-PERFORM-AN-ON-BOARD-CONNECTION-TEST ::= ASW-PERFORM-AN-ON-BOARD-CONNECTION-TEST-GENERIC
+
+ASW-TEST-TC ::= CHOICE {
+	perform-an-are-you-alive-connection-test ASW-PERFORM-AN-ARE-YOU-ALIVE-CONNECTION-TEST,
+	perform-an-on-board-connection-test ASW-PERFORM-AN-ON-BOARD-CONNECTION-TEST
+}
+
+ASW-ENABLE-THE-EVENT-ACTION-FUNCTION-INSTRUCTION-GENERIC ::= SEQUENCE {
+
+}
+
+ASW-ENABLE-THE-EVENT-ACTION-FUNCTION-INSTRUCTION ::= ASW-ENABLE-THE-EVENT-ACTION-FUNCTION-INSTRUCTION-GENERIC
+
+ASW-ENABLE-THE-EVENT-ACTION-FUNCTION-GENERIC ::= SEQUENCE {
+	instruction ASW-ENABLE-THE-EVENT-ACTION-FUNCTION-INSTRUCTION
+}
+
+ASW-ENABLE-THE-EVENT-ACTION-FUNCTION ::= ASW-ENABLE-THE-EVENT-ACTION-FUNCTION-GENERIC
+
+ASW-DISABLE-THE-EVENT-ACTION-FUNCTION-INSTRUCTION-GENERIC ::= SEQUENCE {
+
+}
+
+ASW-DISABLE-THE-EVENT-ACTION-FUNCTION-INSTRUCTION ::= ASW-DISABLE-THE-EVENT-ACTION-FUNCTION-INSTRUCTION-GENERIC
+
+ASW-DISABLE-THE-EVENT-ACTION-FUNCTION-GENERIC ::= SEQUENCE {
+	instruction ASW-DISABLE-THE-EVENT-ACTION-FUNCTION-INSTRUCTION
+}
+
+ASW-DISABLE-THE-EVENT-ACTION-FUNCTION ::= ASW-DISABLE-THE-EVENT-ACTION-FUNCTION-GENERIC
+
+ASW-ENABLE-AN-EVENT-ACTION-DEFINITION-COUNT ::= INTEGER (0..255)
+
+ASW-APPLICATION-PROCESS-ID-FOR-SYSTEM-ID ::= ENUMERATED {
+	test-apid (1)
+}
+
+asw-application-process-id-for-system-id-default-value ASW-APPLICATION-PROCESS-ID-FOR-SYSTEM-ID ::= test-apid
+
+
+ASW-SYSTEM-IDENTIFIER-GENERIC ::= SEQUENCE {
+	application-process-id ASW-APPLICATION-PROCESS-ID-FOR-SYSTEM-ID OPTIONAL,
+	event-definition-id ASW-EVENT-IDENTIFIER
+}
+
+ASW-SYSTEM-IDENTIFIER ::= ASW-SYSTEM-IDENTIFIER-GENERIC (WITH COMPONENTS { application-process-id PRESENT })
+
+ASW-ENABLE-AN-EVENT-ACTION-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	event-definition-system-id ASW-SYSTEM-IDENTIFIER
+}
+
+ASW-ENABLE-AN-EVENT-ACTION-DEFINITION-INSTRUCTION ::= ASW-ENABLE-AN-EVENT-ACTION-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-ENABLE-EVENT-ACTION-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..255)) OF ASW-ENABLE-AN-EVENT-ACTION-DEFINITION-INSTRUCTION
+}
+
+ASW-ENABLE-EVENT-ACTION-DEFINITIONS ::= ASW-ENABLE-EVENT-ACTION-DEFINITIONS-GENERIC
+
+ASW-DISABLE-AN-EVENT-ACTION-DEFINITION-COUNT ::= INTEGER (0..255)
+
+ASW-DISABLE-AN-EVENT-ACTION-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	event-definition-system-id ASW-SYSTEM-IDENTIFIER
+}
+
+ASW-DISABLE-AN-EVENT-ACTION-DEFINITION-INSTRUCTION ::= ASW-DISABLE-AN-EVENT-ACTION-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-DISABLE-EVENT-ACTION-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..255)) OF ASW-DISABLE-AN-EVENT-ACTION-DEFINITION-INSTRUCTION
+}
+
+ASW-DISABLE-EVENT-ACTION-DEFINITIONS ::= ASW-DISABLE-EVENT-ACTION-DEFINITIONS-GENERIC
+
+ASW-ADD-AN-EVENT-ACTION-DEFINITION-COUNT ::= INTEGER (0..255)
+
+ASW-REQUEST ::= SEQUENCE {
+  secondary-header-flag INTEGER(0..1),
+  application-process-id INTEGER(0..2047),
+  packet-sequence-count INTEGER(0..16383),
+  packet-data-field OCTET STRING (SIZE(1..8))
+}
+
+ASW-ADD-AN-EVENT-ACTION-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	event-definition-system-id ASW-SYSTEM-IDENTIFIER,
+	request ASW-REQUEST
+}
+
+ASW-ADD-AN-EVENT-ACTION-DEFINITION-INSTRUCTION ::= ASW-ADD-AN-EVENT-ACTION-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-ADD-EVENT-ACTION-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..255)) OF ASW-ADD-AN-EVENT-ACTION-DEFINITION-INSTRUCTION
+}
+
+ASW-ADD-EVENT-ACTION-DEFINITIONS ::= ASW-ADD-EVENT-ACTION-DEFINITIONS-GENERIC
+
+ASW-DELETE-AN-EVENT-ACTION-DEFINITION-COUNT ::= INTEGER (0..255)
+
+ASW-DELETE-AN-EVENT-ACTION-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	event-definition-system-id ASW-SYSTEM-IDENTIFIER
+}
+
+ASW-DELETE-AN-EVENT-ACTION-DEFINITION-INSTRUCTION ::= ASW-DELETE-AN-EVENT-ACTION-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-DELETE-EVENT-ACTION-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..255)) OF ASW-DELETE-AN-EVENT-ACTION-DEFINITION-INSTRUCTION
+}
+
+ASW-DELETE-EVENT-ACTION-DEFINITIONS ::= ASW-DELETE-EVENT-ACTION-DEFINITIONS-GENERIC
+
+ASW-DELETE-ALL-EVENT-ACTION-DEFINITIONS-INSTRUCTION-GENERIC ::= SEQUENCE {
+
+}
+
+ASW-DELETE-ALL-EVENT-ACTION-DEFINITIONS-INSTRUCTION ::= ASW-DELETE-ALL-EVENT-ACTION-DEFINITIONS-INSTRUCTION-GENERIC
+
+ASW-DELETE-ALL-EVENT-ACTION-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instruction ASW-DELETE-ALL-EVENT-ACTION-DEFINITIONS-INSTRUCTION
+}
+
+ASW-DELETE-ALL-EVENT-ACTION-DEFINITIONS ::= ASW-DELETE-ALL-EVENT-ACTION-DEFINITIONS-GENERIC
+
+ASW-REPORT-THE-STATUS-OF-EVENT-ACTION-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+
+}
+
+ASW-REPORT-THE-STATUS-OF-EVENT-ACTION-DEFINITION-INSTRUCTION ::= ASW-REPORT-THE-STATUS-OF-EVENT-ACTION-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-REPORT-THE-STATUS-OF-EACH-EVENT-ACTION-DEFINITION-GENERIC ::= SEQUENCE {
+	instruction ASW-REPORT-THE-STATUS-OF-EVENT-ACTION-DEFINITION-INSTRUCTION
+}
+
+ASW-REPORT-THE-STATUS-OF-EACH-EVENT-ACTION-DEFINITION ::= ASW-REPORT-THE-STATUS-OF-EACH-EVENT-ACTION-DEFINITION-GENERIC
+
+ASW-REPORT-AN-EVENT-ACTION-DEFINITION-COUNT ::= INTEGER (0..255)
+
+ASW-REPORT-AN-EVENT-ACTION-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	event-definition-system-id ASW-SYSTEM-IDENTIFIER
+}
+
+ASW-REPORT-AN-EVENT-ACTION-DEFINITION-INSTRUCTION ::= ASW-REPORT-AN-EVENT-ACTION-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-REPORT-EVENT-ACTION-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..255)) OF ASW-REPORT-AN-EVENT-ACTION-DEFINITION-INSTRUCTION
+}
+
+ASW-REPORT-EVENT-ACTION-DEFINITIONS ::= ASW-REPORT-EVENT-ACTION-DEFINITIONS-GENERIC
+
+ASW-EVENT-ACTION-TC ::= CHOICE {
+	enable-the-event-action-function ASW-ENABLE-THE-EVENT-ACTION-FUNCTION,
+	disable-the-event-action-function ASW-DISABLE-THE-EVENT-ACTION-FUNCTION,
+	enable-event-action-definitions ASW-ENABLE-EVENT-ACTION-DEFINITIONS,
+	disable-event-action-definitions ASW-DISABLE-EVENT-ACTION-DEFINITIONS,
+	add-event-action-definitions ASW-ADD-EVENT-ACTION-DEFINITIONS,
+	delete-event-action-definitions ASW-DELETE-EVENT-ACTION-DEFINITIONS,
+	delete-all-event-action-definitions ASW-DELETE-ALL-EVENT-ACTION-DEFINITIONS,
+	report-the-status-of-each-event-action-definition ASW-REPORT-THE-STATUS-OF-EACH-EVENT-ACTION-DEFINITION,
+	report-event-action-definitions ASW-REPORT-EVENT-ACTION-DEFINITIONS
+}
+
+ASW-REPORT-A-PARAMETER-VALUE-COUNT ::= INTEGER (0..4)
+
+ASW-REPORT-A-PARAMETER-VALUE-INSTRUCTION-GENERIC ::= SEQUENCE {
+	parameter-id ASW-PARAMETER-IDENTIFIER
+}
+
+ASW-REPORT-A-PARAMETER-VALUE-INSTRUCTION ::= ASW-REPORT-A-PARAMETER-VALUE-INSTRUCTION-GENERIC
+
+ASW-REPORT-PARAMETER-VALUES-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..4)) OF ASW-REPORT-A-PARAMETER-VALUE-INSTRUCTION
+}
+
+ASW-REPORT-PARAMETER-VALUES ::= ASW-REPORT-PARAMETER-VALUES-GENERIC
+
+ASW-SET-PARAMETER-VALUES-COUNT ::= INTEGER (0..255)
+
+ASW-SET-PARAMETER-VALUES-INSTRUCTION-GENERIC ::= SEQUENCE {
+	parameter-id ASW-PARAMETER-IDENTIFIER,
+	value ASW-PARAMETER-VALUE
+}
+
+ASW-SET-PARAMETER-VALUES-INSTRUCTION ::= ASW-SET-PARAMETER-VALUES-INSTRUCTION-GENERIC
+
+ASW-SET-PARAMETER-VALUES-INSTRUCTIONSDATA-LENGTH ::= INTEGER (0..3060)
+
+asw-set-parameter-values-instructionsdata-maximum-size ROOT-UINT32 ::= 3060
+ASW-SET-PARAMETER-VALUES-INSTRUCTIONSDATA ::= SEQUENCE { field-data OCTET STRING (SIZE(0..3060)) }
+
+ASW-SET-PARAMETER-VALUES-GENERIC ::= SEQUENCE {
+	n ASW-SET-PARAMETER-VALUES-COUNT, instructions-data ASW-SET-PARAMETER-VALUES-INSTRUCTIONSDATA
+}
+
+ASW-SET-PARAMETER-VALUES ::= ASW-SET-PARAMETER-VALUES-GENERIC
+
+ASW-CHANGE-A-RAW-MEMORY-PARAMETER-DEFINITION-COUNT ::= INTEGER (0..255)
+
+ASW-MEMORY-IDENTIFIER ::= ENUMERATED {
+	ram-memory (1),
+	db-memory (2)
+}
+
+asw-memory-identifier-default-value ASW-MEMORY-IDENTIFIER ::= ram-memory
+
+
+ASW-MEMORY-OFFSET ::= INTEGER (0..8192)
+
+ASW-PTC ::= ENUMERATED {
+	boolean (1),
+	enumerated (2),
+	unsigned-integer (3),
+	signed-integer (4),
+	real (5),
+	bit-string (6),
+	octet-string (7),
+	character-string (8),
+	absolute-time (9),
+	relative-time (10),
+	deduced (11),
+	packet (12)
+}
+
+asw-ptc-default-value ASW-PTC ::= boolean
+
+
+ASW-PFC ::= ENUMERATED {
+	pfc-0 (0),
+	pfc-1 (1),
+	pfc-2 (2),
+	pfc-3 (3),
+	pfc-4 (4),
+	pfc-5 (5),
+	pfc-6 (6),
+	pfc-7 (7),
+	pfc-8 (8),
+	pfc-9 (9),
+	pfc-10 (10),
+	pfc-11 (11),
+	pfc-12 (12),
+	pfc-13 (13),
+	pfc-14 (14),
+	pfc-15 (15),
+	pfc-16 (16),
+	pfc-17 (17),
+	pfc-18 (18),
+	pfc-19 (19),
+	pfc-20 (20)
+}
+
+asw-pfc-default-value ASW-PFC ::= pfc-0
+
+
+ASW-PACKET-FIELD-CODE-GENERIC ::= SEQUENCE {
+	ptc ASW-PTC,
+	pfc ASW-PFC
+}
+
+ASW-PACKET-FIELD-CODE ::= ASW-PACKET-FIELD-CODE-GENERIC
+
+ASW-CHANGE-A-RAW-MEMORY-PARAMETER-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	parameter-id ASW-PARAMETER-IDENTIFIER,
+	memory-id ASW-MEMORY-IDENTIFIER OPTIONAL,
+	absolute-address ASW-MEMORY-OFFSET,
+	packet-field-code ASW-PACKET-FIELD-CODE
+}
+
+ASW-CHANGE-A-RAW-MEMORY-PARAMETER-DEFINITION-INSTRUCTION ::= ASW-CHANGE-A-RAW-MEMORY-PARAMETER-DEFINITION-INSTRUCTION-GENERIC (WITH COMPONENTS { memory-id PRESENT })
+
+ASW-CHANGE-RAW-MEMORY-PARAMETER-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..255)) OF ASW-CHANGE-A-RAW-MEMORY-PARAMETER-DEFINITION-INSTRUCTION
+}
+
+ASW-CHANGE-RAW-MEMORY-PARAMETER-DEFINITIONS ::= ASW-CHANGE-RAW-MEMORY-PARAMETER-DEFINITIONS-GENERIC
+
+ASW-REPORT-A-PARAMETER-DEFINITION-COUNT ::= INTEGER (0..255)
+
+ASW-REPORT-A-PARAMETER-DEFINITION-INSTRUCTION-GENERIC ::= SEQUENCE {
+	parameter-id ASW-PARAMETER-IDENTIFIER
+}
+
+ASW-REPORT-A-PARAMETER-DEFINITION-INSTRUCTION ::= ASW-REPORT-A-PARAMETER-DEFINITION-INSTRUCTION-GENERIC
+
+ASW-REPORT-PARAMETER-DEFINITIONS-GENERIC ::= SEQUENCE {
+	instructions SEQUENCE (SIZE(0..255)) OF ASW-REPORT-A-PARAMETER-DEFINITION-INSTRUCTION
+}
+
+ASW-REPORT-PARAMETER-DEFINITIONS ::= ASW-REPORT-PARAMETER-DEFINITIONS-GENERIC
+
+ASW-PARAMETER-MANAGEMENT-TC ::= CHOICE {
+	report-parameter-values ASW-REPORT-PARAMETER-VALUES,
+	set-parameter-values ASW-SET-PARAMETER-VALUES,
+	change-raw-memory-parameter-definitions ASW-CHANGE-RAW-MEMORY-PARAMETER-DEFINITIONS,
+	report-parameter-definitions ASW-REPORT-PARAMETER-DEFINITIONS
+}
+
+ASW-TC-PAYLOAD ::= CHOICE {
+	housekeeping ASW-HOUSEKEEPING-TC,
+	event-reporting ASW-EVENT-REPORTING-TC,
+	on-board-monitoring ASW-ON-BOARD-MONITORING-TC,
+	test ASW-TEST-TC,
+	event-action ASW-EVENT-ACTION-TC,
+	parameter-management ASW-PARAMETER-MANAGEMENT-TC
+}
+
+ASW-PACKET-VERSION-NUMBER ::= ENUMERATED {
+	ccsds-packet (0)
+}
+
+asw-packet-version-number-default-value ASW-PACKET-VERSION-NUMBER ::= ccsds-packet
+
+
+ASW-PACKET-TYPE ::= ENUMERATED {
+	telemetry (0),
+	telecommand (1)
+}
+
+asw-packet-type-default-value ASW-PACKET-TYPE ::= telemetry
+
+
+ASW-SECONDARY-HEADER-FLAG ::= BOOLEAN
+
+ASW-APPLICATION-PROCESS-ID-ENUM ::= ENUMERATED {
+	test-apid (1)
+}
+
+asw-application-process-id-enum-default-value ASW-APPLICATION-PROCESS-ID-ENUM ::= test-apid
+
+
+ASW-PACKET-ID-GENERIC ::= SEQUENCE {
+	packet-type ASW-PACKET-TYPE,
+	secondary-header-flag ASW-SECONDARY-HEADER-FLAG,
+	application-process-id ASW-APPLICATION-PROCESS-ID-ENUM
+}
+
+ASW-PACKET-ID ::= ASW-PACKET-ID-GENERIC
+
+ASW-SEQUENCE-FLAGS ::= ENUMERATED {
+	standalone-packet (3)
+}
+
+asw-sequence-flags-default-value ASW-SEQUENCE-FLAGS ::= standalone-packet
+
+
+ASW-PACKET-SEQUENCE-COUNT ::= INTEGER (0..16383)
+
+ASW-PACKET-SEQUENCE-CONTROL-GENERIC ::= SEQUENCE {
+	sequence-flags ASW-SEQUENCE-FLAGS,
+	packet-sequence-count ASW-PACKET-SEQUENCE-COUNT
+}
+
+ASW-PACKET-SEQUENCE-CONTROL ::= ASW-PACKET-SEQUENCE-CONTROL-GENERIC
+
+ASW-REQUEST-ID-GENERIC ::= SEQUENCE {
+	packet-version-number ASW-PACKET-VERSION-NUMBER,
+	packet-id ASW-PACKET-ID,
+	packet-sequence-control ASW-PACKET-SEQUENCE-CONTROL
+}
+
+ASW-REQUEST-ID ::= ASW-REQUEST-ID-GENERIC
+
+ASW-SUCCESSFUL-ACCEPTANCE-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	request-id ASW-REQUEST-ID
+}
+
+ASW-SUCCESSFUL-ACCEPTANCE-NOTIFICATION-NOTIFICATION ::= ASW-SUCCESSFUL-ACCEPTANCE-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-SUCCESSFUL-ACCEPTANCE-VERIFICATION-REPORT-GENERIC ::= SEQUENCE {
+	notification ASW-SUCCESSFUL-ACCEPTANCE-NOTIFICATION-NOTIFICATION
+}
+
+ASW-SUCCESSFUL-ACCEPTANCE-VERIFICATION-REPORT ::= ASW-SUCCESSFUL-ACCEPTANCE-VERIFICATION-REPORT-GENERIC
+
+ASW-ACCEPTANCE-FAILURE-NOTICE-CODE ::= ENUMERATED {
+	unknown-acceptance-failure (1)
+}
+
+asw-acceptance-failure-notice-code-default-value ASW-ACCEPTANCE-FAILURE-NOTICE-CODE ::= unknown-acceptance-failure
+
+
+ASW-EMPTY ::= SEQUENCE {}
+
+ASW-ACCEPTANCE-FAILURE-NOTICE-DATA ::= CHOICE {
+	unknown-acceptance-failure ASW-EMPTY
+}
+
+ASW-ACCEPTANCE-FAILURE-NOTICE-GENERIC ::= SEQUENCE {
+	failure-notice-data ASW-ACCEPTANCE-FAILURE-NOTICE-DATA
+}
+
+ASW-ACCEPTANCE-FAILURE-NOTICE ::= ASW-ACCEPTANCE-FAILURE-NOTICE-GENERIC
+
+ASW-FAILED-ACCEPTANCE-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	request-id ASW-REQUEST-ID,
+	failure-notice ASW-ACCEPTANCE-FAILURE-NOTICE
+}
+
+ASW-FAILED-ACCEPTANCE-NOTIFICATION-NOTIFICATION ::= ASW-FAILED-ACCEPTANCE-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-FAILED-ACCEPTANCE-VERIFICATION-REPORT-GENERIC ::= SEQUENCE {
+	notification ASW-FAILED-ACCEPTANCE-NOTIFICATION-NOTIFICATION
+}
+
+ASW-FAILED-ACCEPTANCE-VERIFICATION-REPORT ::= ASW-FAILED-ACCEPTANCE-VERIFICATION-REPORT-GENERIC
+
+ASW-ROUTING-FAILURE-NOTICE-CODE ::= ENUMERATED {
+	unknown-routing-failure (1)
+}
+
+asw-routing-failure-notice-code-default-value ASW-ROUTING-FAILURE-NOTICE-CODE ::= unknown-routing-failure
+
+
+ASW-ROUTING-FAILURE-NOTICE-DATA ::= CHOICE {
+	unknown-routing-failure ASW-EMPTY
+}
+
+ASW-ROUTING-FAILURE-NOTICE-GENERIC ::= SEQUENCE {
+	failure-notice-data ASW-ROUTING-FAILURE-NOTICE-DATA
+}
+
+ASW-ROUTING-FAILURE-NOTICE ::= ASW-ROUTING-FAILURE-NOTICE-GENERIC
+
+ASW-FAILED-ROUTING-VERIFICATION-REPORT-NOTIFICATION-GENERIC ::= SEQUENCE {
+	request-id ASW-REQUEST-ID,
+	failure-notice ASW-ROUTING-FAILURE-NOTICE
+}
+
+ASW-FAILED-ROUTING-VERIFICATION-REPORT-NOTIFICATION ::= ASW-FAILED-ROUTING-VERIFICATION-REPORT-NOTIFICATION-GENERIC
+
+ASW-FAILED-ROUTING-VERIFICATION-REPORT-GENERIC ::= SEQUENCE {
+	notification ASW-FAILED-ROUTING-VERIFICATION-REPORT-NOTIFICATION
+}
+
+ASW-FAILED-ROUTING-VERIFICATION-REPORT ::= ASW-FAILED-ROUTING-VERIFICATION-REPORT-GENERIC
+
+ASW-SUCCESSFUL-START-OF-EXECUTION-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	request-id ASW-REQUEST-ID
+}
+
+ASW-SUCCESSFUL-START-OF-EXECUTION-NOTIFICATION-NOTIFICATION ::= ASW-SUCCESSFUL-START-OF-EXECUTION-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-SUCCESSFUL-START-OF-EXECUTION-VERIFICATION-REPORT-GENERIC ::= SEQUENCE {
+	notification ASW-SUCCESSFUL-START-OF-EXECUTION-NOTIFICATION-NOTIFICATION
+}
+
+ASW-SUCCESSFUL-START-OF-EXECUTION-VERIFICATION-REPORT ::= ASW-SUCCESSFUL-START-OF-EXECUTION-VERIFICATION-REPORT-GENERIC
+
+ASW-EXECUTION-FAILURE-NOTICE-CODE ::= ENUMERATED {
+	unknown-execution-failure (1)
+}
+
+asw-execution-failure-notice-code-default-value ASW-EXECUTION-FAILURE-NOTICE-CODE ::= unknown-execution-failure
+
+
+ASW-EXECUTION-FAILURE-NOTICE-DATA ::= CHOICE {
+	unknown-execution-failure ASW-EMPTY
+}
+
+ASW-EXECUTION-FAILURE-NOTICE-GENERIC ::= SEQUENCE {
+	failure-notice-data ASW-EXECUTION-FAILURE-NOTICE-DATA
+}
+
+ASW-EXECUTION-FAILURE-NOTICE ::= ASW-EXECUTION-FAILURE-NOTICE-GENERIC
+
+ASW-FAILED-START-OF-EXECUTION-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	request-id ASW-REQUEST-ID,
+	failure-notice ASW-EXECUTION-FAILURE-NOTICE
+}
+
+ASW-FAILED-START-OF-EXECUTION-NOTIFICATION-NOTIFICATION ::= ASW-FAILED-START-OF-EXECUTION-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-FAILED-START-OF-EXECUTION-VERIFICATION-REPORT-GENERIC ::= SEQUENCE {
+	notification ASW-FAILED-START-OF-EXECUTION-NOTIFICATION-NOTIFICATION
+}
+
+ASW-FAILED-START-OF-EXECUTION-VERIFICATION-REPORT ::= ASW-FAILED-START-OF-EXECUTION-VERIFICATION-REPORT-GENERIC
+
+ASW-SUCCESSFUL-COMPLETION-OF-EXECUTION-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	request-id ASW-REQUEST-ID
+}
+
+ASW-SUCCESSFUL-COMPLETION-OF-EXECUTION-NOTIFICATION-NOTIFICATION ::= ASW-SUCCESSFUL-COMPLETION-OF-EXECUTION-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-SUCCESSFUL-COMPLETION-OF-EXECUTION-VERIFICATION-REPORT-GENERIC ::= SEQUENCE {
+	notification ASW-SUCCESSFUL-COMPLETION-OF-EXECUTION-NOTIFICATION-NOTIFICATION
+}
+
+ASW-SUCCESSFUL-COMPLETION-OF-EXECUTION-VERIFICATION-REPORT ::= ASW-SUCCESSFUL-COMPLETION-OF-EXECUTION-VERIFICATION-REPORT-GENERIC
+
+ASW-FAILED-COMPLETION-OF-EXECUTION-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	request-id ASW-REQUEST-ID,
+	failure-notice ASW-EXECUTION-FAILURE-NOTICE
+}
+
+ASW-FAILED-COMPLETION-OF-EXECUTION-NOTIFICATION-NOTIFICATION ::= ASW-FAILED-COMPLETION-OF-EXECUTION-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-FAILED-COMPLETION-OF-EXECUTION-VERIFICATION-REPORT-GENERIC ::= SEQUENCE {
+	notification ASW-FAILED-COMPLETION-OF-EXECUTION-NOTIFICATION-NOTIFICATION
+}
+
+ASW-FAILED-COMPLETION-OF-EXECUTION-VERIFICATION-REPORT ::= ASW-FAILED-COMPLETION-OF-EXECUTION-VERIFICATION-REPORT-GENERIC
+
+ASW-EXECUTION-STEP-ID ::= ENUMERATED {
+	step-0 (0),
+	step-1 (1),
+	step-2 (2),
+	step-3 (3),
+	step-4 (4),
+	step-5 (5),
+	step-6 (6),
+	step-7 (7),
+	step-8 (8),
+	step-9 (9),
+	step-10 (10)
+}
+
+asw-execution-step-id-default-value ASW-EXECUTION-STEP-ID ::= step-0
+
+
+ASW-SUCCESSFUL-PROGRESS-OF-EXECUTION-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	request-id ASW-REQUEST-ID,
+	step-id ASW-EXECUTION-STEP-ID
+}
+
+ASW-SUCCESSFUL-PROGRESS-OF-EXECUTION-NOTIFICATION-NOTIFICATION ::= ASW-SUCCESSFUL-PROGRESS-OF-EXECUTION-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-SUCCESSFUL-PROGRESS-OF-EXECUTION-VERIFICATION-REPORT-GENERIC ::= SEQUENCE {
+	notification ASW-SUCCESSFUL-PROGRESS-OF-EXECUTION-NOTIFICATION-NOTIFICATION
+}
+
+ASW-SUCCESSFUL-PROGRESS-OF-EXECUTION-VERIFICATION-REPORT ::= ASW-SUCCESSFUL-PROGRESS-OF-EXECUTION-VERIFICATION-REPORT-GENERIC
+
+ASW-FAILED-PROGRESS-OF-EXECUTION-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	request-id ASW-REQUEST-ID,
+	step-id ASW-EXECUTION-STEP-ID,
+	failure-notice ASW-EXECUTION-FAILURE-NOTICE
+}
+
+ASW-FAILED-PROGRESS-OF-EXECUTION-NOTIFICATION-NOTIFICATION ::= ASW-FAILED-PROGRESS-OF-EXECUTION-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-FAILED-PROGRESS-OF-EXECUTION-VERIFICATION-REPORT-GENERIC ::= SEQUENCE {
+	notification ASW-FAILED-PROGRESS-OF-EXECUTION-NOTIFICATION-NOTIFICATION
+}
+
+ASW-FAILED-PROGRESS-OF-EXECUTION-VERIFICATION-REPORT ::= ASW-FAILED-PROGRESS-OF-EXECUTION-VERIFICATION-REPORT-GENERIC
+
+ASW-REQUEST-VERIFICATION-TM ::= CHOICE {
+	successful-acceptance-verification-report ASW-SUCCESSFUL-ACCEPTANCE-VERIFICATION-REPORT,
+	failed-acceptance-verification-report ASW-FAILED-ACCEPTANCE-VERIFICATION-REPORT,
+	failed-routing-verification-report ASW-FAILED-ROUTING-VERIFICATION-REPORT,
+	successful-start-of-execution-verification-report ASW-SUCCESSFUL-START-OF-EXECUTION-VERIFICATION-REPORT,
+	failed-start-of-execution-verification-report ASW-FAILED-START-OF-EXECUTION-VERIFICATION-REPORT,
+	successful-completion-of-execution-verification-report ASW-SUCCESSFUL-COMPLETION-OF-EXECUTION-VERIFICATION-REPORT,
+	failed-completion-of-execution-verification-report ASW-FAILED-COMPLETION-OF-EXECUTION-VERIFICATION-REPORT,
+	successful-progress-of-execution-verification-report ASW-SUCCESSFUL-PROGRESS-OF-EXECUTION-VERIFICATION-REPORT,
+	failed-progress-of-execution-verification-report ASW-FAILED-PROGRESS-OF-EXECUTION-VERIFICATION-REPORT
+}
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-ID ::= INTEGER (0..255)
+
+ASW-PARAMETER-VALUES-LENGTH ::= INTEGER (0..64)
+
+asw-parameter-values-maximum-size ROOT-UINT32 ::= 64
+ASW-PARAMETER-VALUES ::= SEQUENCE { field-data OCTET STRING (SIZE(0..64)) }
+
+ASW-HOUSEKEEPING-PARAMETER-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	housekeeping-parameter-report-structure-id ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-ID,
+	parameter-value ASW-PARAMETER-VALUES
+}
+
+ASW-HOUSEKEEPING-PARAMETER-NOTIFICATION-NOTIFICATION ::= ASW-HOUSEKEEPING-PARAMETER-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-GENERIC ::= SEQUENCE {
+	notification ASW-HOUSEKEEPING-PARAMETER-NOTIFICATION-NOTIFICATION
+}
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT ::= ASW-HOUSEKEEPING-PARAMETER-REPORT-GENERIC
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	housekeeping-parameter-report-structure-id ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-ID-ENUM,
+	periodic-generation-action-status ASW-PERIODIC-GENERATION-ACTION-STATUS OPTIONAL,
+	collection-interval ASW-COLLECTION-INTERVAL,
+	parameter-id ASW-PARAMETER-IDS,
+	super-commutated-parameter-sets ASW-SUPER-COMMUTED-PARAMETER-SETS-STRUCT
+}
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-NOTIFICATION-NOTIFICATION ::= ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-NOTIFICATION-NOTIFICATION-GENERIC (WITH COMPONENTS { periodic-generation-action-status PRESENT })
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-REPORT-GENERIC ::= SEQUENCE {
+	notification ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-NOTIFICATION-NOTIFICATION
+}
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-REPORT ::= ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-REPORT-GENERIC
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-PERIODIC-GENERATION-PROPERTIES-NOTIFICATION-COUNT ::= INTEGER (0..4)
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-PERIODIC-GENERATION-PROPERTIES-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	housekeeping-parameter-report-structure-id ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-ID-ENUM,
+	periodic-generation-action-status ASW-PERIODIC-GENERATION-ACTION-STATUS,
+	collection-interval ASW-COLLECTION-INTERVAL
+}
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-PERIODIC-GENERATION-PROPERTIES-NOTIFICATION-NOTIFICATION ::= ASW-HOUSEKEEPING-PARAMETER-REPORT-PERIODIC-GENERATION-PROPERTIES-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-PERIODIC-GENERATION-PROPERTIES-REPORT-GENERIC ::= SEQUENCE {
+	notifications SEQUENCE (SIZE(0..4)) OF ASW-HOUSEKEEPING-PARAMETER-REPORT-PERIODIC-GENERATION-PROPERTIES-NOTIFICATION-NOTIFICATION
+}
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-PERIODIC-GENERATION-PROPERTIES-REPORT ::= ASW-HOUSEKEEPING-PARAMETER-REPORT-PERIODIC-GENERATION-PROPERTIES-REPORT-GENERIC
+
+ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-NOTIFICATION-COUNT ::= INTEGER (0..4)
+
+ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	application-process-id ASW-APPLICATION-PROCESS-IDENTIFIER OPTIONAL,
+	parameter-report-structure-specification ASW-PARAMETER-REPORT-STRUCTURE-SPECIFICATIONS
+}
+
+ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-NOTIFICATION-NOTIFICATION ::= ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-NOTIFICATION-NOTIFICATION-GENERIC (WITH COMPONENTS { application-process-id PRESENT })
+
+ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-REPORT-GENERIC ::= SEQUENCE {
+	parameter-functional-reporting-definition-id ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-ID,
+	notifications SEQUENCE (SIZE(0..4)) OF ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-NOTIFICATION-NOTIFICATION
+}
+
+ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-REPORT ::= ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-REPORT-GENERIC
+
+ASW-HOUSEKEEPING-TM ::= CHOICE {
+	housekeeping-parameter-report ASW-HOUSEKEEPING-PARAMETER-REPORT,
+	housekeeping-parameter-report-structure-report ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-REPORT,
+	housekeeping-parameter-report-periodic-generation-properties-report ASW-HOUSEKEEPING-PARAMETER-REPORT-PERIODIC-GENERATION-PROPERTIES-REPORT,
+	parameter-functional-reporting-definition-report ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-REPORT
+}
+
+ASW-AUXILIARYDATA ::= INTEGER (0..4294967295)
+
+ASW-EVENT-AUXILIARY-DATA ::= CHOICE {
+	test-inf-event ASW-EMPTY,
+	test-low-event ASW-AUXILIARYDATA,
+	test-mid-event ASW-AUXILIARYDATA,
+	test-high-event ASW-AUXILIARYDATA,
+	flight-software-low-event ASW-EMPTY,
+	flight-software-medium-event ASW-EMPTY,
+	flight-software-high-event ASW-EMPTY
+}
+
+ASW-INFORMATIVE-EVENT-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	auxiliary-data ASW-EVENT-AUXILIARY-DATA
+}
+
+ASW-INFORMATIVE-EVENT-NOTIFICATION-NOTIFICATION ::= ASW-INFORMATIVE-EVENT-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-INFORMATIVE-EVENT-REPORT-GENERIC ::= SEQUENCE {
+	notification ASW-INFORMATIVE-EVENT-NOTIFICATION-NOTIFICATION
+}
+
+ASW-INFORMATIVE-EVENT-REPORT ::= ASW-INFORMATIVE-EVENT-REPORT-GENERIC
+
+ASW-LOW-SEVERITY-EVENT-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	auxiliary-data ASW-EVENT-AUXILIARY-DATA
+}
+
+ASW-LOW-SEVERITY-EVENT-NOTIFICATION-NOTIFICATION ::= ASW-LOW-SEVERITY-EVENT-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-LOW-SEVERITY-ANOMALY-REPORT-GENERIC ::= SEQUENCE {
+	notification ASW-LOW-SEVERITY-EVENT-NOTIFICATION-NOTIFICATION
+}
+
+ASW-LOW-SEVERITY-ANOMALY-REPORT ::= ASW-LOW-SEVERITY-ANOMALY-REPORT-GENERIC
+
+ASW-MEDIUM-SEVERITY-EVENT-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	auxiliary-data ASW-EVENT-AUXILIARY-DATA
+}
+
+ASW-MEDIUM-SEVERITY-EVENT-NOTIFICATION-NOTIFICATION ::= ASW-MEDIUM-SEVERITY-EVENT-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-MEDIUM-SEVERITY-ANOMALY-REPORT-GENERIC ::= SEQUENCE {
+	notification ASW-MEDIUM-SEVERITY-EVENT-NOTIFICATION-NOTIFICATION
+}
+
+ASW-MEDIUM-SEVERITY-ANOMALY-REPORT ::= ASW-MEDIUM-SEVERITY-ANOMALY-REPORT-GENERIC
+
+ASW-HIGH-SEVERITY-EVENT-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	auxiliary-data ASW-EVENT-AUXILIARY-DATA
+}
+
+ASW-HIGH-SEVERITY-EVENT-NOTIFICATION-NOTIFICATION ::= ASW-HIGH-SEVERITY-EVENT-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-HIGH-SEVERITY-ANOMALY-REPORT-GENERIC ::= SEQUENCE {
+	notification ASW-HIGH-SEVERITY-EVENT-NOTIFICATION-NOTIFICATION
+}
+
+ASW-HIGH-SEVERITY-ANOMALY-REPORT ::= ASW-HIGH-SEVERITY-ANOMALY-REPORT-GENERIC
+
+ASW-DISABLED-EVENT-DEFINITION-NOTIFICATION-COUNT ::= INTEGER (0..4)
+
+ASW-DISABLED-EVENT-DEFINITION-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	event-definition-id ASW-EVENT-IDENTIFIER
+}
+
+ASW-DISABLED-EVENT-DEFINITION-NOTIFICATION-NOTIFICATION ::= ASW-DISABLED-EVENT-DEFINITION-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-DISABLED-EVENT-DEFINITIONS-LIST-REPORT-GENERIC ::= SEQUENCE {
+	notifications SEQUENCE (SIZE(0..4)) OF ASW-DISABLED-EVENT-DEFINITION-NOTIFICATION-NOTIFICATION
+}
+
+ASW-DISABLED-EVENT-DEFINITIONS-LIST-REPORT ::= ASW-DISABLED-EVENT-DEFINITIONS-LIST-REPORT-GENERIC
+
+ASW-EVENT-REPORTING-TM ::= CHOICE {
+	informative-event-report ASW-INFORMATIVE-EVENT-REPORT,
+	low-severity-anomaly-report ASW-LOW-SEVERITY-ANOMALY-REPORT,
+	medium-severity-anomaly-report ASW-MEDIUM-SEVERITY-ANOMALY-REPORT,
+	high-severity-anomaly-report ASW-HIGH-SEVERITY-ANOMALY-REPORT,
+	disabled-event-definitions-list-report ASW-DISABLED-EVENT-DEFINITIONS-LIST-REPORT
+}
+
+ASW-CHECK-TRANSITION-NOTIFICATION-COUNT ::= INTEGER (0..255)
+
+ASW-PMON-CHECKING-STATUS-FOR-EXPECTED-VALUE-CHECKING ::= ENUMERATED {
+	expected-value (0),
+	unchecked (1),
+	invalid (2),
+	unexpected-value (3)
+}
+
+asw-pmon-checking-status-for-expected-value-checking-default-value ASW-PMON-CHECKING-STATUS-FOR-EXPECTED-VALUE-CHECKING ::= expected-value
+
+
+ASW-PMON-CHECKING-STATUS-FOR-LIMIT-CHECKING ::= ENUMERATED {
+	within-limits (0),
+	unchecked (1),
+	invalid (2),
+	below-low-limit (3),
+	above-high-limit (4)
+}
+
+asw-pmon-checking-status-for-limit-checking-default-value ASW-PMON-CHECKING-STATUS-FOR-LIMIT-CHECKING ::= within-limits
+
+
+ASW-PMON-CHECKING-STATUS-FOR-DELTA-CHECKING ::= ENUMERATED {
+	within-thresholds (0),
+	unchecked (1),
+	invalid (2),
+	below-low-threshold (3),
+	above-high-threshold (4)
+}
+
+asw-pmon-checking-status-for-delta-checking-default-value ASW-PMON-CHECKING-STATUS-FOR-DELTA-CHECKING ::= within-thresholds
+
+
+ASW-PMON-CHECKING-STATUS ::= CHOICE {
+	expected-value-checking ASW-PMON-CHECKING-STATUS-FOR-EXPECTED-VALUE-CHECKING,
+	limit-checking ASW-PMON-CHECKING-STATUS-FOR-LIMIT-CHECKING,
+	delta-checking ASW-PMON-CHECKING-STATUS-FOR-DELTA-CHECKING
+}
+
+ASW-TRANSITION-TIME ::= SEQUENCE { t-field SEQUENCE { day INTEGER (0..65535), milisecond INTEGER (0..4294967295) , submilisecond INTEGER (0..65535) } }
+
+ASW-CHECK-TRANSITION-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	pmon-id ASW-PMON-ID,
+	monitored-parameter-id ASW-PARAMETER-IDENTIFIER,
+	expected-value-check-mask ASW-MASK,
+	parameter-value ASW-PARAMETER-VALUE,
+	limit-crossed ASW-PARAMETER-VALUE,
+	previous-pmon-checking-status ASW-PMON-CHECKING-STATUS,
+	current-pmon-checking-status ASW-PMON-CHECKING-STATUS,
+	transition-time ASW-TRANSITION-TIME
+}
+
+ASW-CHECK-TRANSITION-NOTIFICATION-NOTIFICATION ::= ASW-CHECK-TRANSITION-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-CHECK-TRANSITION-NOTIFICATION-NOTIFICATIONSSDATA-LENGTH ::= INTEGER (0..8670)
+
+asw-check-transition-notification-notificationssdata-maximum-size ROOT-UINT32 ::= 8670
+ASW-CHECK-TRANSITION-NOTIFICATION-NOTIFICATIONSSDATA ::= SEQUENCE { field-data OCTET STRING (SIZE(0..8670)) }
+
+ASW-CHECK-TRANSITION-REPORT-GENERIC ::= SEQUENCE {
+	n ASW-CHECK-TRANSITION-NOTIFICATION-COUNT, notifications-data ASW-CHECK-TRANSITION-NOTIFICATION-NOTIFICATIONSSDATA
+}
+
+ASW-CHECK-TRANSITION-REPORT ::= ASW-CHECK-TRANSITION-REPORT-GENERIC
+
+ASW-PARAMETER-MONITORING-DEFINITION-NOTIFICATION-COUNT ::= INTEGER (0..255)
+
+ASW-PMON-STATUS ::= ENUMERATED {
+	disabled (0),
+	enabled (1)
+}
+
+asw-pmon-status-default-value ASW-PMON-STATUS ::= disabled
+
+
+ASW-PARAMETER-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	parameter-monitoring-definition ASW-CONTENT-OF-PARAMETER-MONITORING-DEFINITION,
+	pmon-status ASW-PMON-STATUS
+}
+
+ASW-PARAMETER-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATION ::= ASW-PARAMETER-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-PARAMETER-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATIONSSDATA-LENGTH ::= INTEGER (0..6375)
+
+asw-parameter-monitoring-definition-notification-notificationssdata-maximum-size ROOT-UINT32 ::= 6375
+ASW-PARAMETER-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATIONSSDATA ::= SEQUENCE { field-data OCTET STRING (SIZE(0..6375)) }
+
+ASW-PARAMETER-MONITORING-DEFINITION-REPORT-GENERIC ::= SEQUENCE {
+	max-transition-reporting-delay ASW-MAXIMUM-REPORTING-DELAY OPTIONAL,
+	n ASW-PARAMETER-MONITORING-DEFINITION-NOTIFICATION-COUNT, notifications-data ASW-PARAMETER-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATIONSSDATA
+}
+
+ASW-PARAMETER-MONITORING-DEFINITION-REPORT ::= ASW-PARAMETER-MONITORING-DEFINITION-REPORT-GENERIC (WITH COMPONENTS { max-transition-reporting-delay PRESENT })
+
+ASW-PARAMETER-MONITORING-DEFINITION-STATUS-NOTIFICATION-COUNT ::= INTEGER (0..255)
+
+ASW-PARAMETER-MONITORING-DEFINITION-STATUS-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	pmon-id ASW-PMON-ID,
+	pmon-status ASW-PMON-STATUS
+}
+
+ASW-PARAMETER-MONITORING-DEFINITION-STATUS-NOTIFICATION-NOTIFICATION ::= ASW-PARAMETER-MONITORING-DEFINITION-STATUS-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-PARAMETER-MONITORING-DEFINITION-STATUS-REPORT-GENERIC ::= SEQUENCE {
+	notifications SEQUENCE (SIZE(0..255)) OF ASW-PARAMETER-MONITORING-DEFINITION-STATUS-NOTIFICATION-NOTIFICATION
+}
+
+ASW-PARAMETER-MONITORING-DEFINITION-STATUS-REPORT ::= ASW-PARAMETER-MONITORING-DEFINITION-STATUS-REPORT-GENERIC
+
+ASW-OUT-OF-LIMIT-NOTIFICATION-COUNT ::= INTEGER (0..255)
+
+ASW-OUT-OF-LIMIT-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	pmon-id ASW-PMON-ID,
+	monitored-parameter-id ASW-PARAMETER-IDENTIFIER,
+	expected-value-check-mask ASW-MASK,
+	parameter-value ASW-PARAMETER-VALUE,
+	limit-crossed ASW-PARAMETER-VALUE,
+	previous-pmon-checking-status ASW-PMON-CHECKING-STATUS,
+	current-pmon-checking-status ASW-PMON-CHECKING-STATUS,
+	transition-time ASW-TRANSITION-TIME
+}
+
+ASW-OUT-OF-LIMIT-NOTIFICATION-NOTIFICATION ::= ASW-OUT-OF-LIMIT-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-OUT-OF-LIMIT-NOTIFICATION-NOTIFICATIONSSDATA-LENGTH ::= INTEGER (0..8670)
+
+asw-out-of-limit-notification-notificationssdata-maximum-size ROOT-UINT32 ::= 8670
+ASW-OUT-OF-LIMIT-NOTIFICATION-NOTIFICATIONSSDATA ::= SEQUENCE { field-data OCTET STRING (SIZE(0..8670)) }
+
+ASW-OUT-OF-LIMITS-REPORT-GENERIC ::= SEQUENCE {
+	n ASW-OUT-OF-LIMIT-NOTIFICATION-COUNT, notifications-data ASW-OUT-OF-LIMIT-NOTIFICATION-NOTIFICATIONSSDATA
+}
+
+ASW-OUT-OF-LIMITS-REPORT ::= ASW-OUT-OF-LIMITS-REPORT-GENERIC
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-NOTIFICATION-COUNT ::= INTEGER (0..255)
+
+ASW-FMON-PROTECTION-STATUS ::= ENUMERATED {
+	unprotected (0),
+	protected (1)
+}
+
+asw-fmon-protection-status-default-value ASW-FMON-PROTECTION-STATUS ::= unprotected
+
+
+ASW-FMON-STATUS ::= ENUMERATED {
+	disabled (0),
+	enabled (1)
+}
+
+asw-fmon-status-default-value ASW-FMON-STATUS ::= disabled
+
+
+ASW-CONTENT-OF-FUNCTIONAL-MONITORING-DEFINITION-WITH-STATUSES-GENERIC ::= SEQUENCE {
+	fmon-id ASW-FMON-ID,
+	check-validity-condition ASW-CHECK-VALIDITY-CONDITION OPTIONAL,
+	fmon-protection-status ASW-FMON-PROTECTION-STATUS OPTIONAL,
+	fmon-status ASW-FMON-STATUS,
+	event-definition-id ASW-MINIMUM-PMON-FAILING-NUMBER,
+	minimum-pmon-failing-number ASW-MINIMUM-PMON-FAILING-NUMBER OPTIONAL,
+	pmon-ids ASW-PMON-IDS
+}
+
+ASW-CONTENT-OF-FUNCTIONAL-MONITORING-DEFINITION-WITH-STATUSES ::= ASW-CONTENT-OF-FUNCTIONAL-MONITORING-DEFINITION-WITH-STATUSES-GENERIC (WITH COMPONENTS { check-validity-condition PRESENT, fmon-protection-status PRESENT, minimum-pmon-failing-number PRESENT })
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	content-of-the-functional-monitoring-definition ASW-CONTENT-OF-FUNCTIONAL-MONITORING-DEFINITION-WITH-STATUSES
+}
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATION ::= ASW-FUNCTIONAL-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATIONSSDATA-LENGTH ::= INTEGER (0..14280)
+
+asw-functional-monitoring-definition-notification-notificationssdata-maximum-size ROOT-UINT32 ::= 14280
+ASW-FUNCTIONAL-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATIONSSDATA ::= SEQUENCE { field-data OCTET STRING (SIZE(0..14280)) }
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-REPORT-GENERIC ::= SEQUENCE {
+	n ASW-FUNCTIONAL-MONITORING-DEFINITION-NOTIFICATION-COUNT, notifications-data ASW-FUNCTIONAL-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATIONSSDATA
+}
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-REPORT ::= ASW-FUNCTIONAL-MONITORING-DEFINITION-REPORT-GENERIC
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-STATUS-NOTIFICATION-COUNT ::= INTEGER (0..255)
+
+ASW-FMON-CHECKING-STATUS ::= ENUMERATED {
+	unchecked (0),
+	running (1),
+	invalid (2),
+	failed (3)
+}
+
+asw-fmon-checking-status-default-value ASW-FMON-CHECKING-STATUS ::= unchecked
+
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-STATUS-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	fmon-id ASW-FMON-ID,
+	fmon-protection-status ASW-FMON-PROTECTION-STATUS OPTIONAL,
+	fmon-status ASW-FMON-STATUS,
+	fmon-checking-status ASW-FMON-CHECKING-STATUS
+}
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-STATUS-NOTIFICATION-NOTIFICATION ::= ASW-FUNCTIONAL-MONITORING-DEFINITION-STATUS-NOTIFICATION-NOTIFICATION-GENERIC (WITH COMPONENTS { fmon-protection-status PRESENT })
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-STATUS-REPORT-GENERIC ::= SEQUENCE {
+	notifications SEQUENCE (SIZE(0..255)) OF ASW-FUNCTIONAL-MONITORING-DEFINITION-STATUS-NOTIFICATION-NOTIFICATION
+}
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-STATUS-REPORT ::= ASW-FUNCTIONAL-MONITORING-DEFINITION-STATUS-REPORT-GENERIC
+
+ASW-ON-BOARD-MONITORING-TM ::= CHOICE {
+	check-transition-report ASW-CHECK-TRANSITION-REPORT,
+	parameter-monitoring-definition-report ASW-PARAMETER-MONITORING-DEFINITION-REPORT,
+	parameter-monitoring-definition-status-report ASW-PARAMETER-MONITORING-DEFINITION-STATUS-REPORT,
+	out-of-limits-report ASW-OUT-OF-LIMITS-REPORT,
+	functional-monitoring-definition-report ASW-FUNCTIONAL-MONITORING-DEFINITION-REPORT,
+	functional-monitoring-definition-status-report ASW-FUNCTIONAL-MONITORING-DEFINITION-STATUS-REPORT
+}
+
+ASW-ARE-YOU-ALIVE-CONNECTION-TEST-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+
+}
+
+ASW-ARE-YOU-ALIVE-CONNECTION-TEST-NOTIFICATION-NOTIFICATION ::= ASW-ARE-YOU-ALIVE-CONNECTION-TEST-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-ARE-YOU-ALIVE-CONNECTION-TEST-REPORT-GENERIC ::= SEQUENCE {
+	notification ASW-ARE-YOU-ALIVE-CONNECTION-TEST-NOTIFICATION-NOTIFICATION
+}
+
+ASW-ARE-YOU-ALIVE-CONNECTION-TEST-REPORT ::= ASW-ARE-YOU-ALIVE-CONNECTION-TEST-REPORT-GENERIC
+
+ASW-ON-BOARD-CONNECTION-TEST-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	application-process-id ASW-TAILORABLE-APPLICATION-PROCESS-ID-ENUM
+}
+
+ASW-ON-BOARD-CONNECTION-TEST-NOTIFICATION-NOTIFICATION ::= ASW-ON-BOARD-CONNECTION-TEST-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-ON-BOARD-CONNECTION-TEST-REPORT-GENERIC ::= SEQUENCE {
+	notification ASW-ON-BOARD-CONNECTION-TEST-NOTIFICATION-NOTIFICATION
+}
+
+ASW-ON-BOARD-CONNECTION-TEST-REPORT ::= ASW-ON-BOARD-CONNECTION-TEST-REPORT-GENERIC
+
+ASW-TEST-TM ::= CHOICE {
+	are-you-alive-connection-test-report ASW-ARE-YOU-ALIVE-CONNECTION-TEST-REPORT,
+	on-board-connection-test-report ASW-ON-BOARD-CONNECTION-TEST-REPORT
+}
+
+ASW-EVENT-ACTION-STATUS-NOTIFICATION-COUNT ::= INTEGER (0..255)
+
+ASW-EVENT-ACTION-STATUS ::= ENUMERATED {
+	disabled (0),
+	enabled (1)
+}
+
+asw-event-action-status-default-value ASW-EVENT-ACTION-STATUS ::= disabled
+
+
+ASW-EVENT-ACTION-STATUS-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	event-definition-system-id ASW-SYSTEM-IDENTIFIER,
+	event-action-status ASW-EVENT-ACTION-STATUS
+}
+
+ASW-EVENT-ACTION-STATUS-NOTIFICATION-NOTIFICATION ::= ASW-EVENT-ACTION-STATUS-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-EVENT-ACTION-STATUS-REPORT-GENERIC ::= SEQUENCE {
+	notifications SEQUENCE (SIZE(0..255)) OF ASW-EVENT-ACTION-STATUS-NOTIFICATION-NOTIFICATION
+}
+
+ASW-EVENT-ACTION-STATUS-REPORT ::= ASW-EVENT-ACTION-STATUS-REPORT-GENERIC
+
+ASW-EVENT-ACTION-DEFINITION-NOTIFICATION-COUNT ::= INTEGER (0..255)
+
+ASW-EVENT-ACTION-DEFINITION-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	event-definition-system-id ASW-SYSTEM-IDENTIFIER,
+	event-action-status ASW-EVENT-ACTION-STATUS,
+	request ASW-REQUEST
+}
+
+ASW-EVENT-ACTION-DEFINITION-NOTIFICATION-NOTIFICATION ::= ASW-EVENT-ACTION-DEFINITION-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-EVENT-ACTION-DEFINITION-REPORT-GENERIC ::= SEQUENCE {
+	notifications SEQUENCE (SIZE(0..255)) OF ASW-EVENT-ACTION-DEFINITION-NOTIFICATION-NOTIFICATION
+}
+
+ASW-EVENT-ACTION-DEFINITION-REPORT ::= ASW-EVENT-ACTION-DEFINITION-REPORT-GENERIC
+
+ASW-EVENT-ACTION-TM ::= CHOICE {
+	event-action-status-report ASW-EVENT-ACTION-STATUS-REPORT,
+	event-action-definition-report ASW-EVENT-ACTION-DEFINITION-REPORT
+}
+
+ASW-PARAMETER-VALUE-NOTIFICATION-COUNT ::= INTEGER (0..4)
+
+ASW-PARAMETER-VALUE-NOTIFICATION-NOTIFICATION-GENERIC ::= SEQUENCE {
+	parameter-id ASW-PARAMETER-IDENTIFIER,
+	value ASW-PARAMETER-VALUE
+}
+
+ASW-PARAMETER-VALUE-NOTIFICATION-NOTIFICATION ::= ASW-PARAMETER-VALUE-NOTIFICATION-NOTIFICATION-GENERIC
+
+ASW-PARAMETER-VALUE-NOTIFICATION-NOTIFICATIONSSDATA-LENGTH ::= INTEGER (0..48)
+
+asw-parameter-value-notification-notificationssdata-maximum-size ROOT-UINT32 ::= 48
+ASW-PARAMETER-VALUE-NOTIFICATION-NOTIFICATIONSSDATA ::= SEQUENCE { field-data OCTET STRING (SIZE(0..48)) }
+
+ASW-PARAMETER-VALUE-REPORT-GENERIC ::= SEQUENCE {
+	n ASW-PARAMETER-VALUE-NOTIFICATION-COUNT, notifications-data ASW-PARAMETER-VALUE-NOTIFICATION-NOTIFICATIONSSDATA
+}
+
+ASW-PARAMETER-VALUE-REPORT ::= ASW-PARAMETER-VALUE-REPORT-GENERIC
+
+ASW-PARAMETER-DEFINITION-NOTIFICATION-COUNT ::= INTEGER (0..255)
+
+ASW-ADDRESSING-SCHEME ::= ENUMERATED {
+	absolute-addressing-scheme (0),
+	base-plus-offset-addressing-scheme (1)
+}
+
+asw-addressing-scheme-default-value ASW-ADDRESSING-SCHEME ::= absolute-addressing-scheme
+
+
+ASW-FILE-NAME-LENGTH ::= INTEGER (0..32)
+
+ASW-FILE-NAME ::= SEQUENCE { field-data IA5String (SIZE(0..32)) }
+
+ASW-FILEADDRESS-GENERIC ::= SEQUENCE {
+	memory-base ASW-FILE-NAME,
+	offset ASW-MEMORY-OFFSET
+}
+
+ASW-FILEADDRESS ::= ASW-FILEADDRESS-GENERIC
+
+ASW-MEMORY-ADDRESS ::= CHOICE {
+	ram-memory ASW-MEMORY-OFFSET,
+	db-memory ASW-FILEADDRESS
+}
+
+ASW-PARAMETER-DEFINITION-NOTIFICATION-NOTIFICATION-MEMORY-ID-PRESENT-ADDRESSING-SCHEME-PRESENT ::= SEQUENCE {
+	parameter-id ASW-PARAMETER-IDENTIFIER,
+	addressing-scheme ASW-ADDRESSING-SCHEME,
+	addressing-scheme-dependent-address ASW-MEMORY-ADDRESS,
+	packet-field-code ASW-PACKET-FIELD-CODE
+}
+
+ASW-PARAMETER-DEFINITION-NOTIFICATION-NOTIFICATION-MEMORY-ID-PRESENT-ADDRESSING-SCHEME-ABSENT ::= SEQUENCE {
+	parameter-id ASW-PARAMETER-IDENTIFIER,
+	addressing-scheme-dependent-address ASW-MEMORY-ADDRESS,
+	packet-field-code ASW-PACKET-FIELD-CODE
+}
+
+ASW-PARAMETER-DEFINITION-NOTIFICATION-NOTIFICATION-MEMORY-ID-ABSENT-ADDRESSING-SCHEME-PRESENT ::= SEQUENCE {
+	parameter-id ASW-PARAMETER-IDENTIFIER,
+	addressing-scheme ASW-ADDRESSING-SCHEME,
+	addressing-scheme-dependent-address ASW-MEMORY-ADDRESS,
+	packet-field-code ASW-PACKET-FIELD-CODE
+}
+
+ASW-PARAMETER-DEFINITION-NOTIFICATION-NOTIFICATION-MEMORY-ID-ABSENT-ADDRESSING-SCHEME-ABSENT ::= SEQUENCE {
+	parameter-id ASW-PARAMETER-IDENTIFIER,
+	addressing-scheme-dependent-address ASW-MEMORY-ADDRESS,
+	packet-field-code ASW-PACKET-FIELD-CODE
+}
+
+ASW-PARAMETER-DEFINITION-NOTIFICATION-NOTIFICATION-GENERIC ::= CHOICE {
+	memory-id-present-addressing-scheme-present ASW-PARAMETER-DEFINITION-NOTIFICATION-NOTIFICATION-MEMORY-ID-PRESENT-ADDRESSING-SCHEME-PRESENT,
+	memory-id-present-addressing-scheme-absent ASW-PARAMETER-DEFINITION-NOTIFICATION-NOTIFICATION-MEMORY-ID-PRESENT-ADDRESSING-SCHEME-ABSENT,
+	memory-id-absent-addressing-scheme-present ASW-PARAMETER-DEFINITION-NOTIFICATION-NOTIFICATION-MEMORY-ID-ABSENT-ADDRESSING-SCHEME-PRESENT,
+	memory-id-absent-addressing-scheme-absent ASW-PARAMETER-DEFINITION-NOTIFICATION-NOTIFICATION-MEMORY-ID-ABSENT-ADDRESSING-SCHEME-ABSENT
+}
+
+
+asw-parameter-definition-notification-notification-memory-id-present ROOT-BOOLEAN ::= TRUE
+
+asw-parameter-definition-notification-notification-addressing-scheme-present ROOT-BOOLEAN ::= TRUE
+
+ASW-PARAMETER-DEFINITION-NOTIFICATION-NOTIFICATION ::= ASW-PARAMETER-DEFINITION-NOTIFICATION-NOTIFICATION-GENERIC (WITH COMPONENTS { memory-id-present-addressing-scheme-present })
+
+ASW-PARAMETER-DEFINITION-REPORT-GENERIC ::= SEQUENCE {
+	notifications SEQUENCE (SIZE(0..255)) OF ASW-PARAMETER-DEFINITION-NOTIFICATION-NOTIFICATION
+}
+
+ASW-PARAMETER-DEFINITION-REPORT ::= ASW-PARAMETER-DEFINITION-REPORT-GENERIC
+
+ASW-PARAMETER-MANAGEMENT-TM ::= CHOICE {
+	parameter-value-report ASW-PARAMETER-VALUE-REPORT,
+	parameter-definition-report ASW-PARAMETER-DEFINITION-REPORT
+}
+
+ASW-TM-PAYLOAD ::= CHOICE {
+	request-verification ASW-REQUEST-VERIFICATION-TM,
+	housekeeping ASW-HOUSEKEEPING-TM,
+	event-reporting ASW-EVENT-REPORTING-TM,
+	on-board-monitoring ASW-ON-BOARD-MONITORING-TM,
+	test ASW-TEST-TM,
+	event-action ASW-EVENT-ACTION-TM,
+	parameter-management ASW-PARAMETER-MANAGEMENT-TM
+}
+
+ASW-HEADERLESS-TM-PAYLOAD ::= SEQUENCE {}
+
+
+ASW-IS-SLOT-USED ::= BOOLEAN
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-SLOT-GENERIC ::= SEQUENCE {
+	housekeeping-parameter-report-structure-id ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-ID-ENUM,
+	collection-interval ASW-COLLECTION-INTERVAL,
+	parameter-id ASW-PARAMETER-IDS,
+	super-commuted-parameter-sets ASW-SUPER-COMMUTED-PARAMETER-SETS-STRUCT,
+	periodic-generation-action-status ASW-PERIODIC-GENERATION-ACTION-STATUS OPTIONAL,
+	is-slot-used ASW-IS-SLOT-USED
+}
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-SLOT ::= ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-SLOT-GENERIC (WITH COMPONENTS { periodic-generation-action-status PRESENT })
+
+asw-housekeeping-parameter-report-structure-slots-maximum-size ROOT-UINT32 ::= 8
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-SLOTS ::= SEQUENCE { field-data SEQUENCE (SIZE(0..8)) OF ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-SLOT }
+
+asw-parameter-sizes-maximum-size ROOT-UINT32 ::= 64
+ASW-PARAMETER-SIZES ::= SEQUENCE { field-data SEQUENCE (SIZE(0..64)) OF ASW-COUNT }
+
+ASW-SUPER-COMMUTED-PARAMETER-SET-VALUES-SLOT-GENERIC ::= SEQUENCE {
+	tick-number ASW-COUNT,
+	parameter-ids ASW-PARAMETER-IDS,
+	parameter-values ASW-PARAMETER-VALUES,
+	sizes ASW-PARAMETER-SIZES,
+	parameter-ids-for-periodic-report-generation ASW-PARAMETER-IDS
+}
+
+ASW-SUPER-COMMUTED-PARAMETER-SET-VALUES-SLOT ::= ASW-SUPER-COMMUTED-PARAMETER-SET-VALUES-SLOT-GENERIC
+
+asw-offsets-of-parameters-maximum-size ROOT-UINT32 ::= 8
+ASW-OFFSETS-OF-PARAMETERS ::= SEQUENCE { field-data SEQUENCE (SIZE(0..8)) OF ASW-PARAMETER-SIZES }
+
+ASW-SPACECRAFT-TIME ::= SEQUENCE { t-field SEQUENCE { day INTEGER (0..65535), milisecond INTEGER (0..4294967295) , submilisecond INTEGER (0..65535) } }
+
+ASW-MINIMUM-SAMPLING-INTERVAL ::= SEQUENCE { t-field SEQUENCE { day INTEGER (0..65535), milisecond INTEGER (0..4294967295) , submilisecond INTEGER (0..65535) } }
+
+ASW-EVALUATION-TIME ::= SEQUENCE { t-field SEQUENCE { day INTEGER (0..65535), milisecond INTEGER (0..4294967295) , submilisecond INTEGER (0..65535) } }
+
+ASW-TIME-OFFSET ::= SEQUENCE { t-field SEQUENCE { day INTEGER (0..65535), milisecond INTEGER (0..4294967295) , submilisecond INTEGER (0..65535) } }
+
+ASW-ABSOLUTE-TIME ::= SEQUENCE { t-field SEQUENCE { day INTEGER (0..65535), milisecond INTEGER (0..4294967295) , submilisecond INTEGER (0..65535) } }
+
+ASW-RELEASE-TIME ::= SEQUENCE { t-field SEQUENCE { day INTEGER (0..65535), milisecond INTEGER (0..4294967295) , submilisecond INTEGER (0..65535) } }
+
+ASW-TIME-INTERVAL ::= SEQUENCE { t-field SEQUENCE { day INTEGER (0..65535), milisecond INTEGER (0..4294967295) , submilisecond INTEGER (0..65535) } }
+
+ASW-REQUEST-DELAY ::= SEQUENCE { t-field SEQUENCE { day INTEGER (0..65535), milisecond INTEGER (0..4294967295) , submilisecond INTEGER (0..65535) } }
+
+ASW-MEMORY-BASE ::= CHOICE {
+	ram-memory ASW-EMPTY,
+	db-memory ASW-FILE-NAME
+}
+
+ASW-MEMORY-DATA-LENGTH ::= INTEGER (0..192)
+
+asw-memory-data-maximum-size ROOT-UINT32 ::= 192
+ASW-MEMORY-DATA ::= SEQUENCE { field-data OCTET STRING (SIZE(0..192)) }
+
+ASW-PARAMETER-EXPECTED-VALUE-CHECK-GENERIC ::= SEQUENCE {
+	expected-value ASW-PARAMETER-VALUE,
+	mask ASW-PARAMETER-VALUE,
+	event-definition-id ASW-EVENT-IDENTIFIER
+}
+
+ASW-PARAMETER-EXPECTED-VALUE-CHECK ::= ASW-PARAMETER-EXPECTED-VALUE-CHECK-GENERIC
+
+ASW-PARAMETER-LIMIT-CHECK-GENERIC ::= SEQUENCE {
+	low-limit ASW-PARAMETER-VALUE,
+	high-limit ASW-PARAMETER-VALUE,
+	low-event-definition-id ASW-EVENT-IDENTIFIER,
+	high-event-definition-id ASW-EVENT-IDENTIFIER
+}
+
+ASW-PARAMETER-LIMIT-CHECK ::= ASW-PARAMETER-LIMIT-CHECK-GENERIC
+
+ASW-UINT8 ::= INTEGER (0..255)
+
+ASW-PARAMETER-DELTA-CHECK-GENERIC ::= SEQUENCE {
+	number-of-consecutive-delta-values ASW-UINT8,
+	low-delta-threshold-value ASW-PARAMETER-VALUE,
+	high-delta-threshold-value ASW-PARAMETER-VALUE,
+	low-event-definition-id ASW-EVENT-IDENTIFIER,
+	high-event-definition-id ASW-EVENT-IDENTIFIER
+}
+
+ASW-PARAMETER-DELTA-CHECK ::= ASW-PARAMETER-DELTA-CHECK-GENERIC
+
+ASW-PARAMETER-CHECK ::= CHOICE {
+	expected-value-checking ASW-PARAMETER-EXPECTED-VALUE-CHECK,
+	limit-checking ASW-PARAMETER-LIMIT-CHECK,
+	delta-checking ASW-PARAMETER-DELTA-CHECK
+}
+
+ASW-MEMORY-ADDRESS-CONTAINER-GENERIC ::= SEQUENCE {
+	address ASW-MEMORY-ADDRESS
+}
+
+ASW-MEMORY-ADDRESS-CONTAINER ::= ASW-MEMORY-ADDRESS-CONTAINER-GENERIC
+
+ASW-PARAMETER-MONITORING-DEFINITION-IDENTIFIER ::= ENUMERATED {
+	test-1 (1)
+}
+
+asw-parameter-monitoring-definition-identifier-default-value ASW-PARAMETER-MONITORING-DEFINITION-IDENTIFIER ::= test-1
+
+
+ASW-PARAMETER-REPORT-DEFINITION-ID-GENERIC ::= SEQUENCE {
+	apid ASW-APPLICATION-PROCESS-ID-ENUM,
+	parameter-report-structure-type ASW-PARAMETER-REPORT-STRUCTURE-TYPE,
+	parameter-report-definition-id ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-ID
+}
+
+ASW-PARAMETER-REPORT-DEFINITION-ID ::= ASW-PARAMETER-REPORT-DEFINITION-ID-GENERIC
+
+ASW-NFA ::= INTEGER (0..8)
+
+ASW-APPLICATION-PROCESS-ID ::= INTEGER (0..255)
+
+ASW-PARAMETER-REPORT-STRUCTURE-SLOT-GENERIC ::= SEQUENCE {
+	apid ASW-APPLICATION-PROCESS-ID OPTIONAL,
+	parameter-report-structure-id ASW-PARAMETER-REPORT-STRUCTURE-ID-CHOICE,
+	periodic-generation-action-status ASW-PERIODIC-GENERATION-ACTION-STATUS,
+	collection-interval ASW-COLLECTION-INTERVAL
+}
+
+ASW-PARAMETER-REPORT-STRUCTURE-SLOT ::= ASW-PARAMETER-REPORT-STRUCTURE-SLOT-GENERIC (WITH COMPONENTS { apid PRESENT })
+
+asw-parameter-report-structure-slots-maximum-size ROOT-UINT32 ::= 8
+ASW-PARAMETER-REPORT-STRUCTURE-SLOTS ::= SEQUENCE { field-data SEQUENCE (SIZE(0..8)) OF ASW-PARAMETER-REPORT-STRUCTURE-SLOT }
+
+ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-SLOT-GENERIC ::= SEQUENCE {
+	parameter-functional-reporting-definition-id ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-ID,
+	parameter-reporting-entries ASW-PARAMETER-REPORT-STRUCTURE-SLOTS,
+	is-slot-used ASW-IS-SLOT-USED
+}
+
+ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-SLOT ::= ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-SLOT-GENERIC
+
+ASW-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURE-ID ::= INTEGER (0..255)
+
+ASW-EVENT-SEVERITY-LEVEL ::= ENUMERATED {
+	informative (0),
+	low-severity (2),
+	medium-severity (3),
+	high-severity (4)
+}
+
+asw-event-severity-level-default-value ASW-EVENT-SEVERITY-LEVEL ::= informative
+
+
+ASW-PMON-FUNCTION-STATUS ::= ENUMERATED {
+	disabled (0),
+	enabled (1)
+}
+
+asw-pmon-function-status-default-value ASW-PMON-FUNCTION-STATUS ::= disabled
+
+
+ASW-COUNTER ::= INTEGER (0..255)
+
+ASW-PMON-CHECKING-STATUS-VALUE ::= INTEGER (0..255)
+
+asw-pmon-checking-status-values-maximum-size ROOT-UINT32 ::= 64
+ASW-PMON-CHECKING-STATUS-VALUES ::= SEQUENCE (SIZE(64)) OF ASW-PMON-CHECKING-STATUS-VALUE
+
+asw-checking-status-sampling-times-maximum-size ROOT-UINT32 ::= 64
+ASW-CHECKING-STATUS-SAMPLING-TIMES ::= SEQUENCE (SIZE(64)) OF ASW-TRANSITION-TIME
+
+ASW-IS-CHECKING-STATUS-VALUES-FULL ::= BOOLEAN
+
+ASW-PMON-SLOT-GENERIC ::= SEQUENCE {
+	pmon-id ASW-PMON-ID,
+	monitored-parameter-id ASW-PARAMETER-IDENTIFIER,
+	check-validity-condition ASW-CHECK-VALIDITY-CONDITION OPTIONAL,
+	monitoring-interval ASW-MONITORING-INTERVAL OPTIONAL,
+	repetition-number ASW-REPETITION-NUMBER,
+	check-type-dependent-criteria ASW-CHECK-TYPE-DEPENDENT-CRITERIA,
+	pmon-status ASW-PMON-STATUS,
+	checking-status ASW-PMON-CHECKING-STATUS,
+	monitoring-interval-count ASW-COUNTER OPTIONAL,
+	repetition-count ASW-COUNTER,
+	pmon-checking-status-values ASW-PMON-CHECKING-STATUS-VALUES,
+	pmon-checking-status-sampling-times ASW-CHECKING-STATUS-SAMPLING-TIMES,
+	is-checking-status-values-full ASW-IS-CHECKING-STATUS-VALUES-FULL,
+	is-slot-used ASW-IS-SLOT-USED
+}
+
+ASW-PMON-SLOT ::= ASW-PMON-SLOT-GENERIC (WITH COMPONENTS { check-validity-condition PRESENT, monitoring-interval PRESENT, monitoring-interval-count PRESENT })
+
+ASW-CHECK-TRANSITION-SLOT-GENERIC ::= SEQUENCE {
+	pmon-id ASW-PMON-ID,
+	monitored-parameter-id ASW-PARAMETER-IDENTIFIER,
+	expected-value-check-mask ASW-MASK,
+	parameter-value ASW-PARAMETER-VALUE,
+	limit-crossed ASW-PARAMETER-VALUE,
+	previous-pmon-checking-status ASW-PMON-CHECKING-STATUS,
+	current-pmon-checking-status ASW-PMON-CHECKING-STATUS,
+	transition-time ASW-TRANSITION-TIME,
+	is-slot-used ASW-IS-SLOT-USED
+}
+
+ASW-CHECK-TRANSITION-SLOT ::= ASW-CHECK-TRANSITION-SLOT-GENERIC
+
+ASW-DELTA-CHECKING-METADATA-GENERIC ::= SEQUENCE {
+	sampled-values-count ASW-COUNTER,
+	last-sampled-value ASW-PARAMETER-VALUE,
+	is-delta-checking-data-full ASW-IS-CHECKING-STATUS-VALUES-FULL
+}
+
+ASW-DELTA-CHECKING-METADATA ::= ASW-DELTA-CHECKING-METADATA-GENERIC
+
+ASW-EQUALITY-MASK-LENGTH ::= INTEGER (0..64)
+
+ASW-EQUALITY-MASK ::= SEQUENCE { field-data SEQUENCE (SIZE(0..64)) OF BOOLEAN }
+
+ASW-FMON-FUNCTION-STATUS ::= ENUMERATED {
+	disabled (0),
+	enabled (1)
+}
+
+asw-fmon-function-status-default-value ASW-FMON-FUNCTION-STATUS ::= disabled
+
+
+ASW-FMON-SLOT-GENERIC ::= SEQUENCE {
+	fmon-id ASW-FMON-ID,
+	check-validity-condition ASW-CHECK-VALIDITY-CONDITION OPTIONAL,
+	event-definition-id ASW-EVENT-IDENTIFIER,
+	minimum-pmon-failing-number ASW-MINIMUM-PMON-FAILING-NUMBER,
+	pmon-ids ASW-PMON-IDS,
+	fmon-checking-status ASW-FMON-CHECKING-STATUS,
+	fmon-status ASW-FMON-STATUS,
+	fmon-protection-status ASW-FMON-PROTECTION-STATUS OPTIONAL,
+	is-slot-used ASW-IS-SLOT-USED
+}
+
+ASW-FMON-SLOT ::= ASW-FMON-SLOT-GENERIC (WITH COMPONENTS { check-validity-condition PRESENT, fmon-protection-status PRESENT })
+
+asw-fmon-ids-maximum-size ROOT-UINT32 ::= 8
+ASW-FMON-IDS ::= SEQUENCE { field-data SEQUENCE (SIZE(0..8)) OF ASW-FMON-ID }
+
+ASW-EVENT-ACTION-FUNCTION-STATUS ::= ENUMERATED {
+	disabled (0),
+	enabled (1)
+}
+
+asw-event-action-function-status-default-value ASW-EVENT-ACTION-FUNCTION-STATUS ::= disabled
+
+
+ASW-EVENT-ACTION-DEFINITION-SLOT-GENERIC ::= SEQUENCE {
+	system-identifier ASW-SYSTEM-IDENTIFIER,
+	request ASW-REQUEST,
+	status ASW-EVENT-ACTION-STATUS,
+	is-slot-used ASW-IS-SLOT-USED
+}
+
+ASW-EVENT-ACTION-DEFINITION-SLOT ::= ASW-EVENT-ACTION-DEFINITION-SLOT-GENERIC
+
+asw-super-commuted-parameter-sets-system-object-value-maximum-size ROOT-UINT32 ::= 8
+ASW-SUPER-COMMUTED-PARAMETER-SETS-SYSTEM-OBJECT-VALUE ::= SEQUENCE { field-data SEQUENCE (SIZE(0..8)) OF ASW-SUPER-COMMUTED-PARAMETER-SET }
+
+
+ASW-TC-SECONDARY-HEADER ::= SEQUENCE {
+   ack-successful-completion   BOOLEAN,
+   ack-successful-progress     BOOLEAN,
+   ack-successful-start        BOOLEAN,
+   ack-successful-acceptance   BOOLEAN,
+   source-id                   ROOT-APPLICATION-PROCESS-USER-ID
+   -- spare user defined
+}
+
+ASW-TM-SECONDARY-HEADER ::= SEQUENCE {
+   time-reference-status       ROOT-TIME-REFERENCE-STATUS,
+   message-type-counter        ROOT-MESSAGE-TYPE-COUNTER,
+   destination-id              ROOT-APPLICATION-PROCESS-USER-ID
+   -- time TODO
+   -- spare user defined
+}
+
+ASW-TELECOMMAND ::= SEQUENCE {
+   packet-secondary-header     ASW-TC-SECONDARY-HEADER,
+   user-data-field             ASW-TC-PAYLOAD
+}
+
+ASW-TELEMETRY ::= SEQUENCE {
+   packet-secondary-header     ASW-TM-SECONDARY-HEADER,
+   user-data-field             ASW-TM-PAYLOAD
+}
+
+ASW-HEADERLESS-TELEMETRY ::= SEQUENCE {
+   user-data-field             ASW-HEADERLESS-TM-PAYLOAD
+}
+
+ASW-DECODED-TELECOMMAND-DATA ::= SEQUENCE {
+   request-id ASW-REQUEST-ID,
+   telecommand ASW-TELECOMMAND
+}
+
+ASW-TELEMETRY-DATA ::= SEQUENCE {
+   destination ROOT-APPLICATION-PROCESS-USER-ID,
+   telemetry ASW-TELEMETRY
+}
+
+ASW-HEADERLESS-TELEMETRY-DATA ::= SEQUENCE {
+   telemetry ASW-HEADERLESS-TELEMETRY
+}
+
+END

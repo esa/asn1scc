@@ -57,7 +57,7 @@ PrintOctetStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arruBytes, 
 >>
 
 PrintBitStringValue(td/*:FE_SizeableTypeDefinition*/,bIsFixedSize, arrsBits, nCount, arruBytes, nBytesCount) ::= <<
-<PrintBitOrOctetStringValue(bIsFixedSize=bIsFixedSize, arruBytes=arruBytes, nCount=nBytesCount)>
+<PrintBitOrOctetStringValue(bIsFixedSize=bIsFixedSize, arruBytes=arruBytes, nCount=nCount)>
 >>
 
 

@@ -56,11 +56,14 @@ echo "run c tests, with word-size=8, slim-mode=false, acnv2"
 echo "run acn-v2 wire checks (C)"
 ./scripts/runWireTests.sh || exit 1
 
+echo "run the range algebra property test"
+./scripts/checkRangeAlgebra.sh || exit 1
+
 echo "run -icdPdus checks (C)"
 ./scripts/runIcdPdusTests.sh || exit 1
 
 echo "run ICD tests (-icdAcn)"
-python3 ./scripts/runIcdTests.py || exit 1
+python3 ./scripts/runIcdTests.py --require-excel || exit 1
 
 echo "run c tests, with word-size=4, slim-mode=false"
 ../regression/bin/Debug/net10.0/regression -l c -ws 4 -s false -p 48 || exit 1
@@ -77,13 +80,16 @@ echo "run c tests, with word-size=8, slim-mode=true"
 echo "run Ada tests, with word-size=8, slim-mode=false"
 ../regression/bin/Debug/net10.0/regression -l Ada -ws 8 -s false -p 48 || exit 1
 
+echo "run Ada tests, with word-size=8, slim-mode=true"
+../regression/bin/Debug/net10.0/regression -l Ada -ws 8 -s true -p 48 || exit 1
+
 echo "run python tests, with word-size=4, slim-mode=false"
 ../regression/bin/Debug/net10.0/regression -l python -ws 4 -s false -p 48 || exit 1
 
 echo "run python tests, with word-size=8, slim-mode=false"
 ../regression/bin/Debug/net10.0/regression -l python -ws 8 -s false -p 48 || exit 1
 
-# Rust tests (non-slim only; slim mode is C-only in the regression tool)
+# Rust tests (non-slim only; slim mode is C and Ada only in the regression tool)
 echo "run Rust tests, with word-size=4"
 ../regression/bin/Debug/net10.0/regression -l Rust -ws 4 -s false -p 12 || exit 1
 

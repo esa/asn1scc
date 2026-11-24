@@ -103,10 +103,10 @@ if !<sFuncName>(<sVal>, decodedPDU) then
 Codec_DecodeSweep_helper(nBudget) ::= <<
 >>
 
-Codec_DecodeSweep_adapter(sModName, sFuncName, sDecFuncName, sTasName, sAmber, soIsValidFunc) ::= <<
+Codec_DecodeSweep_adapter(sModName, sFuncName, sDecFuncName, soEncFuncName, sTasName, sAmber, soIsValidFunc) ::= <<
 >>
 
-Codec_DecodeSweep(sModName, sFuncName, sDecFuncName, sTasName, sEnc, sAmber, soIsValidFunc, bTruncate, bDeduced, nBudget) ::= <<
+Codec_DecodeSweep(sModName, sFuncName, sDecFuncName, soEncFuncName, sTasName, sEnc, sAmber, sVal, soIsValidFunc, bTruncate, bDeduced, nBudget, soEqualFunc, sInitFunc, nLastOffset, nExtraBytes, arrnCorruptAt) ::= <<
 >>
 
 Codec_write_CharstreamToFile() ::= <<
@@ -444,11 +444,49 @@ codec.base.bitStream.resetBitIndex()
 >>
 
 /* Coverage step 11c: constraint-violation tests, C only so far (ILangGeneric.atcEmitsInvalidValueTests). */
-emitConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, sErrCodeModule, sErrCode, arrsEncodeChecks) ::= <<
+emitConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, sErrCodeModule, sErrCode, arrsEncodeChecks, soEqualFunc) ::= <<
 >>
 
 constraintViolationEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber, sErrCodeModule, sErrCode) ::= <<
 >>
 
+/* Coverage step 12d: C only (invalid CHOICE selectors / ENUMERATED values, ILangGeneric.atcEmitsInvalidValueTests). */
+constraintViolationUncheckedEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber) ::= <<
+>>
+
 constraintViolationStringChar(sStr, nIndex, nChar) ::= <<
+>>
+
+/* Coverage step 14q: Ada only (a string without its terminating NUL has no length in this backend). */
+constraintViolationStringFill(sStr, nCount, nChar) ::= <<
+>>
+
+/* Coverage step 14q: C only (no infinity in this backend's REAL types / no constraint-violation tests). */
+constraintViolationRealInfinity(sVal, bNegative) ::= <<
+>>
+
+/* Coverage step 14f: C and Ada only (ILangGeneric.atcEmitsConstraintViolationTests). */
+constraintViolationEveryElement(sIdx, sCount, arrsGuards, sSetInvalidValue) ::= <<
+>>
+
+/* Coverage step 14a: C and Ada only (ILangGeneric.atcEmitsEqualityVariantTests). */
+/* Coverage step 14j (task 0): C and Ada only (ILangGeneric.atcEmitsValidityTests). */
+emitValidityTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, bStatic, sIsValidFunc, arrsValueChecks) ::= <<
+>>
+
+validityCheck(sModName, sAmber, sInitializeTcData, sWhat, sIsValidFunc) ::= <<
+>>
+
+emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks, bReflexiveChecks) ::= <<
+>>
+
+equalityVariantCheck(sModName, sAmber, sApplyVariant, sWhat, sEqualFunc) ::= <<
+>>
+
+/* Coverage cycle 15c (P4): C and Ada only (ILangGeneric.atcEmitsEqualityVariantTests). */
+equalityReflexiveCheck(sModName, sAmber, sWhat, sEqualFunc) ::= <<
+>>
+
+/* Coverage step 14d: C and Ada only (ILangGeneric.atcEmitsConstraintViolationTests). */
+emitInconsistentValueTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sChange, sWhat, sEncFunc, sEnc) ::= <<
 >>

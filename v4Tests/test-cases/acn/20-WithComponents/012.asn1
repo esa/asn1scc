@@ -1,0 +1,25 @@
+-- C_ADA_ONLY (the Scala backend fails to generate these shapes: BugErrorException "lastId on ArrayAccess")
+-- WITH COMPONENT (...) on a SEQUENCE OF (Issue 174): the Ada validator loop had an empty body (template
+-- StatementForLoop rendered an undeclared attribute), so the Ada validators accepted elements outside the narrowing and
+-- nested WITH COMPONENT (WITH COMPONENT (...)) did not compile (unused loop index). The automatic test values of these
+-- shapes are valid; the byte-exact rows with invalid values, strings and FROM are in acn-wire/018.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    SoO   ::= SEQUENCE (SIZE(1..3)) OF OCTET STRING (SIZE(1..6))
+    SoB   ::= SEQUENCE (SIZE(1..3)) OF BIT STRING (SIZE(1..20))
+    SoI   ::= SEQUENCE (SIZE(1..3)) OF INTEGER (0..1000)
+    SoN   ::= SEQUENCE (SIZE(1..2)) OF SoO
+    SubO  ::= SoO (WITH COMPONENT (SIZE(1..2)))
+    MyPDU ::= SEQUENCE {
+        o  SoO (WITH COMPONENT (SIZE(1..2))),
+        u  SoO (WITH COMPONENT (SIZE(1) | SIZE(4))),
+        x  SoO (WITH COMPONENT (SIZE(1..4) EXCEPT SIZE(2))),
+        v  SoO (WITH COMPONENT ('0102'H | '03'H)),
+        b  SoB (WITH COMPONENT (SIZE(1..4))),
+        i  SoI (WITH COMPONENT (0..10)),
+        n  SoN (WITH COMPONENT (WITH COMPONENT (SIZE(1..2)))),
+        s  SubO,
+        f  BOOLEAN
+    }
+END
+
+--TCLS     MyPDU[]

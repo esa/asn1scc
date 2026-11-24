@@ -1,0 +1,20 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Inner [] {
+    a [encoding pos-int, size 8],
+    b [encoding pos-int, size 2]
+}
+
+Msg1 [] {
+    flag    [encoding pos-int, size 3],
+    payload []
+}
+
+Msg2 [] {
+    flag    [encoding pos-int, size 3],
+    len     INTEGER [encoding pos-int, size 8],
+    payload [size len],
+    tail    [encoding pos-int, size 4]
+}
+
+END

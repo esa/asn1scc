@@ -1,0 +1,36 @@
+-- NOCOVERAGE C_ADA_ONLY (NOCOVERAGE: the code of the ALWAYS ABSENT alternative f2 is never reached by valid values; Python: an inline CHOICE with WITH COMPONENTS at the site fails, AttributeError: no attribute kind)
+-- An ALWAYS ABSENT alternative (WITH COMPONENTS ... ABSENT) of a CHOICE selected by an ACN determinant: by an ENUMERATED
+-- field of the same SEQUENCE (PDU1), by present-when conditions (PDU2), by an ENUMERATED parameter (PDU3, the CHOICE
+-- type itself constrained). Before, the Ada decoder got an integer case arm `when 1 =>` for the absent alternative also
+-- in the case on the ENUMERATED determinant and in the present-when if / elsif chain, which did not compile.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Sel ::= ENUMERATED { f1, f2, f3 }
+
+Body ::= CHOICE {
+    f1 INTEGER (0..255),
+    f2 INTEGER (0..255),
+    f3 BOOLEAN
+}
+
+PDU1 ::= SEQUENCE {
+    t Body (WITH COMPONENTS {f2 ABSENT})
+}
+
+PDU2 ::= SEQUENCE {
+    t Body (WITH COMPONENTS {f2 ABSENT})
+}
+
+Restricted ::= CHOICE {
+    f1 INTEGER (0..255),
+    f2 INTEGER (0..255),
+    f3 BOOLEAN
+} (WITH COMPONENTS {f2 ABSENT})
+
+PDU3 ::= SEQUENCE {
+    t Restricted
+}
+
+END
+
+--TCLS PDU1 [] { sel Sel [encoding pos-int, size 8], t [determinant sel] } PDU2 [] { k INTEGER [encoding pos-int, size 4], t [] { f1 [present-when k == 1], f2 [present-when k == 2], f3 [present-when k == 3] } } Restricted <Sel:s> [determinant s] PDU3 [] { sel Sel [encoding pos-int, size 8], t <sel> [] }

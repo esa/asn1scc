@@ -41,7 +41,9 @@ let getAccessFromScopeNodeList (ReferenceToType nodes)  (childTypeIsString: bool
             List.fold(fun (curPath, curCheckExp, zeroBasedSequenceOfLevel, idx) n ->
                 let checkPath, newPath = handleNode zeroBasedSequenceOfLevel curPath n (childTypeIsString && idx=length)
                 let zeroBasedSequenceOfLevel = match n with SQF -> zeroBasedSequenceOfLevel + 1 | _ -> zeroBasedSequenceOfLevel
-                (newPath, checkPath@curCheckExp, zeroBasedSequenceOfLevel, idx+1)) (pVal,[], 0, 1) |> (fun (a,checkPath,_,_) -> a, checkPath)
+                // the checks of the outer nodes first: they are joined with && / and then, and a check below a CHOICE
+                // alternative reads a member that exists only when the alternative is selected
+                (newPath, curCheckExp@checkPath, zeroBasedSequenceOfLevel, idx+1)) (pVal,[], 0, 1) |> (fun (a,checkPath,_,_) -> a, checkPath)
         ret
     | _                                 -> raise(BugErrorException "getAccessFromScopeNodeList")
 
@@ -1020,6 +1022,12 @@ let rec GetMySelfAndChildren3 visitChildPredicate (t:Asn1Type) =
     } |> Seq.toList
 
 
+/// The bLengthEnforced argument of the variable-size encode macros (coverage step 14b2).
+let lengthEnforced (lengthCheck:VarSizeLengthCheck) =
+    match lengthCheck with
+    | LengthChecked             -> false
+    | LengthEnforcedByTypedef   -> true
+
 let nestItems joinItems2 children =
     let printChild (content:string) (soNestedContent:string option) =
         match soNestedContent with
@@ -1053,25 +1061,90 @@ let nestItemsByOutcome (lm:LanguageMacros) (children: (string * DecodeOutcome) l
     printChildren children
 
 
+/// Coverage step 12b: the outcome of an encode part (decode bodies: unknown, not used).
+let encodeOutcomeOf (codec:CommonTypes.Codec) (o:EncodeOutcome) : EncodeOutcome =
+    match codec with
+    | CommonTypes.Encode -> o
+    | CommonTypes.Decode -> EncodeOutcome.unknown
+
+/// Coverage step 14b: the key of an encoder in State.encodeCallOutcomes. With modules (Ada) a call into another module
+/// names the encoder with its package (getBaseTypeDefName), and two modules may define a type of the same name
+/// (q/issues.md Issue 57), so the key is always the qualified name; a name that is already qualified stays as is.
+let encodeCallKey (lm:LanguageMacros) (sModName:string) (sFuncName:string) : string =
+    match lm.lg.hasModules, sFuncName.Contains "." with
+    | true, false               -> ToC sModName + "." + sFuncName
+    | true, true | false, _     -> sFuncName
+
+/// Coverage step 12b: what a call of the encoder sFuncName does (recorded when the type assignment's encoder was
+/// created; when it was not, a call that may fail and sets the result, 14b). sCallerModName: the module of the type whose body makes the call.
+let encodeCallOutcome (lm:LanguageMacros) (sCallerModName:string) (us:State) (codec:CommonTypes.Codec) (sFuncName:string) : EncodeOutcome =
+    match codec, us.encodeCallOutcomes.TryFind (encodeCallKey lm sCallerModName sFuncName) with
+    | CommonTypes.Encode, Some o    -> o
+    | CommonTypes.Encode, None      -> EncodeOutcome.unknownCall
+    | CommonTypes.Decode, _         -> EncodeOutcome.unknown
+
+/// Coverage step 14q (Q3 b): whether the encoding of a SEQUENCE child reads the value through its presence (the
+/// Exist flag of an OPTIONAL child); an ALWAYS ABSENT child encodes nothing (an encoder body without the validation may
+/// then not reference val: Ada pragma Unreferenced).
+let presenceReadsVal (opt:Asn1AcnAst.Asn1Optionality option) =
+    match opt with
+    | None                          -> false
+    | Some Asn1AcnAst.AlwaysAbsent  -> false
+    | Some Asn1AcnAst.AlwaysPresent
+    | Some (Asn1AcnAst.Optional _)  -> true
+
+/// Coverage step 14q (Q3 b): the function an encoder of the reference site siteId calls for the type assignment encoder
+/// sFuncName, and what the call does: the encoder's body (without its entry validation) when the encoder has one
+/// (encodeBodies), it is in the caller's package, and the site's own validation calls the same IsConstraintValid as the
+/// encoder's _aux (siteValidatorCalls: the caller's entry validation has checked the value at this site, by
+/// construction); else the encoder itself (encodeCallOutcome).
+let encodeCallTarget (lm:LanguageMacros) (sCallerModName:string) (us:State) (codec:CommonTypes.Codec) (siteId:ReferenceToType) (sFuncName:string) : string * EncodeOutcome =
+    let viaEncoder () = sFuncName, encodeCallOutcome lm sCallerModName us codec sFuncName
+    match codec with
+    | CommonTypes.Decode -> viaEncoder ()
+    | CommonTypes.Encode ->
+        match us.encodeBodies.TryFind (encodeCallKey lm sCallerModName sFuncName), us.siteValidatorCalls.TryFind siteId.AsString with
+        | Some b, Some v when v = b.validatorKey && b.modName = ToC sCallerModName -> b.bodyFuncName, b.outcome
+        | Some _, _
+        | None, _                                                                  -> viaEncoder ()
+
 /// Coverage step 12a: the encoder of a type whose IsConstraintValid cannot fail (11b outcome AlwaysValid) does not
 /// call it; the template emits a comment instead of the call and its check. Decoders are unchanged.
-let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (isValidFunc: IsValidFunction option) (t:Asn1AcnAst.Asn1Type) : bool =
-    let alwaysValid =
+/// emitted = State.emittedValidatorOutcomes (cycle 15a2): the outcome of the functions the type assignment under
+/// construction emits, from its first construction (DAstConstruction.mapTas).
+let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (emitted: Map<string, ValidationOutcome>) (isValidFunc: IsValidFunction option) (t:Asn1AcnAst.Asn1Type) (bodyOutcome:EncodeOutcome) : bool =
+    // The merged type of a reference with constraints at the site (Outer ::= Alias ('010203'H), ByteFlags ::= BitFlags
+    // (SIZE(8))) builds the encoder that the type assignment lends (DAstUPer.createReferenceFunction when the encodings
+    // differ, AcnReference.createReferenceFunction_inline), but the IsConstraintValid emitted under the name the encoder
+    // calls is the type assignment's, created after it; a chained alias creates one more validator per alias in between,
+    // under the same name. The encoder's own isValidFunc is the one of the level that builds it, so the decision reads
+    // the outcome of the function emitted under that name when the first construction knows it.
+    let calledFunctionsOutcome =
         match isValidFunc with
-        | Some {funcName = Some _; outcome = AlwaysValid}  -> true
-        | Some {funcName = Some _; outcome = MayBeInvalid}
+        | Some {funcName = Some fn}  -> emitted.TryFind (encodeCallKey lm t.id.ModName fn)
         | Some {funcName = None}
-        | None                                             -> false
-    // The merged type of a reference with constraints at the site (ByteFlags ::= BitFlags (SIZE(8))) can lend its
-    // encoder to the type assignment (DAstUPer.createReferenceFunction when the encodings differ), but the
-    // IsConstraintValid emitted under that name is the reference's, which calls the wider referenced type's
-    // function: the merged type's outcome says nothing about it (as for 11b's referencedNotCalled).
+        | None                       -> None
+    let alwaysValid =
+        match calledFunctionsOutcome, isValidFunc with
+        | Some AlwaysValid, _                                       -> true
+        | Some MayBeInvalid, _                                      -> false
+        | None, Some {funcName = Some _; outcome = AlwaysValid}     -> true
+        | None, Some {funcName = Some _; outcome = MayBeInvalid}
+        | None, Some {funcName = None}
+        | None, None                                                -> false
+    // Outside the map (no first construction, or a function of another type assignment): the type's own outcome is
+    // the called function's unless the type is the merged copy of a reference with constraints at the site, whose
+    // function is the reference's (it calls the referenced type's function and checks the site's constraints; in Ada
+    // a site range that the subtype enforces (MyPDU ::= T1 (0 .. 100)) makes the merged type AlwaysValid while the
+    // reference's function still carries the check): keep the call then.
     let outcomeIsTheCalledFunctions =
-        match t.inheritInfo with
-        | Some {hasAdditionalConstraints = true}   -> false
-        | Some {hasAdditionalConstraints = false}
-        | None                                     -> true
-    // (a variable-size OCTET / BIT STRING encoding starts with its own length check, which sets result)
+        match calledFunctionsOutcome, t.inheritInfo with
+        | Some _, _                                         -> true
+        | None, Some {hasAdditionalConstraints = true}      -> false
+        | None, Some {hasAdditionalConstraints = false}
+        | None, None                                        -> true
+    // (a variable-size OCTET / BIT STRING encoding starts with its own length check, which sets result); since 12b
+    // also any body whose writes are known: the encoder initialises result only where the body needs it
     let encodingWritesNoResult =
         match t.Kind with
         | Asn1AcnAst.Integer _ | Asn1AcnAst.Real _ | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _
@@ -1080,12 +1153,67 @@ let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (isVali
         | Asn1AcnAst.OctetString o                                                             -> o.isFixedSize
         | Asn1AcnAst.BitString o                                                               -> o.isFixedSize
         | Asn1AcnAst.SequenceOf _ | Asn1AcnAst.Sequence _ | Asn1AcnAst.Choice _ | Asn1AcnAst.ReferenceType _ -> false
+    let bodyWritesKnown = bodyOutcome.writes <> WritesUnknown
     match codec, lm.lg.encoderValidationModel with
     | CommonTypes.Encode, EncodersSkipAlwaysValid           -> alwaysValid && outcomeIsTheCalledFunctions
-    | CommonTypes.Encode, EncodersSkipAlwaysValidPrimitives -> alwaysValid && outcomeIsTheCalledFunctions && encodingWritesNoResult
+    | CommonTypes.Encode, EncodersSkipAlwaysValidPrimitives -> alwaysValid && outcomeIsTheCalledFunctions && (encodingWritesNoResult || bodyWritesKnown)
     | CommonTypes.Encode, EncodersCallEveryValidation
     | CommonTypes.Decode, _                                 -> false
 
+
+/// nestItems for encode parts whose outcome is known (coverage step 12b): after a part that may fail the rest is
+/// nested under the check (JoinItems2); after a part that cannot fail and writes the result, C has no check and Ada
+/// asserts it (JoinItemsCannotFail, whose comment names the encoder the part calls); after a part that does not
+/// write the result, no check (JoinItemsNoWrite; only the first such join of the body carries a comment).
+let nestEncodeParts (lm:LanguageMacros) (parts: (string * EncodeOutcome) list) : string option =
+    let parts = List.toArray parts
+    let hasContentAfter i = parts |> Array.skip (i + 1) |> Array.exists (fun (s, _) -> not (String.IsNullOrWhiteSpace s))
+    let firstNoWriteJoin =
+        parts |> Array.tryFindIndex (fun (_, o) -> not o.canFail && o.writes = NoWrite) |>
+        Option.filter hasContentAfter
+    let rec printFrom i : string option =
+        match i < parts.Length with
+        | false -> None
+        | true  ->
+            let content, o = parts.[i]
+            match printFrom (i + 1) with
+            | None                                                          -> Some content
+            | Some sNested when String.IsNullOrWhiteSpace sNested           -> Some content
+            | Some sNested ->
+                match o.canFail, o.writes with
+                | true, _       -> Some (lm.isvalid.JoinItems2 content sNested)
+                | false, NoWrite -> Some (lm.isvalid.JoinItemsNoWrite content sNested (firstNoWriteJoin = Some i))
+                | false, (AlwaysWrites | SometimesWrites | ReadsFirst | WritesUnknown) ->
+                    let soCallee = o.callee |> Option.map (fun c -> c.name)
+                    let bAssumed =
+                        match o.callee with
+                        | Some {basis = ByCompilerAnalysis} -> true
+                        | Some {basis = ByContract}
+                        | None                              -> false
+                    Some (lm.isvalid.JoinItemsCannotFail content sNested soCallee bAssumed)
+    printFrom 0
+
+/// Coverage step 14q: a template that guards what follows a part with a check of its result (CONTAINING: the call or
+/// inline body of the contents, then the length / padding / PatchDet of the region) drops the check when the part
+/// cannot fail. None: the template keeps the check (decoding, or a part that may fail); Some note: the text that takes
+/// its place, as nestEncodeParts joins (C a comment; Ada a comment, and pragma Assert / Assume (result.Success) after
+/// a part that writes the result).
+let encodeNoCheckNote (lm:LanguageMacros) (codec:CommonTypes.Codec) (o:EncodeOutcome) : string option =
+    match codec, o.canFail with
+    | CommonTypes.Decode, _
+    | CommonTypes.Encode, true  -> None
+    | CommonTypes.Encode, false ->
+        let soCallee = o.callee |> Option.map (fun c -> c.name)
+        let bAssumed =
+            match o.callee with
+            | Some {basis = ByCompilerAnalysis} -> true
+            | Some {basis = ByContract}
+            | None                              -> false
+        let bWritesResult =
+            match o.writes with
+            | NoWrite                                                       -> false
+            | AlwaysWrites | SometimesWrites | ReadsFirst | WritesUnknown   -> true
+        Some (lm.isvalid.EncodeNoCheckNote soCallee bAssumed bWritesResult)
 
 let nestItems_ret (lm:LanguageMacros) children =
     nestItems  lm.isvalid.JoinTwoIfFirstOk children
@@ -1101,7 +1229,7 @@ let getBaseTypeDefName (lm:LanguageMacros) (baseTypeDefinitionName: string) (mod
         // e.g. Baz ::= Bar ::= Foo where Foo is in module A, Baz/Bar in module B.
         match ToC t.id.ModName = moduleName with
         | true  -> baseTypeDefinitionName
-        | false -> moduleName + "." + baseTypeDefinitionName
+        | false -> lm.lg.constructCrossModuleFuncPrefix moduleName + baseTypeDefinitionName
 
 let getBaseFuncName (lm:LanguageMacros) (typeDefinition:TypeDefinitionOrReference) (o:Asn1AcnAst.ReferenceType) (t: Asn1AcnAst.Asn1Type) (methodSuffix:string) (codec:CommonTypes.Codec) =
     let moduleName, typeDefinitionName0 =
@@ -1120,6 +1248,113 @@ let getBaseFuncName (lm:LanguageMacros) (typeDefinition:TypeDefinitionOrReferenc
 
     let baseTypeDefinitionName = getBaseTypeDefName lm typeDefinitionName0 moduleName t o
     baseTypeDefinitionName, lm.lg.constructFuncName baseTypeDefinitionName methodSuffix (lm.lg.codecSuffix codec)
+
+/// The type assignment whose own function a call from a reference site must use when the chain of type assignments
+/// from the referenced one reaches a CONTAINING (Issue 91, see getReferenceCallFuncName); None otherwise. Independent of
+/// the site's own encoding options: the contents of a CONTAINING site (`f OCTET STRING (CONTAINING Box)`, `Box ::= OCTET
+/// STRING (CONTAINING T)`) are Box's encoding, not T's (q/issues.md Issue 134).
+let chainCalleeTas (r:Asn1AcnAst.AstRoot) (o:Asn1AcnAst.ReferenceType) : Asn1AcnAst.TypeAssignment option =
+    let rec reachesContaining (modName:StringLoc) (tasName:StringLoc) (visited:Set<string*string>) =
+        let key = (modName.Value, tasName.Value)
+        match visited.Contains key with
+        | true  -> false
+        | false ->
+            let tas = (r.GetModuleByName modName).GetTypeAssignmentByName tasName r
+            match tas.Type.Kind with
+            | Asn1AcnAst.ReferenceType rf ->
+                match rf.encodingOptions with
+                | Some _ -> true
+                | None   -> reachesContaining rf.modName rf.tasName (visited.Add key)
+            | Asn1AcnAst.Integer _ | Asn1AcnAst.Real _ | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _
+            | Asn1AcnAst.OctetString _ | Asn1AcnAst.NullType _ | Asn1AcnAst.BitString _ | Asn1AcnAst.Boolean _
+            | Asn1AcnAst.Enumerated _ | Asn1AcnAst.ObjectIdentifier _ | Asn1AcnAst.SequenceOf _ | Asn1AcnAst.Sequence _
+            | Asn1AcnAst.Choice _ | Asn1AcnAst.TimeType _ -> false
+    match reachesContaining o.modName o.tasName Set.empty with
+    | false -> None
+    | true  -> Some ((r.GetModuleByName o.modName).GetTypeAssignmentByName o.tasName r)
+
+/// The type assignment whose own function a reference site without encoding options calls when the chain of type
+/// assignments reaches a CONTAINING (Issue 91, see getReferenceCallFuncName); None otherwise, and None for a site with
+/// encoding options of its own (a CONTAINING site: its contents call is containedCalleeTas). The single predicate for
+/// the call's name (containingTasTypeName) and for what the call does: the decode classifiers of
+/// BackendAst/DecodeOutcome.fs classify such a call by this type assignment, not by the contents that
+/// GetActualTypeByName reaches through the CONTAINING (q/issues.md Issue 133: the site was classified "cannot fail"
+/// after a call of a CONTAINING decoder that fails on a bad length).
+let containingCalleeTas (r:Asn1AcnAst.AstRoot) (o:Asn1AcnAst.ReferenceType) : Asn1AcnAst.TypeAssignment option =
+    match o.encodingOptions with
+    | Some _ -> None
+    | None   -> chainCalleeTas r o
+
+/// q/issues.md Issue 134 / Issue 138: the type assignment whose function encodes / decodes the contents of a CONTAINING
+/// site (a site with encoding options): the referenced type assignment itself (`f OCTET STRING (CONTAINING Sub)`: Sub);
+/// None for a site without encoding options. Its name is also the prefix of the site's temporary buffer constant
+/// (`<Sub>_REQUIRED_BYTES_FOR_[ACN_]ENCODING`). Every type assignment has functions and constants of its own, and the
+/// site's contents (without a site specification that overrides them, Issue 135: containingSiteSpecialised) are exactly
+/// its encoding. Before, the call and the buffer were named after the typedef the referenced type assignment shares
+/// (getBaseFuncName), while the region range came from the referenced type assignment: `Box ::= OCTET STRING
+/// (CONTAINING T)` (Issue 134), `Sub ::= T (WITH COMPONENTS ...)` and `Sub ::= T` with an ACN specification of its own
+/// (Issue 138) all share `typedef T`, so the site called T's functions (another encoding: --acn-v2 wrote a wrong
+/// stream, the legacy decoders wrote past the buffer).
+let containedCalleeTas (r:Asn1AcnAst.AstRoot) (o:Asn1AcnAst.ReferenceType) : Asn1AcnAst.TypeAssignment option =
+    match o.encodingOptions with
+    | None   -> None
+    | Some _ -> Some ((r.GetModuleByName o.modName).GetTypeAssignmentByName o.tasName r)
+
+/// q/issues.md Issue 135: --acn-v2 gives an embedded-length or fixed-size CONTAINING site whose ACN specification
+/// overrides the encoding of the contents (ReferenceType.contentsSpecOverride: `f [] { a [size 32] }`, also on the
+/// CONTAINING type assignment itself, `Box [] { a [size 32] }`) a function of its own with the merged contents
+/// (`<Path>_Containing_ACN_Encode/Decode`, DAstACNDeferred), as the external-size class does through closure conversion;
+/// the region then calls it instead of the type assignment's function (containedCalleeTas), whose encoding is another
+/// one. Not for contents with ACN parameters (DAstACNDeferred rejects an override of them) nor in legacy (which rejects
+/// a site whose sizes the type assignment's encoding does not fit, AcnReference.fs). The single predicate for the
+/// function the site calls (DAstACNDeferred) and for the classification of that call (BackendAst/DecodeOutcome.fs).
+let containingSiteSpecialised (r:Asn1AcnAst.AstRoot) (o:Asn1AcnAst.ReferenceType) : bool =
+    match r.args.acnDeferred, o.encodingOptions with
+    | false, _ | true, None -> false
+    | true, Some eo ->
+        match eo.acnEncodingClass with
+        | Asn1AcnAst.SZ_EC_FIXED_SIZE | Asn1AcnAst.SZ_EC_LENGTH_EMBEDDED _ ->
+            o.contentsSpecOverride && o.acnArguments.IsEmpty && o.resolvedType.acnParameters.IsEmpty
+        | Asn1AcnAst.SZ_EC_ExternalField _ | Asn1AcnAst.SZ_EC_TerminationPattern _ | Asn1AcnAst.SZ_EC_Deduced -> false
+
+/// The contents type whose encoding the function called by a CONTAINING site has (Issues 134, 135, 138): the site's own
+/// merged contents when the site is specialised (containingSiteSpecialised), else the referenced type assignment's
+/// (containedCalleeTas). For the outcome of the call (DecodeOutcome) and for size checks against the region.
+let containedCalleeType (r:Asn1AcnAst.AstRoot) (o:Asn1AcnAst.ReferenceType) : Asn1AcnAst.Asn1Type =
+    match containingSiteSpecialised r o, containedCalleeTas r o with
+    | true, _         -> o.resolvedType
+    | false, Some tas -> tas.Type
+    | false, None     -> Asn1AcnAstUtilFunctions.GetActualTypeByName r o.modName o.tasName
+
+/// The type name of a type assignment as a call from the module of t names it (module-qualified across modules).
+let private tasTypeNameFrom (lm:LanguageMacros) (t: Asn1AcnAst.Asn1Type) (tas:Asn1AcnAst.TypeAssignment) =
+    let tasTypeDef = lm.lg.getTypeDefinition tas.Type.FT_TypeDefinition
+    match lm.lg.hasModules && ToC t.id.ModName <> tasTypeDef.programUnit with
+    | true  -> lm.lg.constructCrossModuleFuncPrefix tasTypeDef.programUnit + tasTypeDef.typeName
+    | false -> tasTypeDef.typeName
+
+/// The (module-qualified) type name of the type assignment a reference site without encoding options names when the
+/// chain of type assignments reaches a CONTAINING (Issue 91, see getReferenceCallFuncName); None otherwise.
+let containingTasTypeName (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (o:Asn1AcnAst.ReferenceType) (t: Asn1AcnAst.Asn1Type) =
+    containingCalleeTas r o |> Option.map (tasTypeNameFrom lm t)
+
+/// q/issues.md Issue 91 (step 14k): the function a reference site without encoding options of its own calls. A type
+/// assignment `OctBox ::= OCTET STRING (CONTAINING Inner)` shares the contents' typedef (`typedef Inner OctBox`), so
+/// getBaseFuncName names the call after Inner and the site (`x OctBox`, also a CHOICE alternative, a SEQUENCE OF element,
+/// an alias `Box2 ::= OctBox`) encoded Inner without the OCTET / BIT STRING that OctBox's own function writes (and that
+/// REQUIRED_BITS and the ICD count). When the chain of type assignments reaches a CONTAINING, call the referenced type
+/// assignment's own function; otherwise getBaseFuncName.
+/// Issue 134: the same rule for the contents of a CONTAINING site (containedCalleeTas); there the first component (the
+/// buffer constant prefix of the CONTAINING arms) is the type assignment's name too. For a site without encoding options
+/// the first component is not read and stays getBaseFuncName's.
+let getReferenceCallFuncName (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (typeDefinition:TypeDefinitionOrReference) (o:Asn1AcnAst.ReferenceType) (t: Asn1AcnAst.Asn1Type) (methodSuffix:string) (codec:CommonTypes.Codec) =
+    let baseTypeDefinitionName, baseFncName = getBaseFuncName lm typeDefinition o t methodSuffix codec
+    match containingTasTypeName r lm o t, containedCalleeTas r o with
+    | Some tasName, _ -> baseTypeDefinitionName, lm.lg.constructFuncName tasName methodSuffix (lm.lg.codecSuffix codec)
+    | None, Some tas  ->
+        let tasName = tasTypeNameFrom lm t tas
+        tasName, lm.lg.constructFuncName tasName methodSuffix (lm.lg.codecSuffix codec)
+    | None, None      -> baseTypeDefinitionName, baseFncName
 
 
 let serializeIcdTasToXml (icdTypeAss: IcdTypeAss) =
@@ -1161,6 +1396,51 @@ let calcIcdTypeAssHash (t1:IcdTypeAss) =
         Convert.ToHexString bytes
     calcIcdTypeAssHash_aux t1
 *)
+
+/// The typedef that declares the value's Ada type: the type's own, or, for a type that resolves a reference to a
+/// type assignment without new constraints (inheritInfo), the type assignment's own (the type shares it, with the
+/// same constraints). None for an RTL type or anything else.
+let declaringTypedef (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefinitionOrReference) : TypeDefinition option =
+    match typeDefinition, t.inheritInfo with
+    | TypeDefinition td, _                     -> Some td
+    | ReferenceToExistingDefinition rd, Some inh when not rd.definedInRtl && not inh.hasAdditionalConstraints ->
+        let tasDefinition =
+            r.modulesMap.TryFind inh.modName |>
+            Option.bind (fun m -> m.typeAssignmentsMap.TryFind inh.tasName) |>
+            Option.bind (fun tas ->
+                match tas.Type.Kind with
+                | Asn1AcnAst.Integer o      -> Some (l.lg.definitionOrRef o.definitionOrRef)
+                | Asn1AcnAst.OctetString o  -> Some (l.lg.definitionOrRef o.definitionOrRef)
+                | Asn1AcnAst.BitString o    -> Some (l.lg.definitionOrRef o.definitionOrRef)
+                | Asn1AcnAst.SequenceOf o   -> Some (l.lg.definitionOrRef o.definitionOrRef)
+                | Asn1AcnAst.Real _ | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _ | Asn1AcnAst.NullType _
+                | Asn1AcnAst.Boolean _ | Asn1AcnAst.Enumerated _ | Asn1AcnAst.ObjectIdentifier _ | Asn1AcnAst.TimeType _
+                | Asn1AcnAst.Sequence _ | Asn1AcnAst.Choice _ | Asn1AcnAst.ReferenceType _ -> None)
+        match tasDefinition with
+        | Some (TypeDefinition td)                   -> Some td
+        | Some (ReferenceToExistingDefinition _)
+        | None                                       -> None
+    | ReferenceToExistingDefinition _, _       -> None
+
+/// Coverage step 14i (E2): the language type of a value of this type holds exactly one value, so two values of it are
+/// always equal. Only where the typedefs enforce ranges (Ada): an INTEGER whose typedef is the ranged subtype
+/// `range a .. a` (DAstTypeDefinition.createInteger declares the uPER range; a subtype narrows it), an ENUMERATED type
+/// with one item (the enumeration has only that literal; a constrained subtype of a wider ENUMERATED keeps all items).
+let typeHoldsOneValue (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) =
+    match l.lg.typedefConstraintModel with
+    | TypedefsAreBaseTypes  -> false
+    | TypedefsEnforceRanges ->
+        let at = t.ActualType
+        match at.Kind with
+        | Asn1AcnAst.Integer o ->
+            match o.uperRange with
+            | Concrete (a, b) when a = b -> (declaringTypedef r l at (l.lg.definitionOrRef o.definitionOrRef)).IsSome
+            | Concrete _ | NegInf _ | PosInf _ | Full -> false
+        | Asn1AcnAst.Enumerated o -> o.items.Length = 1
+        | Asn1AcnAst.Real _ | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _ | Asn1AcnAst.OctetString _
+        | Asn1AcnAst.NullType _ | Asn1AcnAst.BitString _ | Asn1AcnAst.Boolean _ | Asn1AcnAst.ObjectIdentifier _
+        | Asn1AcnAst.TimeType _ | Asn1AcnAst.SequenceOf _ | Asn1AcnAst.Sequence _ | Asn1AcnAst.Choice _
+        | Asn1AcnAst.ReferenceType _ -> false
 
 let serializeIcdTasToText (icdTypeAss: IcdTypeAss) =
     let printRow (r:IcdRow) =

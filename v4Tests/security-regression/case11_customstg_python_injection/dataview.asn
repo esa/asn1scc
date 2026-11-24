@@ -1,0 +1,8 @@
+DV DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+MyStr ::= IA5String (SIZE(0..200))
+
+-- ESACERT #75543 vector 1: quotes are doubled per X.680, the value contains Python code
+evilValue MyStr ::= "x""+str(__import__(""os"").system(""echo pwned>PROOF_VALUE.txt""))+""y"
+
+END

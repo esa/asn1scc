@@ -272,9 +272,45 @@ let getRequiredBitsForIntUperEncoding  (integerSizeInBytes:BigInteger) uperRange
     | Concrete(a,b)                   -> (GetNumberOfBitsForNonNegativeInteger(b-a)), (GetNumberOfBitsForNonNegativeInteger(b-a))
     | Full | PosInf(_) |  NegInf(_)   -> 8I, (integerSizeInBytes+1I)*8I
 
+/// Size in bits of an X.691 10.9 general length determinant of n units: one octet below 128, two below 16K; from 16K,
+/// parts of 16K .. 64K units with one header octet each, then the length of the last part (one or two octets). The
+/// maximum is an upper bound for every n <= nMax.
+let generalLengthMinBits (n:BigInteger) = if n < 128I then 8I else 16I
+let generalLengthMaxBits (nMax:BigInteger) =
+    match nMax with
+    | _ when nMax < 128I    -> 8I
+    | _ when nMax < 16384I  -> 16I
+    | _                     -> (nMax / 65536I + 3I) * 8I
+
+/// OCTET / BIT STRING (CONTAINING X) (Issue 94): the contents constraint is not PER-visible (X.691 9.3.16), so the
+/// string has a general length (octets, or bits for a BIT STRING) and its contents are the encoding of X padded to whole
+/// octets, one zero octet when that encoding is empty (10.1.3). Number of contents octets for X's size in bits.
+let containingOctets (contentsBits:BigInteger) = max 1I ((contentsBits + 7I) / 8I)
+
+/// uPER min / max size in bits of OCTET (unitBits = 8) / BIT (unitBits = 1) STRING (CONTAINING X), X's uPER sizes in bits.
+let getContainingSize (contentsMinBits:BigInteger) (contentsMaxBits:BigInteger) (unitBits:BigInteger) =
+    let nMin = containingOctets contentsMinBits * 8I / unitBits
+    let nMax = containingOctets contentsMaxBits * 8I / unitBits
+    nMin * unitBits + generalLengthMinBits nMin, nMax * unitBits + generalLengthMaxBits nMax
+
 let getSizeableTypeSize (a:BigInteger) (b:BigInteger) (internalSize:BigInteger) =
     let lenSize (a:BigInteger) (b:BigInteger) = GetNumberOfBitsForNonNegativeInteger(b-a)
     match a with
     | _ when a=b  && b<65536I -> a*internalSize                , b*internalSize
     | _ when a<>b && b<65536I -> a*internalSize + (lenSize a b), b*internalSize + (lenSize a b)
-    | _                       -> a*internalSize + (lenSize a b), b*internalSize + (b / 65536I + 3I) * 8I
+    // max >= 64K: a general length (X.691 10.9), whose shortest form is one octet below 128 units, two above
+    | _                       -> a*internalSize + generalLengthMinBits a, b*internalSize + generalLengthMaxBits b
+
+/// Min / max size in bits of the uPER encoding of a sizeable type whose length field follows the PER-visible size range
+/// uMin..uMax while its values have aMin..aMax units (a WITH COMPONENT(S) narrowing reaches a child only as an ACN size,
+/// X.691: inner subtype constraints are not PER-visible). Used for the ACN default string class
+/// (Acn_Enc_String_uPER), which encodes with the uPER body (AcnStrings.fs): the length field of the uPER range and only
+/// the narrowed number of characters (Issue 168). aMin..aMax = uMin..uMax gives getSizeableTypeSize uMin uMax.
+let getNarrowedSizeableTypeSize (uMin:BigInteger) (uMax:BigInteger) (aMin:BigInteger) (aMax:BigInteger) (internalSize:BigInteger) =
+    match uMin = uMax, uMax < 65536I with
+    | true,  true  -> aMin*internalSize, aMax*internalSize
+    | false, true  ->
+        let lenSize = GetNumberOfBitsForNonNegativeInteger(uMax-uMin)
+        aMin*internalSize + lenSize, aMax*internalSize + lenSize
+    // max >= 64K: a general length of the narrowed number of units (a fixed narrowed size keeps min = max)
+    | _,     false -> aMin*internalSize + generalLengthMinBits aMin, aMax*internalSize + generalLengthMaxBits aMax

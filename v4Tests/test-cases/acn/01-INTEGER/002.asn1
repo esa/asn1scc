@@ -23,7 +23,7 @@ END
 --TCLS     MyPDU[]
 
 
---TCLFC     MyPDU[encoding ASCII, size 152]       $$$  sample1.acn:4:6: error: The applied ACN encoding does not allow values larger than 999999999999999999 to be encoded, while the corresponding ASN.1 type allows values up to 18446744073709551615
+--TCLFC     MyPDU[encoding ASCII, size 152]       $$$  sample1.acn:4:6: error: The applied ACN encoding does not allow values larger than 9999999999999999999 to be encoded, while the corresponding ASN.1 type allows values up to 18446744073709551615
 --TCLFC     MyPDU[encoding BCD, size -200]     $$$  sample1.acn:4:21: error: no viable alternative at input 'size'
 -- TCLFC     MyPDU[encoding BCD, size 200]   $$$ sample1.acn:4:6: error: Resulting integer encoding can have values up to 99999999999999999999999999999999999999999999999999 which is larger than MAXINT (9223372036854775807)
 --TCLFC     MyPDU[encoding ASCII, size -200]     $$$  sample1.acn:4:23: error: no viable alternative at input 'size'

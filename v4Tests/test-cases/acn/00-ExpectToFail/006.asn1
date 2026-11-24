@@ -1,0 +1,13 @@
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	-- Issue 53 (see 005): a size determinant inside an OPTIONAL component used
+	-- by a mandatory component outside it. (An OPTIONAL component may depend on
+	-- it: 25-ACNV2-BOUNDARIES/021.)
+	Holder2 ::= SEQUENCE {
+		header SEQUENCE { b INTEGER (0..7) } OPTIONAL,
+		list SEQUENCE (SIZE (0..3)) OF INTEGER (0..7)
+	}
+
+END
+
+--TCLFC    Holder2 [] { header [] { len INTEGER [encoding pos-int, size 2], b [] }, list [size header.len] }          $$$ sample1.acn:4:85: error: Invalid reference 'header.len': component 'header' is OPTIONAL, so the ACN fields inside it are not encoded when it is absent, but the component that depends on them is always present.

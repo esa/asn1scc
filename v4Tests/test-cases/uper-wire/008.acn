@@ -1,0 +1,4 @@
+UPER-WIRE-RANGE DEFINITIONS ::= BEGIN
+    R1 [encoding pos-int, size 8]
+    R2 [encoding pos-int, size 8]
+END

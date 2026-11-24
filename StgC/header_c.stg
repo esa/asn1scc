@@ -170,7 +170,7 @@ Define_new_ia5string(td/*:FE_StringTypeDefinition*/, nMin, nMax, nCMax, arrnAlph
 typedef char <td.typeName>[<nCMax>];
 >>
 
-Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage, arr_Asn1Encoding) ::= <<
+Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage, arrnAlphaChars, arr_Asn1Encoding) ::= <<
 typedef <prTd.typeName> <td.typeName>;
 >>
 

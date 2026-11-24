@@ -1,0 +1,480 @@
+{
+  "navOrder": [
+    "Percent@MAPPING.Percent",
+    "Offset@MAPPING.Offset",
+    "PayloadData@MAPPING.PayloadData",
+    "ReadingList@MAPPING.ReadingList",
+    "Frame@MAPPING.Frame"
+  ],
+  "tables": [
+    {
+      "id": "Percent@MAPPING.Percent",
+      "name": "Percent",
+      "kind": "INTEGER",
+      "tasInfo": {
+        "modName": "MAPPING",
+        "tasName": "Percent"
+      },
+      "module": "MAPPING",
+      "usagePath": "MAPPING.Percent",
+      "usageSites": [
+        "MAPPING.Percent"
+      ],
+      "hasAcnDefinition": true,
+      "minLengthInBytes": 1,
+      "maxLengthInBytes": 1,
+      "comments": [],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [
+            "mapping-function app_mappers.percent: the encoded value is transformed by this function on encoding and decoding"
+          ],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(0 .. 100)",
+          "minLengthInBits": 8,
+          "maxLengthInBits": 8,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Offset@MAPPING.Offset",
+      "name": "Offset",
+      "kind": "INTEGER",
+      "tasInfo": {
+        "modName": "MAPPING",
+        "tasName": "Offset"
+      },
+      "module": "MAPPING",
+      "usagePath": "MAPPING.Offset",
+      "usageSites": [
+        "MAPPING.Offset"
+      ],
+      "hasAcnDefinition": true,
+      "minLengthInBytes": 1,
+      "maxLengthInBytes": 1,
+      "comments": [],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [
+            "mapping-function offset_map: the encoded value is transformed by this function on encoding and decoding"
+          ],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(-50 .. 50)",
+          "minLengthInBits": 8,
+          "maxLengthInBits": 8,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "PayloadData@MAPPING.PayloadData",
+      "name": "PayloadData",
+      "kind": "OCTET STRING",
+      "tasInfo": {
+        "modName": "MAPPING",
+        "tasName": "PayloadData"
+      },
+      "module": "MAPPING",
+      "usagePath": "MAPPING.PayloadData",
+      "usageSites": [
+        "MAPPING.PayloadData"
+      ],
+      "hasAcnDefinition": false,
+      "minLengthInBytes": 2,
+      "maxLengthInBytes": 17,
+      "comments": [],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": 1,
+          "fieldName": "Length",
+          "comments": [
+            "The number of bytes"
+          ],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(1 .. 16)",
+          "minLengthInBits": 4,
+          "maxLengthInBits": 4,
+          "sUnits": null,
+          "rowType": "LengthDeterminantRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        },
+        {
+          "idxOffset": 2,
+          "fieldName": "",
+          "comments": [],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "OCTET STRING"
+          },
+          "sConstraint": "(1 .. 16)",
+          "minLengthInBits": 8,
+          "maxLengthInBits": 128,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "range",
+            "minBits": 0,
+            "maxBits": 4,
+            "display": "0..4"
+          }
+        }
+      ]
+    },
+    {
+      "id": "ReadingList@MAPPING.ReadingList",
+      "name": "ReadingList",
+      "kind": "SEQUENCE OF",
+      "tasInfo": {
+        "modName": "MAPPING",
+        "tasName": "ReadingList"
+      },
+      "module": "MAPPING",
+      "usagePath": "MAPPING.ReadingList",
+      "usageSites": [
+        "MAPPING.Frame.readings",
+        "MAPPING.ReadingList"
+      ],
+      "hasAcnDefinition": false,
+      "minLengthInBytes": 1,
+      "maxLengthInBytes": 5,
+      "comments": [
+        ""
+      ],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": 1,
+          "fieldName": "Length",
+          "comments": [
+            "The number of items"
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 3,
+          "maxLengthInBits": 3,
+          "sUnits": null,
+          "rowType": "LengthDeterminantRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        },
+        {
+          "idxOffset": 2,
+          "fieldName": "Item #1",
+          "comments": [
+            "mapping-function app_mappers.percent: the encoded value is transformed by this function on encoding and decoding"
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (Percent)"
+          },
+          "sConstraint": "(0 .. 100)",
+          "minLengthInBits": 8,
+          "maxLengthInBits": 8,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 3,
+            "maxBits": 3,
+            "display": "3"
+          }
+        },
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": ""
+          },
+          "sConstraint": null,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 0,
+          "sUnits": null,
+          "rowType": "ThreeDOTs",
+          "offset": {
+            "kind": "none",
+            "minBits": null,
+            "maxBits": null,
+            "display": null
+          }
+        },
+        {
+          "idxOffset": 5,
+          "fieldName": "Item #4",
+          "comments": [
+            "mapping-function app_mappers.percent: the encoded value is transformed by this function on encoding and decoding"
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (Percent)"
+          },
+          "sConstraint": "(0 .. 100)",
+          "minLengthInBits": 8,
+          "maxLengthInBits": 8,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "variable",
+            "minBits": null,
+            "maxBits": null,
+            "display": "variable"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Frame@MAPPING.Frame",
+      "name": "Frame",
+      "kind": "SEQUENCE",
+      "tasInfo": {
+        "modName": "MAPPING",
+        "tasName": "Frame"
+      },
+      "module": "MAPPING",
+      "usagePath": "MAPPING.Frame",
+      "usageSites": [
+        "MAPPING.Frame"
+      ],
+      "hasAcnDefinition": true,
+      "minLengthInBytes": 4,
+      "maxLengthInBytes": 23,
+      "comments": [],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": 1,
+          "fieldName": "payload-len",
+          "comments": [
+            "size determinant for MAPPING.Frame.payload ",
+            "mapping-function app_mappers.payload_length: occupies no bits on the wire; the value is provided by the function at run time"
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 0,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        },
+        {
+          "idxOffset": 2,
+          "fieldName": "pct",
+          "comments": [
+            "mapping-function app_mappers.percent: the encoded value is transformed by this function on encoding and decoding"
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (Percent)"
+          },
+          "sConstraint": "(0 .. 100)",
+          "minLengthInBits": 8,
+          "maxLengthInBits": 8,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        },
+        {
+          "idxOffset": 3,
+          "fieldName": "off",
+          "comments": [
+            "mapping-function offset_map: the encoded value is transformed by this function on encoding and decoding"
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (Offset)"
+          },
+          "sConstraint": "(-50 .. 50)",
+          "minLengthInBits": 8,
+          "maxLengthInBits": 8,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 8,
+            "maxBits": 8,
+            "display": "8"
+          }
+        },
+        {
+          "idxOffset": 4,
+          "fieldName": "payload",
+          "comments": [
+            "Length is determined by the external field: payload-len"
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "OCTET STRING (PayloadData)"
+          },
+          "sConstraint": "(1 .. 16)",
+          "minLengthInBits": 8,
+          "maxLengthInBits": 128,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 16,
+            "maxBits": 16,
+            "display": "16"
+          }
+        },
+        {
+          "idxOffset": 5,
+          "fieldName": "readings",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "SEQUENCE OF"
+          },
+          "sConstraint": "(0 .. 4)",
+          "minLengthInBits": 3,
+          "maxLengthInBits": 35,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "range",
+            "minBits": 24,
+            "maxBits": 144,
+            "display": "24..144"
+          }
+        },
+        {
+          "idxOffset": 1,
+          "fieldName": "readings[1]",
+          "comments": [
+            "mapping-function app_mappers.percent: the encoded value is transformed by this function on encoding and decoding"
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (Percent)"
+          },
+          "sConstraint": "(0 .. 100)",
+          "minLengthInBits": 8,
+          "maxLengthInBits": 8,
+          "sUnits": null,
+          "rowType": "SubItemRow",
+          "offset": {
+            "kind": "none",
+            "minBits": null,
+            "maxBits": null,
+            "display": null
+          }
+        },
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": ""
+          },
+          "sConstraint": null,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 0,
+          "sUnits": null,
+          "rowType": "ThreeDOTs",
+          "offset": {
+            "kind": "none",
+            "minBits": null,
+            "maxBits": null,
+            "display": null
+          }
+        },
+        {
+          "idxOffset": 4,
+          "fieldName": "readings[4]",
+          "comments": [
+            "mapping-function app_mappers.percent: the encoded value is transformed by this function on encoding and decoding"
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (Percent)"
+          },
+          "sConstraint": "(0 .. 100)",
+          "minLengthInBits": 8,
+          "maxLengthInBits": 8,
+          "sUnits": null,
+          "rowType": "SubItemRow",
+          "offset": {
+            "kind": "none",
+            "minBits": null,
+            "maxBits": null,
+            "display": null
+          }
+        }
+      ]
+    }
+  ]
+}

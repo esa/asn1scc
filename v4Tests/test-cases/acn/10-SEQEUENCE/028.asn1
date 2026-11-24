@@ -1,0 +1,18 @@
+-- A REAL child whose automatic values differ by less than the tolerance of Asn1Real_Equal (1.0 and 1.000001):
+-- an Equal test must not assert that two such values compare unequal (the referenced type's inner variants are
+-- lifted to its parents for the Equal tests).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+   Colors ::= ENUMERATED { a, b, c }
+
+   Inner ::= SEQUENCE {
+      r       REAL (0.0 | 1.0 | 1.000001),
+      octets  OCTET STRING (SIZE(1..2)),
+      items   SEQUENCE (SIZE(1..2)) OF Colors
+   }
+
+   Outer ::= SEQUENCE { sub Inner }
+
+END
+
+--TCLS     Inner [] { n INTEGER [encoding pos-int, size 8], r [], octets [size n], items [size n] }

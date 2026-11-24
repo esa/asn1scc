@@ -1,0 +1,160 @@
+-- A determinant field inside an OPTIONAL component, its dependent outside it: a stream that says the component is
+-- absent and the dependent present does not hold the field, and the decoder fails with the dependent's error code (it
+-- used to read the field's unset local: C wrote past the array of data, Ada raised Constraint_Error). Hand-made streams,
+-- the bytes after them 0xAB.
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 003_decode_test.c / 003_decode_test.adb (and the encoder
+-- checks 003_encode_test.c / 003_encode_test.adb: a value with the component absent and the dependent present), legacy and
+-- --acn-v2 (an ACN argument and a CONTAINING size are passed to an --acn-v2 specialised function as a reference whose
+-- in_stream says whether the field is in the stream: the error codes of those two types differ by mode).
+WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    -- sizes of an OCTET STRING (8-bit field, no range check) and of an IA5String
+    MyPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        data    OCTET STRING (SIZE(0..255)) OPTIONAL,
+        str     IA5String (SIZE(0..255)) OPTIONAL
+    }
+    -- CHOICE determinant
+    Kind ::= ENUMERATED { c1, c2 }
+    ChPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        ch      CHOICE { c1 INTEGER(0..7), c2 BOOLEAN } OPTIONAL
+    }
+    -- CHOICE present-when an INTEGER field and a string field
+    PwPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        cp      CHOICE { p1 INTEGER(0..7), p2 BOOLEAN } OPTIONAL
+    }
+    Tag ::= IA5String (SIZE(2))
+    PwStrPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        cs      CHOICE { s1 INTEGER(0..7), s2 BOOLEAN } OPTIONAL
+    }
+    -- present-when a BOOLEAN field of the component: absent with it (no failure); the field is also passed to p as an
+    -- ACN argument (--acn-v2: a deferred field, decoded into a local that the present-when reads)
+    Payload3 ::= SEQUENCE { y INTEGER(0..1) OPTIONAL }
+    BoolPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        x       INTEGER(0..255) OPTIONAL,
+        p       Payload3 OPTIONAL,
+        tail    INTEGER(0..255)
+    }
+    -- the same inside a SEQUENCE OF element: an element without the component must not see the previous element's field
+    SqPDU ::= SEQUENCE (SIZE(2)) OF SEQUENCE {
+        h    SEQUENCE { a INTEGER (0..1) } OPTIONAL,
+        x    OCTET STRING (SIZE(0..15)) OPTIONAL,
+        tail INTEGER (0..1)
+    }
+    -- inside a SEQUENCE OF element: element 2 must not use the size of element 1
+    ElemPDU ::= SEQUENCE {
+        elems   SEQUENCE (SIZE(1..3)) OF SEQUENCE {
+            hh SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+            dd OCTET STRING (SIZE(0..15)) OPTIONAL
+        }
+    }
+    -- nested components: both must be present
+    NestPDU ::= SEQUENCE {
+        h1      SEQUENCE { a INTEGER(0..255), h2 SEQUENCE { b INTEGER(0..255) } OPTIONAL } OPTIONAL,
+        d       OCTET STRING (SIZE(0..15)) OPTIONAL
+    }
+    -- nested components present when the same field says so as the dependent: no check, both decode together
+    Nest2PDU ::= SEQUENCE {
+        h1      SEQUENCE { a INTEGER(0..255), h2 SEQUENCE { b INTEGER(0..255) } OPTIONAL } OPTIONAL,
+        d       OCTET STRING (SIZE(0..15)) OPTIONAL
+    }
+    -- the dependent is an alternative of a mandatory CHOICE
+    AltPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        alt     CHOICE { o1 OCTET STRING (SIZE(0..10)), o2 NULL }
+    }
+    -- a CONTAINING sized by the field
+    Inner ::= SEQUENCE { v INTEGER(0..255) }
+    ContPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        cont    OCTET STRING (CONTAINING Inner) OPTIONAL
+    }
+    -- the field passed as an ACN argument: legacy decodes the referenced type in place and checks at d
+    Payload ::= SEQUENCE { d OCTET STRING (SIZE(0..15)) }
+    ArgPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        pl      Payload OPTIONAL,
+        tail    INTEGER(0..255)
+    }
+    -- an ACN argument used only by an absent part of the referenced type: a valid stream (both modes decode it)
+    Payload2 ::= SEQUENCE { d OCTET STRING (SIZE(0..15)) OPTIONAL, e INTEGER(0..255) }
+    OptArgPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        pl      Payload2 OPTIONAL,
+        tail    INTEGER(0..255)
+    }
+    -- two ACN fields whose decode locals have the same name (a.b-h.more, a-b.h.more): the shared local is not reset
+    ColPDU ::= SEQUENCE {
+        a    SEQUENCE { b-h SEQUENCE { c INTEGER (0..1) } OPTIONAL } OPTIONAL,
+        a-b  SEQUENCE { h SEQUENCE { c INTEGER (0..1) } OPTIONAL, w SEQUENCE { z INTEGER (0..1) OPTIONAL } OPTIONAL },
+        y    INTEGER (0..1) OPTIONAL,
+        tail INTEGER (0..1)
+    }
+    -- a present-when field that shares its local with another field (a.b-h.more, a-b.h.more) does not make header
+    -- dominate data: header absent, the shared local set by a-b.h.more, data present: the size is not in the stream
+    Col2PDU ::= SEQUENCE {
+        a      SEQUENCE { b-h SEQUENCE { c INTEGER(0..1) } },
+        header SEQUENCE { c INTEGER (0..1) } OPTIONAL,
+        a-b    SEQUENCE { h SEQUENCE { c INTEGER(0..1) } },
+        w      INTEGER (0..1) OPTIONAL,
+        data   OCTET STRING (SIZE(0..255)) OPTIONAL,
+        tail   INTEGER(0..1)
+    }
+    -- the component is ALWAYS ABSENT: a present dependent always fails
+    -- (a referenced component type: the Ada init function of an inline ALWAYS ABSENT SEQUENCE is not emitted)
+    Hdr ::= SEQUENCE { a INTEGER(0..255) }
+    AbsPDU ::= SEQUENCE {
+        header  Hdr OPTIONAL,
+        data    OCTET STRING (SIZE(0..15)) OPTIONAL
+    } (WITH COMPONENTS {header ABSENT, data})
+    -- a referenced CHOICE whose determinant is an ACN argument (q/issues.md Issue 108: encoder checks only)
+    RefKc ::= CHOICE { one INTEGER(0..7), two BOOLEAN }
+    RefChPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        ch      RefKc OPTIONAL
+    }
+    -- the dependent present when the same field says so as the component, the field also passed to a reference
+    -- (--acn-v2: a deferred field, whose patches are checked after the value is written; encoder checks only)
+    DefPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        d       OCTET STRING (SIZE(0..15)) OPTIONAL,
+        p       Payload3,
+        tail    INTEGER(0..255)
+    }
+    -- an aligned dependent (encoder checks only)
+    AlPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        d       OCTET STRING (SIZE(0..15)) OPTIONAL,
+        tail    INTEGER(0..255)
+    }
+    -- an IA5String size alone (encoder checks only)
+    StrOnlyPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        str     IA5String (SIZE(0..15)) OPTIONAL
+    }
+    -- a referenced CHOICE whose ENUMERATED determinant is an ACN argument (encoder checks only)
+    Kind2 ::= ENUMERATED { e1, e2 }
+    RefKe ::= CHOICE { e1 INTEGER(0..7), e2 BOOLEAN }
+    EnChPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        ch      RefKe OPTIONAL
+    }
+    -- referenced dependents whose determinant is an ACN argument, aligned at the site (--acn-v2: a call of a
+    -- specialised function; encoder checks only)
+    MyOct ::= OCTET STRING (SIZE(0..15))
+    MySq ::= SEQUENCE (SIZE(0..3)) OF INTEGER(0..255)
+    AlRefPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        ch      RefKe OPTIONAL,
+        d       MyOct OPTIONAL,
+        arr     MySq OPTIONAL
+    }
+    -- component and dependent present when the same field says so: no check, both decode together
+    SamePDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        data    OCTET STRING (SIZE(0..15)) OPTIONAL
+    }
+END

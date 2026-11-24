@@ -67,9 +67,9 @@ let isEqual_Real (p1:string) (p2:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "equal_rust" "isEqual_Real" [("p1",p1 :>Object);("p2",p2 :>Object)]
 
-let isEqual_BitString (p1:string) (p2:string) (bIsFixedSize:bool) (nFixedSize:BigInteger) =
+let isEqual_BitString (p1:string) (p2:string) (bIsFixedSize:bool) (nFixedSize:BigInteger) (bFullBytes:bool) (bTrailingBits:bool) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "equal_rust" "isEqual_BitString" [("p1",p1 :>Object);("p2",p2 :>Object);("bIsFixedSize",bIsFixedSize :>Object);("nFixedSize",nFixedSize :>Object)]
+    ST.call "equal_rust" "isEqual_BitString" [("p1",p1 :>Object);("p2",p2 :>Object);("bIsFixedSize",bIsFixedSize :>Object);("nFixedSize",nFixedSize :>Object);("bFullBytes",bFullBytes :>Object);("bTrailingBits",bTrailingBits :>Object)]
 
 let isEqual_OctetString (p1:string) (p2:string) (bIsFixedSize:bool) (nFixedSize:BigInteger) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
@@ -83,9 +83,9 @@ let isEqual_Choice_Child (sChoiceTypeDefName:string) (sCid:string) (sInnerStatem
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "equal_rust" "isEqual_Choice_Child" [("sChoiceTypeDefName",(if sChoiceTypeDefName = null then null else ST.StrHelper sChoiceTypeDefName:>Object) );("sCid",(if sCid = null then null else ST.StrHelper sCid:>Object) );("sInnerStatement",(if sInnerStatement = null then null else ST.StrHelper sInnerStatement:>Object) );("sTmpVarName1",(if sTmpVarName1 = null then null else ST.StrHelper sTmpVarName1:>Object) );("sTmpVarName2",(if sTmpVarName2 = null then null else ST.StrHelper sTmpVarName2:>Object) )]
 
-let isEqual_Choice (p1:string) (p2:string) (sAccess:string) (arrsChildren:seq<string>) =
+let isEqual_Choice (p1:string) (p2:string) (sAccess:string) (arrsChildren:seq<string>) (bOneAlternative:bool) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "equal_rust" "isEqual_Choice" [("p1",p1 :>Object);("p2",p2 :>Object);("sAccess",(if sAccess = null then null else ST.StrHelper sAccess:>Object) );("arrsChildren",(arrsChildren|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object)]
+    ST.call "equal_rust" "isEqual_Choice" [("p1",p1 :>Object);("p2",p2 :>Object);("sAccess",(if sAccess = null then null else ST.StrHelper sAccess:>Object) );("arrsChildren",(arrsChildren|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("bOneAlternative",bOneAlternative :>Object)]
 
 let isEqual_Sequence_child (p1:string) (p2:string) (sAcc:string) (bIsOptional:bool) (sChName:string) (soInnerStatement:string option) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true

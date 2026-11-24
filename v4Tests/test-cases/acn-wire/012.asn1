@@ -1,0 +1,13 @@
+-- Dependents without bits (a NULL without pattern, an empty SEQUENCE) present when a BOOLEAN field of an OPTIONAL
+-- component says so: with the component absent the field is not in the stream and the decoder reads it FALSE, so no
+-- stream holds such a value; the encoder must reject it before writing anything more (q/issues.md Issue 108, rule R4).
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 012_wire_test.c / 012_wire_test.adb, legacy and
+-- --acn-v2 (C without -pedantic-errors: the empty SEQUENCE is an empty struct).
+ZERO DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    ZeroPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        z       NULL OPTIONAL,
+        e       SEQUENCE { } OPTIONAL,
+        tail    INTEGER(0..255)
+    }
+END

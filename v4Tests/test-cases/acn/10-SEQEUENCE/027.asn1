@@ -1,0 +1,15 @@
+-- C_ADA_ONLY: the experimental Python and Rust decoders keep the previous element's field in this shape (Rust: 2 round trips fail; its output is not changed by the C / Ada fix)
+-- A present-when BOOLEAN field of an OPTIONAL component inside a SEQUENCE OF element, its dependent outside the
+-- component: the field's decode local is declared once, before the loop, so an element without the component used to
+-- see the previous element's field (a wrong value: x present with a size from the previous element). The decoders set
+-- it to FALSE at the start of every element. x present implies h present (its present-when field is in h), so the size
+-- of x needs no check.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+    SqPDU ::= SEQUENCE (SIZE(2)) OF SEQUENCE {
+        h    SEQUENCE { a INTEGER (0..1) } OPTIONAL,
+        x    OCTET STRING (SIZE(0..15)) OPTIONAL,
+        tail INTEGER (0..1)
+    }
+END
+
+--TCFS     027.acn

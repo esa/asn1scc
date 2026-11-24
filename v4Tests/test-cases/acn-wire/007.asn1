@@ -1,0 +1,39 @@
+-- --acn-v2: an ACN parameter of a referenced type consumed inside the elements of a SEQUENCE OF of that type
+-- (q/issues.md Issue 124). One determinant for every element: the specialised encoder used to patch it after the loop
+-- from the element after the last one (out of the array when the list is full: C ASan / Ada Constraint_Error; else a
+-- stale element: wrong determinant, silent corruption). Now every element patches it (checked: elements that disagree
+-- fail with ERR_ACN_DET_CONSISTENCY_MISMATCH), each loop under the checks of the path above its SEQUENCE OF; an empty
+-- list leaves the fallback of the field's owner.
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 007_wire_test.c / 007_wire_test.adb (C with ASan / UBSan,
+-- Ada with -gnata), --acn-v2 only; legacy rejects these shapes (the script checks the messages, also of the grammars in
+-- 007_reject/). The corpus twin with automatic tests is test-cases/acn/25-ACNV2-BOUNDARIES/043.
+WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    MyOct ::= OCTET STRING (SIZE(0..15))
+    Kind ::= ENUMERATED { k1, k2 }
+    -- inline element SEQUENCE
+    PA ::= SEQUENCE { items SEQUENCE (SIZE(0..2)) OF SEQUENCE { o OCTET STRING (SIZE(0..15)) } }
+    TA ::= SEQUENCE { a INTEGER(0..255), pl PA, tail INTEGER(0..255) }
+    -- a direct consumer next to the loop one
+    PF ::= SEQUENCE { d OCTET STRING (SIZE(0..15)) OPTIONAL, items SEQUENCE (SIZE(0..2)) OF MyOct }
+    TF ::= SEQUENCE { a INTEGER(0..255), pl PF, tail INTEGER(0..255) }
+    -- present-when in the element
+    PD ::= SEQUENCE { items SEQUENCE (SIZE(1..2)) OF SEQUENCE { x INTEGER(0..7) OPTIONAL, y INTEGER(0..7) } }
+    TD ::= SEQUENCE { a INTEGER(0..255), pl PD, tail INTEGER(0..255) }
+    -- two callees
+    TH ::= SEQUENCE { a INTEGER(0..255), p1 PA, p2 PA, tail INTEGER(0..255) }
+    -- the SEQUENCE OF under an OPTIONAL component / in a CHOICE alternative (its length is read only when it exists)
+    PX2 ::= SEQUENCE { items SEQUENCE (SIZE(1..2)) OF SEQUENCE { o OCTET STRING (SIZE(0..15)) } OPTIONAL }
+    TX2 ::= SEQUENCE { a INTEGER(0..255), pl PX2, tail INTEGER(0..255) }
+    PX3 ::= CHOICE { a INTEGER(0..7), items SEQUENCE (SIZE(1..2)) OF SEQUENCE { o OCTET STRING (SIZE(0..15)) } }
+    TX3 ::= SEQUENCE { a INTEGER(0..255), pl PX3, tail INTEGER(0..255) }
+    -- an inline CHOICE element selected by the parameter
+    PX4 ::= SEQUENCE { items SEQUENCE (SIZE(1..2)) OF CHOICE { k1 INTEGER(0..7), k2 BOOLEAN } }
+    TX4 ::= SEQUENCE { a INTEGER(0..255), pl PX4, tail INTEGER(0..255) }
+    -- nested loops
+    PE ::= SEQUENCE { rows SEQUENCE (SIZE(1..2)) OF SEQUENCE { cols SEQUENCE (SIZE(1..2)) OF MyOct } }
+    TE ::= SEQUENCE { a INTEGER(0..255), pl PE, tail INTEGER(0..255) }
+    -- the callee in an outer SEQUENCE OF element: its own determinant per outer element
+    M1 ::= SEQUENCE (SIZE(1..2)) OF SEQUENCE { a INTEGER(0..255), pl PA }
+    -- the field's holder is absent (the field is not in the stream: the patches write nothing)
+    TV ::= SEQUENCE { a INTEGER(0..255), h SEQUENCE { b INTEGER(0..7) } OPTIONAL, pl PA OPTIONAL, tail INTEGER(0..255) }
+END

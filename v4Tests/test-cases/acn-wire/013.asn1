@@ -1,0 +1,25 @@
+-- Issue 135: --acn-v2, an OCTET / BIT STRING (CONTAINING T) with an embedded length or a fixed size whose ACN
+-- specification overrides the encoding of the contents (at the site, `f [] { a [size 32, encoding pos-int], b [] }`,
+-- or on the CONTAINING type assignment, `Box [] { ... }`) encodes the contents as the specification says, in a function
+-- of the site (`<Path>_Containing_ACN_Encode / _Decode`). Before, the region's sizes followed the specification but
+-- the code called T's own function: a wrong stream (round trips passed), and for the BIT STRING embedded form a length
+-- outside its range (C: a read past a mask table of the runtime). Controls with unchanged bytes: a site with only
+-- `present-when` (a property of the container) and an external size (already specialised).
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 013_wire_test.c / 013_wire_test.adb (--acn-v2 only;
+-- without it these specifications are rejected, 009).
+ACN-WIRE-CONTENTS DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    T     ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN OPTIONAL }
+    Tf    ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN }
+    Tc    ::= SEQUENCE { a INTEGER (0..255), c INTEGER (0..65535) OPTIONAL }
+    T16   ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN }
+    Box   ::= OCTET STRING (CONTAINING T)
+    BBox  ::= BIT STRING (CONTAINING T)
+    FixO  ::= SEQUENCE { f OCTET STRING (CONTAINING Tf), z BOOLEAN }
+    EmbO  ::= SEQUENCE { f OCTET STRING (CONTAINING Tc), z BOOLEAN }
+    FixB  ::= SEQUENCE { f BIT STRING (CONTAINING Tf), z BOOLEAN }
+    EmbB  ::= SEQUENCE { f BIT STRING (CONTAINING T), z BOOLEAN }
+    Eq    ::= SEQUENCE { f OCTET STRING (CONTAINING T16), g BIT STRING (CONTAINING T16), z BOOLEAN }
+    Tas   ::= SEQUENCE { x Box, y BBox, z BOOLEAN }
+    Ctl   ::= SEQUENCE { f OCTET STRING (CONTAINING T) OPTIONAL, z BOOLEAN }
+    Ext   ::= SEQUENCE { f OCTET STRING (CONTAINING T), z BOOLEAN }
+END

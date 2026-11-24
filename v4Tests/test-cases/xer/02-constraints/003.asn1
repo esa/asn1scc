@@ -1,0 +1,11 @@
+-- XER size of an ENUMERATED (GitHub #272): the size was computed from the item name that sorts last (zlib), not from
+-- the longest one, so <T>_REQUIRED_BYTES_FOR_XER_ENCODING could be too small. scripts/runWireTests.sh encodes the
+-- longest item into a buffer of exactly that size with 003_size_test.c (C).
+
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    Compression-Type ::= ENUMERATED { none(0), zlib(1), lzma(2), reserved(15), alsoReservedForLaterUse(16) }
+    Msg  ::= SEQUENCE { c Compression-Type }
+    List ::= SEQUENCE (SIZE(5)) OF Compression-Type
+
+END

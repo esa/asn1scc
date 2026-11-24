@@ -1,0 +1,43 @@
+--RUN_SPARK C_ADA_ONLY (Python, Rust: types of the same name in two modules fail on master too, see 007 / 008)
+-- Two modules define types of the same names whose validators differ: an alias that restates its base (no validity
+-- call in the encoder) in one module, an alias with a value constraint (call) in the other. Each encoder must follow
+-- the validator emitted under its own module's name (the outcomes are looked up by module-qualified name).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   IMPORTS T1, Oc, APDU FROM MOD-A;
+
+   T2  ::= T1 (0..10)
+   T3  ::= T1 (0..100)
+   T4  ::= T3
+   Oc2 ::= Oc (SIZE(3))
+   Oc3 ::= Oc2 ('010203'H)
+   Oc1 ::= Oc ('010203'H)
+
+   MyPDU ::= SEQUENCE {
+      a  T2,
+      b  T1,
+      c  T4,
+      d  Oc2,
+      e  Oc3,
+      f  Oc1,
+      g  APDU
+   }
+END
+
+MOD-A DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   T0  ::= INTEGER (0..255)
+   T1  ::= T0 (0..100)
+   Oc  ::= OCTET STRING (SIZE(3))
+   Oc1 ::= Oc (SIZE(3))
+   Oc2 ::= Oc1 ('010203'H)
+   Oc3 ::= Oc1 (SIZE(3))
+   T3  ::= T1 (1 | 3 | 5)
+
+   APDU ::= SEQUENCE {
+      t3  T3,
+      o1  Oc1,
+      o2  Oc2,
+      o3  Oc3
+   }
+END
+
+--TCLS     MyPDU[]

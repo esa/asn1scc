@@ -41,6 +41,27 @@ if (ret) {
 }   /*COVERAGE_IGNORE*/
 >>
 
+/* Coverage step 12b (DAstUtilFunctions.nestEncodeParts): the encode part before cannot fail and sets ret (a call
+   with bCheckConstraints = FALSE of an encoder without a failing part), so ret is still TRUE. */
+JoinItemsCannotFail(sPart, sNestedPart, soCallee, bAssumed) ::= <<
+<sPart>
+<if(soCallee)>/* no check of ret: <soCallee>() cannot fail */<else>/* no check of ret: the part above cannot fail */<endif>
+<sNestedPart>
+>>
+
+/* Coverage step 12b: the encode part before does not write ret (RTL writes only). */
+JoinItemsNoWrite(sPart, sNestedPart, bComment) ::= <<
+<sPart>
+<if(bComment)>/* no check of ret after a part that does not write it */<endif>
+<sNestedPart>
+>>
+
+/* Coverage step 14q (DAstUtilFunctions.encodeNoCheckNote): a template whose part cannot fail does not check ret after
+   it; the note says why (the text of JoinItemsCannotFail / JoinItemsNoWrite). */
+EncodeNoCheckNote(soCallee, bAssumed, bWritesResult) ::= <<
+<if(bWritesResult)><if(soCallee)>/* no check of ret: <soCallee>() cannot fail */<else>/* no check of ret: the part above cannot fail */<endif><else>/* no check of ret after a part that does not write it */<endif>
+>>
+
 
 
 
@@ -132,7 +153,7 @@ GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp, bBinarySearch)
 >>
 
 ExpEqual(sExp1, sExp2) ::= "(<sExp1> == <sExp2>)"
-ExpStringEqual(sExp1, sExp2) ::= "(strcmp(<sExp1>,<sExp2>)  == 0)"
+ExpStringEqual(sExp1, sExp2, nLen) ::= "(strcmp(<sExp1>,<sExp2>)  == 0)"
 ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)"
 ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>)"
 ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)"

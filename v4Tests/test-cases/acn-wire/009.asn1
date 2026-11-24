@@ -1,0 +1,22 @@
+-- Issue 134: without --acn-v2 an OCTET / BIT STRING (CONTAINING T) with an embedded length or a fixed size is decoded
+-- into a temporary buffer of T's maximum and encoded by T's own function. A site ACN specification that changes the
+-- size of the contents (here [size 32] for an 8-bit INTEGER of T) made the region larger than that buffer: the legacy
+-- decoders wrote past it on every valid stream. Without --acn-v2 such a specification is rejected; --acn-v2 accepts it
+-- and encodes the contents as specified (Issue 135: acn-wire/013, 23-CONTAINING/020). No directives: run by
+-- v4Tests/scripts/runWireTests.sh with 009_emb.acn, 009_fix.acn, 009_bits.acn (one component with such a specification
+-- each: embedded length, fixed size, BIT STRING), 009_bits12.acn (a BIT STRING region 4 bits longer: the same octets, a
+-- length range of 13 .. 14 bits for contents of 9 .. 10), 009_emb6.acn (one more bit: 3 .. 4 octets for contents of 2
+-- .. 4, the encoder wrote a length below its range), 009_narrow.acn (a BIT STRING region of 9 .. 10 bits for contents
+-- of 13 .. 14: the encoder wrote a length above its range) and 009_same.acn (child specifications that keep the sizes:
+-- accepted in both modes).
+ACN-WIRE-SITE-SPEC DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    T     ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN OPTIONAL }
+    Fx    ::= SEQUENCE { a INTEGER (0..255), b INTEGER (0..255) }
+    Emb   ::= SEQUENCE { f OCTET STRING (CONTAINING T), z BOOLEAN }
+    Fix   ::= SEQUENCE { g OCTET STRING (CONTAINING Fx), z BOOLEAN }
+    Bits  ::= SEQUENCE { h BIT STRING (CONTAINING T), z BOOLEAN }
+    T6    ::= SEQUENCE { a INTEGER (0..255), b INTEGER (0..127), c INTEGER (0..1023) OPTIONAL }
+    Emb6  ::= SEQUENCE { f OCTET STRING (CONTAINING T6), z BOOLEAN }
+    T13   ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN OPTIONAL }
+    Bits13 ::= SEQUENCE { h BIT STRING (CONTAINING T13), z BOOLEAN }
+END

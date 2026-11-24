@@ -1,0 +1,13 @@
+TestModel DEFINITIONS AUTOMATIC TAGS::= BEGIN
+EXPORTS ALL;
+
+RootSequence ::= SEQUENCE
+{
+    deltaAngle DeltaAngle --{deg}--,
+    deltaVelocity DeltaVelocity --{m/s}--
+}
+
+DeltaAngle ::= REAL (-0.25 .. 0.25)
+DeltaVelocity ::= REAL (-16 .. 16)
+
+END

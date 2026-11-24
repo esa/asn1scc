@@ -103,8 +103,8 @@ type ITypeDefinition_rust() =
             header_rust.Define_subType_enumerated_private  td prTd arrsValidEnumNames arrsEnumNames 
         override this.Define_new_ia5string  (td:FE_StringTypeDefinition) (nMin:BigInteger) (nMax:BigInteger) (nCMax:BigInteger) (arrnAlphaChars:seq<BigInteger>) (arr_Asn1Encoding:seq<Asn1Encoding>) =
             header_rust.Define_new_ia5string  td nMin nMax nCMax arrnAlphaChars arr_Asn1Encoding 
-        override this.Define_subType_ia5string  (td:FE_StringTypeDefinition) (prTd:FE_StringTypeDefinition) (soParentTypePackage:string option) (arr_Asn1Encoding:seq<Asn1Encoding>) =
-            header_rust.Define_subType_ia5string  td prTd soParentTypePackage arr_Asn1Encoding 
+        override this.Define_subType_ia5string  (td:FE_StringTypeDefinition) (prTd:FE_StringTypeDefinition) (soParentTypePackage:string option) (arrnAlphaChars:seq<BigInteger>) (arr_Asn1Encoding:seq<Asn1Encoding>) =
+            header_rust.Define_subType_ia5string  td prTd soParentTypePackage arrnAlphaChars arr_Asn1Encoding 
         override this.Define_new_octet_string  (td:FE_SizeableTypeDefinition) (nMin:BigInteger) (nMax:BigInteger) (bFixedSize:bool) (arrsInvariants:seq<string>) (arr_Asn1Encoding:seq<Asn1Encoding>) =
             header_rust.Define_new_octet_string  td nMin nMax bFixedSize arrsInvariants arr_Asn1Encoding 
         override this.Define_subType_octet_string  (td:FE_SizeableTypeDefinition) (prTd:FE_SizeableTypeDefinition) (soParentTypePackage:string option) (bFixedSize:bool) (arr_Asn1Encoding:seq<Asn1Encoding>) =

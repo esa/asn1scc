@@ -1,0 +1,27 @@
+--RUN_SPARK C_ADA_ONLY (Python: duplicated type names across modules, see 007)
+-- Ada: two modules define a type Small; TEST-CASE's may fail (non-contiguous range), SelectorPart's cannot. The
+-- outcome of a call of an encoder was recorded under its unqualified name, so MyPDU (built after SelectorPart because
+-- it imports from it) took SelectorPart.Small's "cannot fail" and asserted result.Success after TEST-CASE's
+-- Small_ACN_Encode_aux, which gnatprove cannot prove (q/issues.md Issue 57, coverage step 14b).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   IMPORTS Other FROM SelectorPart;
+
+   Small ::= INTEGER (0..10 | 20..30)
+
+   MyPDU ::= SEQUENCE {
+      a      Small,
+      other  Other,
+      b      BOOLEAN
+   }
+END
+
+SelectorPart DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   Small ::= INTEGER (0..255)
+
+   Other ::= SEQUENCE {
+      a  Small,
+      b  BOOLEAN
+   }
+END
+
+--TCLS     MyPDU[]

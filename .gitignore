@@ -1450,3 +1450,5 @@ v4Tests/tmp_*/
 /coverage-inventory/
 /coverage-historical/
 /coverage-all/
+work_dir/
+ci-results/

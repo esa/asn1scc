@@ -1,0 +1,23 @@
+-- Issue 152: fragmented lengths (X.691 11.9.3.8) of variable-size types whose maximum is 64K or more. The decoders must
+-- reject a fragment whose items pass the maximum before reading them, a last part that passes the maximum, a fragment
+-- header other than C1 .. C4, and must stop at the first item that fails. Issue 154: they accept only the layouts an
+-- X.691 encoder writes (10.9.3.6, 10.9.3.8.1) and reject a fragment header after a fragment of 16K .. 48K items
+-- (C1 .. C3) and a two-octet length below 128.
+UPER-WIRE-FRAG DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    VOct  ::= OCTET STRING (SIZE(0..70000))
+    VStr  ::= IA5String (SIZE(1..70000)) (FROM("A".."Z"))
+    VBit  ::= BIT STRING (SIZE(0..70000))
+    VSeq  ::= SEQUENCE (SIZE(0..70000)) OF INTEGER (0..5)
+    VOctM ::= OCTET STRING (SIZE(0..81920))
+    VOctN ::= OCTET STRING (SIZE(0..81919))
+    VBit3 ::= BIT STRING (SIZE(3..200000))
+    Elm   ::= SEQUENCE { a INTEGER (0..5), b BOOLEAN }
+    VSeqR ::= SEQUENCE (SIZE(0..150000)) OF Elm
+    POct  ::= SEQUENCE { o VOct, tail OCTET STRING (SIZE(32768)) }
+    PInl  ::= SEQUENCE {
+        o    OCTET STRING (SIZE(0..70000)),
+        s    IA5String (SIZE(0..70000)) (FROM("A".."Z")),
+        q    SEQUENCE (SIZE(0..70000)) OF INTEGER (0..5),
+        tail INTEGER (0..255)
+    }
+END

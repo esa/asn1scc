@@ -1,0 +1,42 @@
+--RUN_SPARK
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	-- One value in 0 bits: an ENUMERATED with one item, a CHOICE with one alternative and an ACN ENUMERATED field with
+	-- one item. In Ada their index is read with the _FullRange twin over 0 bits (cannot fail, Post: index 0), so the
+	-- decoders check no result after them (coverage step 14j, G4); C assigns the value without a read (14c3).
+	-- WithField / WithField2: an inline CHOICE whose determinant field cannot fail is written on every path, so the
+	-- SEQUENCE decoder takes val as `out` (an `in out` val gave gnatprove "unused initial value of val").
+	Single ::= ENUMERATED { only }
+
+	OneAlt ::= CHOICE {
+		a INTEGER (0 .. 3)
+	}
+
+	Kind ::= ENUMERATED { p }
+
+	Kind2 ::= ENUMERATED { p, q }
+
+	MyPDU ::= SEQUENCE {
+		e	Single,
+		c	OneAlt,
+		f	BOOLEAN
+	}
+
+	WithField ::= SEQUENCE {
+		x	INTEGER (0 .. 15),
+		alt	CHOICE {
+			p	INTEGER (0 .. 7)
+		}
+	}
+
+	WithField2 ::= SEQUENCE {
+		x	INTEGER (0 .. 15),
+		alt	CHOICE {
+			p	INTEGER (0 .. 7),
+			q	INTEGER (0 .. 3)
+		}
+	}
+
+END
+
+--TCFS     007.acn

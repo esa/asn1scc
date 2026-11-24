@@ -1,0 +1,48 @@
+-- 'size deduced' contents of OCTET STRING CONTAINING regions that do not start at a byte boundary
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    -- A region of n whole octets from its first bit also ends inside a byte: the decoder
+    -- must count the elements up to that bit, not up to the end of the byte. With 9-bit
+    -- elements one element plus its padding (7 bits) and the rest of the last byte reach
+    -- the size of a second element.
+    Item12 ::= INTEGER (0..4000)
+    Item9 ::= INTEGER (0..500)
+    List12 ::= SEQUENCE (SIZE(1..100)) OF Item12
+    List9 ::= SEQUENCE (SIZE(1..100)) OF Item9
+    -- region after a 4-bit field and a 16-bit size field: starts at bit 4 of a byte
+    ExtPdu12 ::= SEQUENCE {
+        hdr     INTEGER (0..15),
+        payload OCTET STRING (CONTAINING List12),
+        tail    INTEGER (0..255)
+    }
+    ExtPdu9 ::= SEQUENCE {
+        hdr     INTEGER (0..15),
+        payload OCTET STRING (CONTAINING List9),
+        tail    INTEGER (0..255)
+    }
+    -- region after a 4-bit field and a 7-bit size field: starts at bit 3; the --acn-v2
+    -- encoder writes the size field again after the contents, across a byte boundary
+    ExtPdu9s ::= SEQUENCE {
+        hdr     INTEGER (0..15),
+        payload OCTET STRING (CONTAINING List9),
+        tail    INTEGER (0..255)
+    }
+    -- region after a 4-bit field and a 7-bit embedded length: starts at bit 3
+    EmbPdu9 ::= SEQUENCE {
+        hdr     INTEGER (0..15),
+        payload OCTET STRING (CONTAINING List9),
+        tail    INTEGER (0..255)
+    }
+    -- region after a 2-bit CHOICE index and a 7-bit embedded length: starts at bit 1
+    Msg ::= CHOICE {
+        a INTEGER (0..200),
+        b OCTET STRING (CONTAINING List9),
+        c BOOLEAN
+    }
+    ext12 ExtPdu12 ::= { hdr 5, payload { 42 }, tail 165 }
+    ext9 ExtPdu9 ::= { hdr 5, payload { 300 }, tail 165 }
+    ext9s ExtPdu9s ::= { hdr 5, payload { 300 }, tail 165 }
+    emb9 EmbPdu9 ::= { hdr 5, payload { 300 }, tail 165 }
+    emb9three EmbPdu9 ::= { hdr 10, payload { 1, 500, 257 }, tail 0 }
+    msg9 Msg ::= b : { 300 }
+END
+--TCLS Item12 [encoding pos-int, size 12] Item9 [encoding pos-int, size 9] List12 [size deduced] List9 [size deduced] ExtPdu12 [] { hdr [encoding pos-int, size 4], len INTEGER [encoding pos-int, size 16], payload [size len], tail [encoding pos-int, size 8] } ExtPdu9 [] { hdr [encoding pos-int, size 4], len INTEGER [encoding pos-int, size 16], payload [size len], tail [encoding pos-int, size 8] } ExtPdu9s [] { hdr [encoding pos-int, size 4], len INTEGER [encoding pos-int, size 7], payload [size len], tail [encoding pos-int, size 8] } EmbPdu9 [] { hdr [encoding pos-int, size 4], payload [], tail [encoding pos-int, size 8] } Msg [] { a [], b [], c [] }

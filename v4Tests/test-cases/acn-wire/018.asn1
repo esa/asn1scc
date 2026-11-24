@@ -1,0 +1,69 @@
+-- Issue 174: validators of constraints at the composite level.
+--  - The Ada validator loop of a WITH COMPONENT (...) on a SEQUENCE OF had an empty body (template StatementForLoop
+--    rendered an undeclared attribute), so Ada accepted elements outside the narrowing that C rejects. Where the
+--    narrowing narrows the elements' ACN sizes (strings, OCTET / BIT STRING, SEQUENCE elements holding them),
+--    REQUIRED_BITS counts the narrowed maximum and the Ada encoder of such a value wrote past a stream of exactly
+--    REQUIRED_BYTES (Constraint_Error; with -gnatp a write past the stream); elsewhere it encoded an invalid value. The
+--    public decoders end with the validator, so the Ada decoders now reject such elements too.
+--  - A union whose second operand is a statement (a WITH COMPONENT loop, an OPTIONAL child check: SubU, OutU, OptU)
+--    rejected values valid by that operand, in C and Ada (the second operand ran from the first one's FALSE).
+--  - A loop combined with an expression did not compile in Ada (MixA .. MixE, Issue 183).
+--  - A string value longer than the element's maximum in a value set (Lng*): the comparison is FALSE, without the
+--    slice that Ada rejected at compile time (also outside a loop, LngU / LngW / LngV, master too).
+-- FROM at the composite / reference level is Issue 169 (not compiled in C, nor now in Ada, inside WITH COMPONENT).
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 018_wire_test.c (-DNDEBUG, ASan / UBSan, streams of
+-- exactly REQUIRED_BYTES) / 018_wire_test.adb (plain, -gnata, -gnatp + ASan with guard regions around the stream),
+-- legacy and --acn-v2, default ACN encoding and uPER; the Ada package is also compiled alone with -gnatwa -gnatwe.
+ACN-WIRE-WITH-COMPONENT DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    -- WITH COMPONENT narrowings that narrow the ACN sizes of the elements
+    SoK   ::= SEQUENCE (SIZE(1..3)) OF IA5String (SIZE(1..6))
+    OutK  ::= SEQUENCE { k SoK (WITH COMPONENT (SIZE(1..2))), b BOOLEAN }
+    SubK  ::= SoK (WITH COMPONENT (SIZE(1..2)))
+    OutV  ::= SEQUENCE { k SoK (WITH COMPONENT ("a" | "ab")), b BOOLEAN }
+    In2   ::= SEQUENCE { k SoK, b BOOLEAN }
+    Out2  ::= SEQUENCE { x In2 (WITH COMPONENTS { ..., k (WITH COMPONENT (SIZE(1..2))) }) }
+    SoO   ::= SEQUENCE (SIZE(1..3)) OF OCTET STRING (SIZE(1..6))
+    OutO  ::= SEQUENCE { k SoO (WITH COMPONENT (SIZE(1..2))), b BOOLEAN }
+    SoB   ::= SEQUENCE (SIZE(1..3)) OF BIT STRING (SIZE(1..20))
+    OutB  ::= SEQUENCE { k SoB (WITH COMPONENT (SIZE(1..4))), b BOOLEAN }
+    El    ::= SEQUENCE { s IA5String (SIZE(1..6)), n INTEGER (0..1000) }
+    SoS   ::= SEQUENCE (SIZE(1..3)) OF El
+    OutS  ::= SEQUENCE { k SoS (WITH COMPONENT (WITH COMPONENTS { s (SIZE(1..2)), n (0..10) })), b BOOLEAN }
+    SoKF  ::= SEQUENCE (SIZE(2)) OF IA5String (SIZE(1..6))
+    OutKF ::= SEQUENCE { k SoKF (WITH COMPONENT (SIZE(1..2))), b BOOLEAN }
+    SoN   ::= SEQUENCE (SIZE(1..2)) OF SoK
+    OutN  ::= SEQUENCE { k SoN (WITH COMPONENT (WITH COMPONENT (SIZE(1..2)))), b BOOLEAN }
+    -- narrowings that leave the sizes alone (validity only)
+    DirK  ::= SEQUENCE ((SIZE(1..3)) ^ (WITH COMPONENT (SIZE(1..2)))) OF IA5String (SIZE(1..6))
+    SoI   ::= SEQUENCE (SIZE(1..3)) OF INTEGER (0..1000)
+    OutI  ::= SEQUENCE { k SoI (WITH COMPONENT (0..10)), b BOOLEAN }
+    En    ::= ENUMERATED { e1, e2, e3 }
+    SoE   ::= SEQUENCE (SIZE(1..3)) OF En
+    OutE  ::= SEQUENCE { k SoE (WITH COMPONENT (e1 | e2)), b BOOLEAN }
+    -- unions of checks that are statements: the second alternative starts again from "valid" (round 2: before, the
+    -- loop / the optional child check of the second alternative ran from the first one's FALSE and never succeeded,
+    -- in C on master too); intersection and EXCEPT of loops; OPTIONAL / CHOICE holders; elements with an OPTIONAL child
+    SubU  ::= SoK ((WITH COMPONENT (SIZE(1))) | (WITH COMPONENT (SIZE(2))))
+    OutU  ::= SEQUENCE { k SoK ((WITH COMPONENT (SIZE(1))) | (WITH COMPONENT (SIZE(2)))), b BOOLEAN }
+    OptU  ::= SEQUENCE { a INTEGER (0..100) OPTIONAL, b INTEGER (0..100) }
+                (WITH COMPONENTS { ..., a (0..10), b (0..10) } | WITH COMPONENTS { ..., a (20..30), b (50..60) })
+    SubX  ::= SoK ((WITH COMPONENT (SIZE(1..3))) EXCEPT (WITH COMPONENT (SIZE(3))))
+    OptK  ::= SEQUENCE { k SoK OPTIONAL, b BOOLEAN } (WITH COMPONENTS { ..., k (WITH COMPONENT (SIZE(1..2))) })
+    ChK   ::= CHOICE { k SoK, n INTEGER (0..7) } (WITH COMPONENTS { ..., k (WITH COMPONENT (SIZE(1..2))) })
+    ElO   ::= SEQUENCE { s IA5String (SIZE(1..6)) OPTIONAL, n INTEGER (0..9) }
+    SoEO  ::= SEQUENCE (SIZE(1..3)) OF ElO
+    OutEO ::= SEQUENCE { k SoEO (WITH COMPONENT (WITH COMPONENTS { s (SIZE(1..2)) PRESENT, n (0..5) })), b BOOLEAN }
+    -- a loop combined with an expression (Issue 183: did not compile in Ada)
+    MixA   ::= SoK ((SIZE(1)) | (WITH COMPONENT (SIZE(2))))
+    MixB   ::= SoK ((WITH COMPONENT (SIZE(2))) | (SIZE(1)))
+    MixC   ::= SoK ((WITH COMPONENT (SIZE(1..2))) ^ (SIZE(1..2)))
+    MixD   ::= SoK (ALL EXCEPT WITH COMPONENT (SIZE(3)))
+    MixE   ::= SoK ((WITH COMPONENT (SIZE(1..2))) EXCEPT (SIZE(3)))
+    -- a value-set string longer than the element's / type's maximum
+    LngF   ::= SEQUENCE (SIZE(1..3)) OF IA5String (SIZE(1..2))
+    LngT   ::= LngF (WITH COMPONENT ("zzzzzz" | "a"))
+    LngS   ::= IA5String (SIZE(1..2))
+    LngU   ::= LngS ("zzzzzz" | "a")
+    LngW   ::= SEQUENCE { x LngS ("zzzzzz" | "a") }
+    LngV   ::= SEQUENCE { x LngS } (WITH COMPONENTS { x ("zzzzzz" | "a") })
+END

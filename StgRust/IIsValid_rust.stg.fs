@@ -17,6 +17,12 @@ type IIsValid_rust() =
             isvalid_rust.JoinItemsAssert  sPart sNestedPart 
         override this.JoinItemsNoCheck  (sPart:string) (sNestedPart:string) =
             isvalid_rust.JoinItemsNoCheck  sPart sNestedPart 
+        override this.JoinItemsCannotFail  (sPart:string) (sNestedPart:string) (soCallee:string option) (bAssumed:bool) =
+            isvalid_rust.JoinItemsCannotFail  sPart sNestedPart soCallee bAssumed 
+        override this.JoinItemsNoWrite  (sPart:string) (sNestedPart:string) (bComment:bool) =
+            isvalid_rust.JoinItemsNoWrite  sPart sNestedPart bComment 
+        override this.EncodeNoCheckNote  (soCallee:string option) (bAssumed:bool) (bWritesResult:bool) =
+            isvalid_rust.EncodeNoCheckNote  soCallee bAssumed bWritesResult 
         override this.validation_comment  (sText:string) =
             isvalid_rust.validation_comment  sText 
         override this.implied_by_type_check  (sExp:string) (sConstraint:string) =
@@ -45,8 +51,8 @@ type IIsValid_rust() =
             isvalid_rust.GetEnumIndexByName  sEnumValuesArray sEnumValuesArrayCount sExp bBinarySearch 
         override this.ExpEqual  (sExp1:string) (sExp2:string) =
             isvalid_rust.ExpEqual  sExp1 sExp2 
-        override this.ExpStringEqual  (sExp1:string) (sExp2:string) =
-            isvalid_rust.ExpStringEqual  sExp1 sExp2 
+        override this.ExpStringEqual  (sExp1:string) (sExp2:string) (nLen:BigInteger) =
+            isvalid_rust.ExpStringEqual  sExp1 sExp2 nLen 
         override this.ExpGt  (sExp1:string) (sExp2:string) =
             isvalid_rust.ExpGt  sExp1 sExp2 
         override this.ExpGte  (sExp1:string) (sExp2:string) =

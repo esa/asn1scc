@@ -437,6 +437,10 @@ type Real = {
     acnMaxSizeInBits    : BigInteger
     acnMinSizeInBits    : BigInteger
     acnEncodingClass    : RealEncodingClass
+    /// The class of the type the value is stored in (its typedef), which selects the RTL variant of the codecs
+    /// (-slim: `_fp32`). It is the class of acnEncodingClass for a type with a typedef of its own, but the class of the
+    /// referenced type at a reference site, whose value has the referenced typedef (Issue 99).
+    storageClass        : RealClass
 
     typeDef             : Map<ProgrammingLanguage, FE_PrimitiveTypeDefinition>
     definitionOrRef     : Map<ProgrammingLanguage, TypeDefinitionOrReference>
@@ -819,6 +823,11 @@ and Choice = {
     typeDef             : Map<ProgrammingLanguage, FE_ChoiceTypeDefinition>
     definitionOrRef     : Map<ProgrammingLanguage, TypeDefinitionOrReference>
     maxAlignment        : AcnAlignment option
+    /// q/issues.md Issues 132 / 141, --acn-v2 only: the region the CHOICE is encoded in when its own ACN parameter
+    /// (name) sizes CONTAINING alternatives, and the region's kind (Asn1AcnAstUtilFunctions.choiceContainingRegion,
+    /// computed where the CHOICE is merged with its declared parameters). The single source for the CHOICE's ACN sizes
+    /// (an OCTET region counts its padding) and for the wrapper DAstACNDeferred emits. None in legacy.
+    containingRegion    : (string * ContainedInOctOrBitString) option
 }
 
 and ChChildInfo = {
@@ -854,6 +863,10 @@ and ReferenceType = {
     resolvedType: Asn1Type
     hasConstraints : bool
     hasExtraConstrainsOrChildrenOrAcnArgs : bool
+    /// q/issues.md Issue 135: a CONTAINING (encodingOptions) whose ACN specification (at the site or on the CONTAINING
+    /// type assignment) changes the encoding of the contents: children, or a property that is not the container's
+    /// (AcnCreateFromAntlr.acnPropertyOfContents). False for every other reference.
+    contentsSpecOverride : bool
     typeDef             : Map<ProgrammingLanguage, FE_TypeDefinition>
     uperMaxSizeInBits   : BigInteger
     uperMinSizeInBits   : BigInteger
@@ -926,6 +939,11 @@ type AstRoot = {
     /// lies outside them (AcnClosureConversion.findTassesWithExportedDeterminants).
     /// They get no standalone ACN encoder/decoder. Always empty in legacy mode.
     tassesWithExportedDeterminants : Set<TypeAssignmentInfo>
+    /// --acn-v2 only: the ACN field each ACN parameter added by closure conversion stands for
+    /// (parameter id -> field id). A producer parameter that no dependency uses has no RefTypeArgument
+    /// link to its field (AcnClosureConversion.applyDepRewrites), so the backend finds it here
+    /// (q/issues.md Issue 52). Always empty in legacy mode.
+    closureParamDeterminants : Map<ReferenceToType, ReferenceToType>
 }
 
 

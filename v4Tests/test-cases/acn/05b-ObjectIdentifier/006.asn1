@@ -1,0 +1,16 @@
+-- RUN_SPARK
+-- OBJECT IDENTIFIER with the first arc 2 (X.660): the second arc may exceed 39, and the first subidentifier is
+-- 80 + arc2 (X.690 8.19.4). The Ada runtime limited the second arc to 39 (the value was invalid) and decoded the
+-- first subidentifier with / 40 and mod 40.
+
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	MyPDU ::= OBJECT IDENTIFIER
+
+	pdu1 MyPDU ::= { 2 999 1 }
+	pdu2 MyPDU ::= { 2 39 7 }
+	pdu3 MyPDU ::= { 1 39 7 }
+
+END
+
+--TCLS     MyPDU[]

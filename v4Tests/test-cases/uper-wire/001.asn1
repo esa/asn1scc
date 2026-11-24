@@ -1,0 +1,46 @@
+-- uPER OCTET / BIT STRING (CONTAINING X), byte-exact (run by v4Tests/scripts/runWireTests.sh, C and Ada; Issue 94):
+-- a contents constraint is not PER-visible (X.691 9.3.16), so the string has a general length (10.9: octets, bits for
+-- a BIT STRING) and the contents are the encoding of X padded to whole octets, one zero octet when it is empty
+-- (10.1.3). Expected bytes: X.691, cross-checked with pycrate 0.8.1.
+UPER-WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+    Inner  ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN }
+    Var    ::= SEQUENCE { a INTEGER (0..255), s SEQUENCE (SIZE(0..20)) OF BOOLEAN }
+    Nul    ::= NULL
+
+    -- inline OCTET / BIT CONTAINING, empty contents
+    P      ::= SEQUENCE { f OCTET STRING (CONTAINING Inner), g BIT STRING (CONTAINING Var),
+                          n OCTET STRING (CONTAINING Nul), z BOOLEAN }
+    NulOct ::= OCTET STRING (CONTAINING Nul)
+    NulBit ::= BIT STRING (CONTAINING Nul)
+
+    -- a component whose type is a CONTAINING type assignment (Issue 91)
+    OctBox ::= OCTET STRING (CONTAINING Inner)
+    T91    ::= SEQUENCE { x OctBox, y BOOLEAN }
+
+    -- length bounds: one octet up to 127, two up to 16383, fragments from 16384 (bits for a BIT STRING)
+    O16    ::= OCTET STRING (SIZE(16))
+    O127   ::= OCTET STRING (SIZE(127))
+    O128   ::= OCTET STRING (SIZE(128))
+    O2048  ::= OCTET STRING (SIZE(2048))
+    O16383 ::= OCTET STRING (SIZE(16383))
+    O16384 ::= OCTET STRING (SIZE(16384))
+    C127   ::= OCTET STRING (CONTAINING O127)
+    C128   ::= OCTET STRING (CONTAINING O128)
+    C16383 ::= OCTET STRING (CONTAINING O16383)
+    C16384 ::= OCTET STRING (CONTAINING O16384)
+    B16    ::= BIT STRING (CONTAINING O16)
+    B2048  ::= BIT STRING (CONTAINING O2048)
+
+    -- contents with a fragmented length of their own (and an empty value: the general length starts with 8 bits)
+    Big    ::= SEQUENCE { d OCTET STRING (SIZE(0..70000)) }
+    CBig   ::= OCTET STRING (CONTAINING Big)
+
+    -- nested CONTAINING, and CONTAINING in SEQUENCE OF / CHOICE / OPTIONAL
+    Mid    ::= SEQUENCE { m BIT STRING (CONTAINING Inner) }
+    Nested ::= SEQUENCE { o OCTET STRING (CONTAINING Mid) }
+    Lst    ::= SEQUENCE (SIZE(1..3)) OF OctBox
+    Ch     ::= CHOICE { c1 BOOLEAN, c2 BIT STRING (CONTAINING Inner) }
+    Opt    ::= SEQUENCE { o OCTET STRING (CONTAINING Inner) OPTIONAL, t BOOLEAN }
+
+END

@@ -27,6 +27,11 @@ is
       Current_Bit_Pos : Natural;
       pushDataPrm     : Integer := 0;
       fetchDataPrm    : Integer := 0;
+      --  first bit after the end of the decoding region: Size_In_Bytes * 8
+      --  (BitStream_init), only the 'size deduced' decoders read it; an
+      --  --acn-v2 OCTET STRING CONTAINING region sets it to its own end while
+      --  its contents are decoded (the region need not end on a byte boundary)
+      End_Bit_Pos     : Natural;
 
    end record;
    pragma Warnings (On, "comes too early and was moved down");
@@ -115,7 +120,8 @@ is
      (Bitstream_Size_In_Bytes : Positive) return Bitstream with
       Pre  => Bitstream_Size_In_Bytes < Positive'Last / 8,
       Post => BitStream_init'Result.Current_Bit_Pos = 0 and
-      BitStream_init'Result.Size_In_Bytes = Bitstream_Size_In_Bytes;
+      BitStream_init'Result.Size_In_Bytes = Bitstream_Size_In_Bytes and
+      BitStream_init'Result.End_Bit_Pos = Bitstream_Size_In_Bytes * 8;
 
    function BitStream_current_length_in_bytes
      (bs : Bitstream) return Natural is
@@ -127,7 +133,7 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos < bs.Size_In_Bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 1;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 1;
 
       --  BitStream_ReadBit
    procedure BitStream_ReadBit
@@ -136,7 +142,7 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos < bs.Size_In_Bytes * 8,
-      Post => result and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 1;
+      Post => result and bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 1;
 
    procedure BitStream_AppendByte
      (bs : in out Bitstream; Byte_Value : Asn1Byte; Negate : Boolean) with
@@ -144,7 +150,7 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 8;
 
    procedure BitStream_DecodeByte
      (bs      : in out Bitstream; Byte_Value : out Asn1Byte;
@@ -153,7 +159,7 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 8,
-      Post => success and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 8;
+      Post => success and bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 8;
 
    function BitStream_PeekByte
      (bs : Bitstream; offset : Natural) return Asn1Byte with
@@ -167,12 +173,11 @@ is
       Depends => (bs => (bs, bitMaskAsByteArray, bits_to_write)),
       Pre     => bitMaskAsByteArray'First >= 0
       and then bitMaskAsByteArray'Last < Natural'Last / 8
-      and then bits_to_write >= (bitMaskAsByteArray'Length - 1) * 8
       and then bits_to_write <= (bitMaskAsByteArray'Length) * 8
       and then bs.Current_Bit_Pos < Natural'Last - bits_to_write
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - bits_to_write,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + bits_to_write;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + bits_to_write;
 
    procedure BitStream_ReadBits
      (bs           : in out Bitstream; bitMaskAsByteArray : in out OctetBuffer;
@@ -183,7 +188,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - bits_to_read
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - bits_to_read,
-     Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + bits_to_read;
+     Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + bits_to_read;
 
    procedure BitStream_AppendBitArray (bs : in out Bitstream;
                                       bitArrayData : BitArray;
@@ -194,7 +199,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - bitsCount
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - bitsCount,
-     Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + bitsCount;
+     Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + bitsCount;
 
    procedure BitStream_ReadBitArray
      (bs           : in out Bitstream; bitArrayData : in out BitArray;
@@ -206,13 +211,13 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - bits_to_read,
      Post => success
-     and then bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + bits_to_read;
+     and then bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + bits_to_read;
 
    procedure BitStream_SkipBits
      (bs : in out Bitstream; bits_to_skip : Natural) with
       Depends => ((bs) => (bs, bits_to_skip)),
       Pre     => bs.Current_Bit_Pos < Natural'Last - bits_to_skip,
-      Post    => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + bits_to_skip;
+      Post    => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + bits_to_skip;
 
    procedure BitStream_ReadNibble
      (bs      : in out Bitstream; Byte_Value : out Asn1Byte;
@@ -221,7 +226,7 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - 4
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - 4,
-      Post => success and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + 4;
+      Post => success and bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + 4;
 
    procedure BitStream_AppendPartialByte
      (bs     : in out Bitstream; Byte_Value : Asn1Byte; nBits : BIT_RANGE;
@@ -230,7 +235,7 @@ is
       Pre     => bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits;
 
    procedure BitStream_ReadPartialByte
      (bs : in out Bitstream; Byte_Value : out Asn1Byte; nBits : BIT_RANGE) with
@@ -238,7 +243,7 @@ is
       Pre     => nBits > 0 and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits;
 
    function BitStream_PeekPartialByte
      (bs : Bitstream; offset : Natural; nBits : BIT_RANGE) return Asn1Byte with
@@ -253,7 +258,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits;
 
    procedure BitStream_Decode_Non_Negative_Integer
      (bs     : in out Bitstream; IntValue : out Asn1UInt; nBits : Integer;
@@ -263,7 +268,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => result and bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+      Post => result and bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits;
 
    procedure Enc_UInt
      (bs : in out Bitstream; intValue : Asn1UInt; total_bytes : Integer) with
@@ -272,7 +277,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - total_bytes * 8
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes * 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes * 8;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + total_bytes * 8;
 
    procedure Dec_UInt
      (bs     : in out Bitstream; total_bytes : Integer; Ret : out Asn1UInt;
@@ -284,7 +289,7 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes * 8,
       Post => Result
-      and then bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes * 8
+      and then bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + total_bytes * 8
       and then
       ((total_bytes < Asn1UInt'Size / 8 and then Ret < 256**total_bytes)
        or else True);
@@ -299,7 +304,7 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - total_bytes * 8,
       Post => Result and
-      bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + total_bytes * 8;
+      bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + total_bytes * 8;
 
    pragma Inline (BitStream_AppendByte);
 
@@ -311,8 +316,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8);
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + (Asn1UInt'Size + 8);
 
    procedure Dec_SemiConstraintWholeNumber
      (bs     : in out Bitstream; IntVal : out Asn1Int; MinVal : Asn1Int;
@@ -321,8 +326,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8) and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + (Asn1UInt'Size + 8) and
       IntVal >= MinVal;
 
    procedure Enc_SemiConstraintPosWholeNumber
@@ -333,8 +338,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8);
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + (Asn1UInt'Size + 8);
 
    procedure Dec_SemiConstraintPosWholeNumber
      (bs     : in out Bitstream; IntVal : out Asn1UInt; MinVal : Asn1UInt;
@@ -343,8 +348,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8) and
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + (Asn1UInt'Size + 8) and
       IntVal >= MinVal;
 
    procedure Enc_UnConstraintWholeNumber
@@ -354,8 +359,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8);
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + (Asn1UInt'Size + 8);
 
    procedure Dec_UnConstraintWholeNumber
      (bs : in out Bitstream; IntVal : out Asn1Int; Result : out Boolean) with
@@ -364,8 +369,8 @@ is
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <=
         bs.Size_In_Bytes * 8 - (Asn1UInt'Size + 8),
-      Post => bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos and
-      bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos + (Asn1UInt'Size + 8);
+      Post => bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old and
+      bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old + (Asn1UInt'Size + 8);
 
    procedure Enc_ConstraintWholeNumber
      (bs    : in out Bitstream; IntVal : Asn1Int; MinVal : Asn1Int;
@@ -376,7 +381,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits;
 
    procedure Enc_ConstraintPosWholeNumber
      (bs    : in out Bitstream; IntVal : Asn1UInt; MinVal : Asn1UInt;
@@ -387,7 +392,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits;
 
    procedure Dec_ConstraintWholeNumber
      (bs     : in out Bitstream; IntVal : out Asn1Int; MinVal : Asn1Int;
@@ -397,7 +402,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits and
       ((Result and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result and (IntVal = MinVal)));
 
@@ -409,7 +414,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits and
       ((Result and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result and (IntVal = MinVal)));
 
@@ -422,7 +427,7 @@ is
       and then bs.Current_Bit_Pos < Natural'Last - nBits
       and then bs.Size_In_Bytes < Positive'Last / 8
       and then bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 - nBits,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos + nBits and
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old + nBits and
       ((Result and (((IntVal >= MinVal) and (IntVal <= MaxVal)))) or
        (not Result and (IntVal = MinVal)));
 
@@ -466,8 +471,8 @@ is
             bit_terminated_pattern_size_in_bits) <= bs.Size_In_Bytes * 8,
        Post =>
        (result
-           and bs.Current_Bit_Pos >= bs'Old.Current_Bit_Pos
-           and bs.Current_Bit_Pos <= bs'Old.Current_Bit_Pos +
+           and bs.Current_Bit_Pos >= bs.Current_Bit_Pos'Old
+           and bs.Current_Bit_Pos <= bs.Current_Bit_Pos'Old +
                  (val'Length + bit_terminated_pattern_size_in_bits)
            and decodedBits >= 0
            and decodedBits <= val'Last - val'First + 1
@@ -479,11 +484,11 @@ is
 
    procedure bitstrean_fetch_data_if_required (bs : in out Bitstream) with
       Pre  => bs.Size_In_Bytes < Positive'Last - 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old;
 
    procedure bitstrean_push_data_if_required (bs : in out Bitstream) with
       Pre  => bs.Size_In_Bytes < Positive'Last - 8,
-      Post => bs.Current_Bit_Pos = bs'Old.Current_Bit_Pos;
+      Post => bs.Current_Bit_Pos = bs.Current_Bit_Pos'Old;
    pragma Warnings (On, """bs"" is not modified, could be IN");
 
 end adaasn1rtl.encoding;

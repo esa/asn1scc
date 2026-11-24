@@ -1,0 +1,3 @@
+REJ DEFINITIONS ::= BEGIN
+    T [] { n INTEGER [encoding pos-int, size 8], b [], items [] { [] { o [size n] } } }
+END

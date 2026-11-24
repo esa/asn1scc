@@ -1,5 +1,7 @@
 [![CircleCI](https://dl.circleci.com/status-badge/img/circleci/NWDXtobZpVSQ5ErUz9CgXB/3deZmhdEfAoLGYUJtiCX4c/tree/master.svg?style=svg&circle-token=69c83a7973425a3ab92fb7e2d7580bcb292a508f)](https://dl.circleci.com/status-badge/redirect/circleci/NWDXtobZpVSQ5ErUz9CgXB/3deZmhdEfAoLGYUJtiCX4c/tree/master)
 
+[![Packaging status](https://repology.org/badge/vertical-allrepos/asn1scc.svg)](https://repology.org/project/asn1scc/versions)
+
 Executive summary
 =================
 
@@ -477,6 +479,36 @@ $ cd out_dir/asn1pylib
 $ pytest
 ```
 
+ICD (Interface Control Document) Generator
+==========================================
+
+`asn1scc` includes an ICD generation tool located at `contrib/icd-generator.py`. It analyzes the concrete wire encoding of ASN.1 and ACN data models (including implicit fields such as length determinants, presence flags, choice selectors, alignment padding, and fixed patterns) and produces human-readable, bit-level Interface Control Documents.
+
+The tool supports two output backends:
+- **Interactive HTML (`-t html`)**: A modern, responsive single-page document with client-side search filtering, Table of Contents, collapsible views, clickable cross-references, bit-level field tables, and compact horizontal packet layout diagrams.
+- **Excel Spreadsheet (`-t excel`)**: A multi-tab Microsoft Excel (`.xlsx`) workbook with dedicated worksheets for each root PDU and a consolidated `Constants` sheet.
+
+![HTML ICD Interface Overview](Docs/images/icd-lidar-html-overview.png)
+
+### Usage
+
+Generate an interactive HTML ICD:
+```bash
+python3 contrib/icd-generator.py -o build/lidar.html model.asn model.acn
+```
+
+Generate an Excel workbook:
+```bash
+python3 contrib/icd-generator.py -t excel -o build/lidar.xlsx model.asn model.acn
+```
+
+Generate documentation for a single root PDU:
+```bash
+python3 contrib/icd-generator.py --root Packet -o packet-icd.html model.asn model.acn
+```
+
+For full details, architecture, options, and case studies, see the [ICD Generator Documentation](Docs/icd-generator.md).
+
 Command-line options
 ====================
 
@@ -525,13 +557,17 @@ supported only by C.
 
 ### ICD (Interface Control Document) options
 
-| Option | Short form | Description | Backends |
-|--------|-----------|-------------|----------|
-| `--icd-uper <file>` | `-icdUper` | Produce an ICD HTML file describing the uPER encoding | All |
-| `--icd-acn <file>` | `-icdAcn` | Produce an ICD HTML file describing the ACN encoding | C, Ada, Rust, Python |
-| `--icd-raw <file>` | `-icdRaw` | Serialize the ACN ICD model to JSON | C, Ada, Rust, Python |
-| `--icd-pdus <list>` | `-icdPdus` | Comma-separated list of PDU type assignments to limit generation | All |
-| `--detect-pdus` | `-dpdus` | Auto-detect PDUs in the ASN.1 grammar | All |
+> [!NOTE]
+> The compiler flags `--icd-uper` (`-icdUper`) and `--icd-acn` (`-icdAcn`) are **deprecated** in favor of the new [ICD generator (`contrib/icd-generator.py`)](Docs/icd-generator.md), which produces interactive HTML and Excel documentation with hierarchical packet diagrams, detailed bit tables, and constants reporting.
+> The `--icd-raw` (`-icdRaw`) option remains supported and is used internally by `icd-generator.py`.
+
+| Option | Short form | Description | Status |
+|--------|-----------|-------------|--------|
+| `--icd-uper <file>` | `-icdUper` | Produce an ICD HTML file describing the uPER encoding | **Deprecated** (use [icd-generator.py](Docs/icd-generator.md)) |
+| `--icd-acn <file>` | `-icdAcn` | Produce an ICD HTML file describing the ACN encoding | **Deprecated** (use [icd-generator.py](Docs/icd-generator.md)) |
+| `--icd-raw <file>` | `-icdRaw` | Serialize the ACN ICD model to JSON (used by `icd-generator.py`) | Supported |
+| `--icd-pdus <list>` | `-icdPdus` | Comma-separated list of PDU type assignments to limit generation | Supported |
+| `--detect-pdus` | `-dpdus` | Auto-detect PDUs in the ASN.1 grammar | Supported |
 
 ### Output and debug options
 
@@ -542,7 +578,7 @@ supported only by C.
 | `--custom-stg <file>` | `-customStg` | Use a custom StringTemplate file for code generation |
 | `--custom-stg-ast-version <int>` | `-customStgAstVersion` | AST version for custom STG (1 = original, 4 = with referenced types) |
 | `--include-func <func>` | `-if` | Include a function from the RTL (C only) |
-| `--mapping-functions-module <name>` | `-mfm` | Name of the Ada module or C header file with mapping function definitions |
+| `--mapping-functions-module <name>` | `-mfm` | Name of the Ada module or C header file with mapping function definitions ([Docs/acn-mapping-functions.md](Docs/acn-mapping-functions.md)) |
 | `--word-size <int>` | `-wordSize` | Size of `asn1SccSint`/`asn1SccUint` in bytes (4 or 8). C only |
 | `--fp-word-size <int>` | `-fpWordSize` | Size of REAL type (4 or 8 bytes). C only |
 | `--target <profile>` | `-t` | Ada target profile: `x86`, `stm32`, `msp430`, or `allboards`. Ada only |

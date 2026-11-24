@@ -1,0 +1,43 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Inner [] {
+    a [encoding pos-int, size 8],
+    b [encoding pos-int, size 2]
+}
+
+Wrap1 <INTEGER:len> [] {
+    x [encoding pos-int, size 3],
+    p [size len],
+    y []
+}
+
+Msg1 [] {
+    flag [encoding pos-int, size 3],
+    len  INTEGER [encoding pos-int, size 8],
+    w    <len> []
+}
+
+Mid <INTEGER:n> [] {
+    p [size n]
+}
+
+Wrap2 <INTEGER:len> [] {
+    m <len> []
+}
+
+Msg2 [] {
+    len INTEGER [encoding pos-int, size 8],
+    w   <len> []
+}
+
+Wrap4 <INTEGER:len, BOOLEAN:has> [] {
+    p [present-when has, size len]
+}
+
+Msg4 [] {
+    has BOOLEAN [],
+    len INTEGER [encoding pos-int, size 8],
+    w   <len, has> []
+}
+
+END

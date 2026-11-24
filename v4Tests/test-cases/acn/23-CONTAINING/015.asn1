@@ -1,0 +1,15 @@
+-- uPER BIT STRING (CONTAINING X) whose contents may exceed 64K bits: the length is fragmented. The Ada decoder of a
+-- fragmented BIT STRING length read the last part into a slice one byte short when it was not a multiple of 8 bits
+-- (Constraint_Error for a valid value of 72014 bits = 64K + 6478), and did not check the fragments against the maximum.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    Big    ::= SEQUENCE { d OCTET STRING (SIZE(0..9000)) }
+
+    MyPDU ::= SEQUENCE {
+        b   BIT STRING (CONTAINING Big),
+        z   BOOLEAN
+    }
+
+END
+
+--TCLS     MyPDU[]

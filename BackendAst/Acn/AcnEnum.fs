@@ -30,7 +30,8 @@ let enumComment stgFileName (o:Asn1AcnAst.Enumerated) =
 
 /// The ACN codec of the integer that carries an ENUMERATED value (the item's
 /// acnEncodeValue), applied to the CodegenScope it is called with.
-let private enumIntFuncBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (o:Asn1AcnAst.Enumerated) sAsn1Constraints (acnAlignment: AcnGenericTypes.AcnAlignment option) acnMinSizeInBits acnMaxSizeInBits unitsOfMeasure (typeDefinitionName:string) =
+/// fullIndex (coverage step 14c2a, decode only): the item values fill the field, the value is read with a _FullRange twin.
+let private enumIntFuncBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (o:Asn1AcnAst.Enumerated) (fullIndex: DecodeOutcome.AcnEnumFullIndex option) sAsn1Constraints (acnAlignment: AcnGenericTypes.AcnAlignment option) acnMinSizeInBits acnMaxSizeInBits unitsOfMeasure (typeDefinitionName:string) =
     let IntFullyConstraintPos               = lm.uper.IntFullyConstraintPos
     let min = o.items |> List.map(fun x -> x.acnEncodeValue) |> Seq.min
     let max = o.items |> List.map(fun x -> x.acnEncodeValue) |> Seq.max
@@ -47,9 +48,19 @@ let private enumIntFuncBody (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
                 lm.lg.generateIntFullyConstraintRangeAssert (ToC (r.args.TypePrefix + tasInfo.tasName)) p codec
             | None -> None
         let intType = Some (lm.typeDef.Declare_Integer())
-        let funcBody = IntFullyConstraintPos (castPp word_size_in_bits) min max nbits sSsuffix errCode.errCodeName rangeAssert intType codec
-        Some({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables= []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]})
-    AcnPrimitives.createAcnIntegerFunctionInternal r lm codec (Concrete (min,max)) intTypeClass o.acnEncodingClass DecodeOutcome.KeepCheckedCall uperInt sAsn1Constraints acnAlignment acnMinSizeInBits acnMaxSizeInBits unitsOfMeasure typeDefinitionName (None, None) ""
+        let funcBody =
+            match codec, fullIndex with
+            | Decode, Some (DecodeOutcome.EnumUperIndex nFullBits) -> lm.uper.IntFullyConstraintPos_fullRange pp min nFullBits sSsuffix
+            | Decode, Some (DecodeOutcome.EnumAcnInt _)
+            | Decode, None
+            | Encode, _ -> IntFullyConstraintPos (castPp word_size_in_bits) min max nbits sSsuffix errCode.errCodeName rangeAssert intType codec
+        Some({UPERFuncBodyResult.funcBody = funcBody; errCodes = [errCode]; localVariables= []; bValIsUnReferenced=false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=[]; encOutcome = encodeOutcomeOf codec (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)})
+    let fullRangeUse =
+        match fullIndex with
+        | Some (DecodeOutcome.EnumAcnInt _)     -> DecodeOutcome.UseFullRange   // decides again from the same range and class
+        | Some (DecodeOutcome.EnumUperIndex _)
+        | None                                  -> DecodeOutcome.KeepCheckedCall
+    AcnPrimitives.createAcnIntegerFunctionInternal r lm codec (Concrete (min,max)) intTypeClass o.acnEncodingClass fullRangeUse uperInt sAsn1Constraints acnAlignment acnMinSizeInBits acnMaxSizeInBits unitsOfMeasure typeDefinitionName (None, None) ""
 
 /// The values that a fixed-size ACN integer encoding can carry; None for the
 /// uPER-like encoding (range-checked by the decoder) and the variable-size ones.
@@ -76,14 +87,6 @@ let private encodableRange (enc:IntEncodingClass) : (BigInteger*BigInteger) opti
     | ASCII_UINT_VarSize_NullTerminated _
     | BCD_VarSize_NullTerminated _ -> None
 
-/// Justification of a GNATcoverage exemption region in the generated code; the IDs and
-/// their proofs are in Docs/statement-coverage-exemptions.md (the C uPER / ACN CHOICE
-/// and string templates carry the same COV-001 / COV-002 texts).
-let private covExemptJustification (id:string) =
-    match id with
-    | "ASN1SCC-COV-001" -> "ASN1SCC-COV-001: value range enforced by the RTL decode, see Docs/statement-coverage-exemptions.md"
-    | "ASN1SCC-COV-003" -> "ASN1SCC-COV-003: every value of the decoded bit width has an item, see Docs/statement-coverage-exemptions.md"
-    | _ -> raise (BugErrorException ("unknown coverage exemption " + id))
 
 /// The exemption that proves the `default:` / `when others` arm of the ACN ENUMERATED
 /// decoder unreachable, or None when an invalid stream can reach it (the complement of
@@ -153,14 +156,16 @@ let createInvalidCodeStream (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1Ac
             let p = {CodegenScope.modName = t.id.ModName; accessPath = AccessPath.valueEmptyPath codeVarName}
             // The encoder of an in-range code does not fail; its error code is never set.
             let errCode = {ErrorCode.errCodeValue = 0; errCodeName = "0"; comment = None; fieldPath = ""}
-            let intFuncBody = enumIntFuncBody r lm Codec.Encode t.id o None t.acnAlignment t.acnMinSizeInBits t.acnMaxSizeInBits None ""
+            let intFuncBody = enumIntFuncBody r lm Codec.Encode t.id o None None t.acnAlignment t.acnMinSizeInBits t.acnMaxSizeInBits None ""
             intFuncBody errCode [] (NestingScope.init t.acnMaxSizeInBits t.uperMaxSizeInBits []) p |>
             Option.map (fun res ->
                 {AcnInvalidCodeStream.code = code; codeVarName = codeVarName
                  codeVarType = (DAstTypeDefinition.getIntegerTypeByClass lm intTypeClass)()
                  encodeStatement = res.funcBody; localVariables = res.localVariables}))
 
-let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (o:Asn1AcnAst.Enumerated) (defOrRef:TypeDefinitionOrReference ) (typeDefinitionName:string) (icdStgFileName:string) sAsn1Constraints (acnAlignment: AcnGenericTypes.AcnAlignment option) acnMinSizeInBits acnMaxSizeInBits unitsOfMeasure =
+/// fullRangeUse: UseFullRange for an ASN.1 ENUMERATED (coverage step 14c2a, DecodeOutcome.acnEnumFullIndex) and, since
+/// 14c2b, for an ACN inserted field (DecodeOutcome.acnInsertedFieldPart decides the same).
+let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (o:Asn1AcnAst.Enumerated) (fullRangeUse: DecodeOutcome.FullRangeUse) (defOrRef:TypeDefinitionOrReference ) (typeDefinitionName:string) (icdStgFileName:string) sAsn1Constraints (acnAlignment: AcnGenericTypes.AcnAlignment option) acnMinSizeInBits acnMaxSizeInBits unitsOfMeasure =
     let EnumeratedEncValues                 = lm.acn.EnumeratedEncValues
     let Enumerated_item                     = lm.acn.Enumerated_item
     let Enumerated_no_switch                = lm.acn.EnumeratedEncValues_no_switch
@@ -172,9 +177,14 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDe
     let intTypeClass = getIntEncodingClassByUperRange r.args uperRange
     let rtlIntType = (DAstTypeDefinition.getIntegerTypeByClass lm intTypeClass)()
     let nLastItemIndex      = BigInteger(Seq.length o.items) - 1I
+    let fullIndex =
+        match codec, fullRangeUse with
+        | Decode, DecodeOutcome.UseFullRange    -> DecodeOutcome.acnEnumFullIndex r lm o
+        | Decode, DecodeOutcome.KeepCheckedCall
+        | Encode, _                             -> None
 
     let funcBody (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
-        let td = (lm.lg.getEnumTypeDefinition o.typeDef).longTypedefName2 (lm.lg.hasModules) (ToC p.modName)
+        let td = (lm.lg.getEnumTypeDefinition o.typeDef).longTypedefName2 (lm.lg.hasModules) (ToC p.modName) lm.lg.constructCrossModuleTypeDefPrefix
         let localVar, intVal =
             let varName = lm.lg.getEnumIntLocalVarName (ToC (p.accessPath.asIdentifier lm.lg))
             let lv =
@@ -183,7 +193,7 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDe
                 | InPlace -> [GenericLocalVariable {GenericLocalVariable.name = varName; varType= rtlIntType; arrSize= None; isStatic = false; initExp=None}]
             lv, varName
         let pVal = {CodegenScope.modName = typeId.ModName; accessPath = AccessPath.valueEmptyPath intVal}
-        let intFuncBody = enumIntFuncBody r lm codec typeId o sAsn1Constraints acnAlignment acnMinSizeInBits acnMaxSizeInBits unitsOfMeasure typeDefinitionName
+        let intFuncBody = enumIntFuncBody r lm codec typeId o fullIndex sAsn1Constraints acnAlignment acnMinSizeInBits acnMaxSizeInBits unitsOfMeasure typeDefinitionName
         let funcBodyContent =
             match intFuncBody errCode acnArgs nestingScope pVal with
             | None -> None
@@ -191,28 +201,50 @@ let createEnumCommon (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDe
                 let resultExpr, errCodes, auxiliaries =
                     intAcnFuncBdResult.resultExpr, intAcnFuncBdResult.errCodes, intAcnFuncBdResult.auxiliaries
                 let mainContent, localVariables =
-                    match r.args.isEnumEfficientEnabled o.items.Length  with
-                    | false ->
-                        let arrItems =
-                            o.items |>
-                            List.map(fun it ->
-                                let enumClassName = lm.lg.extractEnumClassName "" it.scala_name it.Name.Value
-                                Enumerated_item (lm.lg.getValue p.accessPath) (lm.lg.getNamedItemBackendName (Some defOrRef) it) enumClassName it.acnEncodeValue (lm.lg.intValueToString it.acnEncodeValue intTypeClass) intVal codec)
-                        EnumeratedEncValues (lm.lg.getValue p.accessPath) td arrItems intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName intVal (decodeDefaultArmExemption lm o) codec, localVar@intAcnFuncBdResult.localVariables
-                    | true ->
-                        let sEnumIndex = "nEnumIndex"
-                        let enumIndexVar = (Asn1SIntLocalVariable (sEnumIndex, None))
-                        Enumerated_no_switch (lm.lg.getValue p.accessPath) td intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName  intVal   sEnumIndex nLastItemIndex o.encodeValues   codec, enumIndexVar::localVar@intAcnFuncBdResult.localVariables
-                Some (mainContent, resultExpr, errCodes, localVariables, auxiliaries)
+                    // coverage step 14c3: one item, uPER-like: nothing to read (DecodeOutcome.acnEnumOneItem)
+                    match codec, DecodeOutcome.acnEnumOneItem r lm o with
+                    | Decode, true  -> lm.uper.one_value_assign (lm.lg.getValue p.accessPath) sFirstItemName, []
+                    | Decode, false
+                    | Encode, _     ->
+                        match r.args.isEnumEfficientEnabled o.items.Length  with
+                        | false ->
+                            let arrItems =
+                                o.items |>
+                                List.map(fun it ->
+                                    let enumClassName = lm.lg.extractEnumClassName "" it.scala_name it.Name.Value
+                                    Enumerated_item (lm.lg.getValue p.accessPath) (lm.lg.getNamedItemBackendName (Some defOrRef) it) enumClassName it.acnEncodeValue (lm.lg.intValueToString it.acnEncodeValue intTypeClass) intVal codec)
+                            // coverage step 12e: the encoder of a determinant local that its update set to an item
+                            let soCovExempt =
+                                match codec with
+                                | Decode -> decodeDefaultArmExemption lm o
+                                | Encode -> nestingScope.selectorExemption (lm.lg.getValue p.accessPath) "ASN1SCC-COV-005" |> Option.map covExemptJustification
+                            let mainContent =
+                                match fullIndex with
+                                | Some _    -> lm.acn.EnumeratedEncValues_fullIndex (lm.lg.getValue p.accessPath) td arrItems intAcnFuncBdResult.funcBody sFirstItemName intVal soCovExempt
+                                | None      -> EnumeratedEncValues (lm.lg.getValue p.accessPath) td arrItems intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName intVal soCovExempt codec
+                            mainContent, localVar@intAcnFuncBdResult.localVariables
+                        | true ->
+                            let sEnumIndex = "nEnumIndex"
+                            let enumIndexVar = (Asn1SIntLocalVariable (sEnumIndex, None))
+                            Enumerated_no_switch (lm.lg.getValue p.accessPath) td intAcnFuncBdResult.funcBody errCode.errCodeName sFirstItemName  intVal   sEnumIndex nLastItemIndex o.encodeValues   codec, enumIndexVar::localVar@intAcnFuncBdResult.localVariables
+                // coverage step 12b: the value -> encoded value map, then the integer encoding inside it; 14q: an exempted
+                // default arm (ASN1SCC-COV-005) returns FALSE itself, so the map writes no ret (EnumeratedEncValues)
+                let mapOutcome =
+                    match codec, r.args.isEnumEfficientEnabled o.items.Length, fullIndex, nestingScope.selectorExemption (lm.lg.getValue p.accessPath) "ASN1SCC-COV-005" with
+                    | Encode, false, None, Some _ -> EncodeOutcome.noWrite
+                    | _                           -> lm.lg.encodeTemplateOutcome EncEnumerated
+                let encOutcome = EncodeOutcome.sequence [mapOutcome; intAcnFuncBdResult.encOutcome]
+                Some (mainContent, resultExpr, errCodes, localVariables, auxiliaries, encOutcome)
 
         match funcBodyContent with
         | None -> None
-        | Some (funcBodyContent, resultExpr, errCodes, localVariables, auxiliaries) ->
+        | Some (funcBodyContent, resultExpr, errCodes, localVariables, auxiliaries, encOutcome) ->
             let icdFnc fieldName sPresent (comments:string list) =
                 let newComments = comments@[enumComment icdStgFileName o]
                 [{IcdRow.fieldName = fieldName; comments = newComments; sPresent=sPresent;sType=(IcdPlainType "ENUMERATED"); sConstraint=sAsn1Constraints; minLengthInBits = o.acnMinSizeInBits ;maxLengthInBits=icdMaxSizeWithoutAlignment acnAlignment o.acnMaxSizeInBits;sUnits=unitsOfMeasure; rowType = IcdRowType.FieldRow; idxOffset = None}], []
             let icd = {IcdArgAux.canBeEmbedded = true; baseAsn1Kind = "ENUMERATED"; rowsFunc = icdFnc; commentsForTas=[]; scope="type"; name= None;}
-            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; userDefinedFunctions=[]; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult=Some icd})
+            let bBsIsUnReferenced = codec = Decode && DecodeOutcome.acnEnumOneItem r lm o
+            Some ({AcnFuncBodyResult.funcBody = funcBodyContent; errCodes = errCodes; userDefinedFunctions=[]; localVariables = localVariables; bValIsUnReferenced= false; bBsIsUnReferenced=bBsIsUnReferenced; resultExpr=resultExpr; auxiliaries=auxiliaries; icdResult=Some icd; encOutcome = encodeOutcomeOf codec encOutcome})
     funcBody
 
 
@@ -224,7 +256,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInserte
                  (p: CodegenScope) =
         let typeDefinitionName = defOrRef.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName //getTypeDefinitionName t.id.tasInfo typeDefinition
         let sAsn1Constraints = constraintsToIcdStr (DAstAsn1.createEnumeratedFunction r t o)
-        let funcBodyOrig = createEnumCommon r deps lm codec t.id o defOrRef typeDefinitionName icdStgFileName sAsn1Constraints t.acnAlignment t.acnMinSizeInBits t.acnMaxSizeInBits t.unitsOfMeasure
+        let funcBodyOrig = createEnumCommon r deps lm codec t.id o DecodeOutcome.UseFullRange defOrRef typeDefinitionName icdStgFileName sAsn1Constraints t.acnAlignment t.acnMinSizeInBits t.acnMaxSizeInBits t.unitsOfMeasure
         let res = funcBodyOrig errCode acnArgs nestingScope p
         res |> Option.map (fun res ->
             let aux = lm.lg.generateEnumAuxiliaries r ACN t o nestingScope p.accessPath codec
@@ -236,7 +268,7 @@ let createEnumeratedFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInserte
 let createAcnEnumeratedFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInsertedFieldDependencies) (icdStgFileName:string) (lm:LanguageMacros) (codec:CommonTypes.Codec) (typeId : ReferenceToType) (t:Asn1AcnAst.AcnReferenceToEnumerated)  (defOrRef:TypeDefinitionOrReference) (us:State)  =
     let td = lm.lg.getTypeDefinition (t.getType r).FT_TypeDefinition
     let typeDefinitionName = td.typeName
-    let funcBody = createEnumCommon r deps lm codec typeId t.enumerated defOrRef typeDefinitionName icdStgFileName None t.acnAlignment t.enumerated.acnMinSizeInBits t.enumerated.acnMaxSizeInBits None
+    let funcBody = createEnumCommon r deps lm codec typeId t.enumerated (DecodeOutcome.acnInsertedFieldFullRangeUse (Asn1AcnAst.AcnReferenceToEnumerated t)) defOrRef typeDefinitionName icdStgFileName None t.acnAlignment t.enumerated.acnMinSizeInBits t.enumerated.acnMaxSizeInBits None
     // ACN-inserted children referencing an ENUMERATED TAS keep that name on
     // the ICD row ("ENUMERATED (DeviceMode)", roadmap A4).  ACN children
     // bypass AcnFunctionWrapper's central suffixing, so it is applied here.

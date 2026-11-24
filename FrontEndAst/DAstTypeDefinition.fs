@@ -375,7 +375,8 @@ let createString_u (lm:LanguageMacros)  (id:ReferenceToType) (typeDef: Map<Progr
             Some completeDefinition
         | NonPrimitiveNewSubTypeDefinition subDef     ->
             let otherProgramUnit = if td.programUnit = subDef.programUnit then None else (Some subDef.programUnit)
-            let completeDefinition = define_subType_ia5string td subDef otherProgramUnit lm.encodings
+            // the subtype's own alphabet (a FROM constraint may narrow it): its automatic test values take their characters from it
+            let completeDefinition = define_subType_ia5string td subDef otherProgramUnit arrnAlphaChars lm.encodings
             Some completeDefinition
         | NonPrimitiveReference2OtherType            -> None
     let aaa = createString ()

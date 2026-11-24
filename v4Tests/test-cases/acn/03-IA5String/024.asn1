@@ -1,0 +1,21 @@
+-- C_ADA_ONLY (Python and Rust: single-value IA5String constraints fail, pre-existing: the Python validator rejects the values, the Rust validator does not compile)
+-- Single-value IA5String constraints: Ada compared the whole NUL-padded string with the shorter literal (always
+-- False, a -gnatwc error); it now compares the first characters and the length. The automatic tests of C and Ada
+-- generated "ABC..." values that violate such a constraint; they now take the values of the constraint.
+
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    Word  ::= IA5String (SIZE(0..10)) ("it""s" | "a\b" | "'" | """" | "")
+    Fixed ::= IA5String (SIZE(1..5)) ("abc")
+
+    MyPDU ::= SEQUENCE {
+        w  Word,
+        f  Fixed
+    }
+
+    v1 Word ::= "it""s"
+
+END
+
+--TCLS     MyPDU[]
+--TCLS     MyPDU[] {w[encoding ASCII, size null-terminated], f[]}

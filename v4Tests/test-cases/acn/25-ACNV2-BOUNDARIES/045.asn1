@@ -1,0 +1,19 @@
+-- ACNV2_ONLY C_ADA_ONLY (legacy: no CHOICE of CONTAINING regions sized by an ACN parameter, as 009)
+-- Issue 132: the OCTET twins of 044. The region around a CHOICE whose alternatives share one size parameter holds the
+-- whole CHOICE body padded to whole octets: Doc2 its own index (1 bit) and the contents (16 bits), 3 octets; Doc3
+-- aligned alternatives in a region that starts off a byte boundary, up to 6 octets. The decoders bound the region by
+-- the CHOICE's own maximum rounded up to octets (3, 6), not by its largest CONTAINING alternative (2 octets), which
+-- rejected valid encodings.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Val16 ::= SEQUENCE { number INTEGER (0..65535) }
+
+Payload2 ::= CHOICE { value OCTET STRING (CONTAINING Val16), other OCTET STRING (CONTAINING Val16) }
+Doc2 ::= SEQUENCE { payload Payload2, trailer INTEGER (0..255) }
+
+Payload3 ::= CHOICE { value OCTET STRING (CONTAINING Val16), other OCTET STRING (CONTAINING Val16) }
+Doc3 ::= SEQUENCE { f BOOLEAN, payload Payload3, trailer INTEGER (0..255) }
+
+END
+
+--TCFS   045.acn

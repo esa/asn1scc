@@ -1,0 +1,49 @@
+-- Issue 173: a constraint MIN..m / n..MAX applied to a range (serially, inside an intersection, or by a subtype of a
+-- type with a range) takes the parent's bound for MIN / MAX (X.680, X.691 B.3: "MIN is 1"). The range algebra of the
+-- compiler (uperIntersection) got two cases wrong: n..MAX on lo..hi with n <= lo gave n..MAX (a semi-constrained
+-- INTEGER, or "infinite size" for a SIZE), MIN..m on lo..hi with lo <= m < hi gave m..hi (valid values below m were
+-- encoded with a negative offset: C wrote past the buffer, Ada did not represent them). The common shape is the
+-- reference chain U0 / U1 (an unsigned base type and a ranged subtype): 72 bits semi-constrained, now 8 bits.
+-- Expected bytes = pycrate 0.8.1 (asn1tools ignores a serial MIN / MAX); INTEGER ((0..10) ^ (MIN..5)) against
+-- INTEGER (0..5). R1 / R2: the ACN scaled-integer REAL maps the range (R1 low 0.0, was 5.0; R2 was a compile error).
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 008_wire_test.c (-DNDEBUG, ASan / UBSan, buffers of
+-- exactly REQUIRED_BYTES) / 008_wire_test.adb (with and without -gnata), legacy and --acn-v2.
+UPER-WIRE-RANGE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    U0  ::= INTEGER (0..MAX)
+    U1  ::= U0 (0..255)
+    U2  ::= U0 (5..10)
+    V0  ::= INTEGER (-3..MAX)
+    V1  ::= V0 (5..10)
+    SU  ::= SEQUENCE { f U0 (0..255), g BOOLEAN }
+    I1  ::= INTEGER (0..10) (MIN..5)
+    B0  ::= INTEGER (0..10)
+    I3  ::= B0 (MIN..5)
+    I4  ::= INTEGER ((0..10) ^ (MIN..5))
+    I5  ::= INTEGER (-10..10) (MIN..-5)
+    I3b ::= INTEGER (0..10) (MIN..0)
+    B64 ::= INTEGER (0..18446744073709551615) (MIN..5)
+    P64 ::= INTEGER (0..18446744073709551615) (0..MAX)
+    I8  ::= INTEGER (0..10) (MIN..5) (0..2)
+    I2  ::= INTEGER (3..10) (1..MAX)
+    I6  ::= INTEGER (5..10) (-3..MAX)
+    I7  ::= INTEGER (3..10) (3..MAX)
+    X1  ::= INTEGER (5) (0..MAX)
+    E3  ::= INTEGER ((0..10) ^ (MIN..5), ...)
+    C1  ::= INTEGER (0..10) (5..MAX)
+    C2  ::= INTEGER (0..10) (MIN..10)
+    S1  ::= IA5String (SIZE(1..6)) (SIZE(MIN..2))
+    S3  ::= IA5String (SIZE(1..6)) (SIZE(MIN..3))
+    S2  ::= IA5String (SIZE(1..6)) (SIZE(0..MAX))
+    S8  ::= IA5String (SIZE(1..6)) (SIZE(MIN..2)) (SIZE(1))
+    N1  ::= NumericString (SIZE(1..6)) (SIZE(MIN..2))
+    O1  ::= OCTET STRING (SIZE(1..6)) (SIZE(MIN..2))
+    O3  ::= OCTET STRING (SIZE(1..6)) (SIZE(MIN..3))
+    O2  ::= OCTET STRING (SIZE(1..6)) (SIZE(0..MAX))
+    BS1 ::= BIT STRING (SIZE(1..6)) (SIZE(MIN..2))
+    BS3 ::= BIT STRING (SIZE(1..6)) (SIZE(MIN..3))
+    Q1  ::= SEQUENCE (SIZE(1..6)) OF BOOLEAN
+    Q2  ::= Q1 (SIZE(MIN..2))
+    Q3  ::= Q1 (SIZE(MIN..3))
+    R1  ::= REAL (0.0..10.0) (MIN..5.0)
+    R2  ::= REAL (3.0..10.0) (1.0..MAX)
+END

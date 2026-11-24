@@ -60,12 +60,20 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         | true, AcnChildDeterminant _       -> false
         | false, _                          -> false
 
-    let localVariables =
+    // coverage step 14c3: one alternative with a coded index: the index is not read (DecodeOutcome.choiceOneAlternative)
+    let bOneAlternative =
         match ec, codec with
-        | _, CommonTypes.Encode             -> []
-        | CEC_enum _, CommonTypes.Decode    -> []
-        | CEC_presWhen, CommonTypes.Decode  -> []
-        | CEC_uper, CommonTypes.Decode  -> [(Asn1SIntLocalVariable (sChoiceIndexName, None))]
+        | CEC_uper, CommonTypes.Decode      -> DecodeOutcome.choiceOneAlternative lm o
+        | CEC_uper, CommonTypes.Encode
+        | CEC_enum _, _
+        | CEC_presWhen, _                   -> false
+    let localVariables =
+        match ec, codec, bOneAlternative with
+        | _, CommonTypes.Encode, _          -> []
+        | CEC_enum _, CommonTypes.Decode, _ -> []
+        | CEC_presWhen, CommonTypes.Decode, _ -> []
+        | CEC_uper, CommonTypes.Decode, true  -> []
+        | CEC_uper, CommonTypes.Decode, false -> [(Asn1SIntLocalVariable (sChoiceIndexName, None))]
 
     let typeDefinitionName = defOrRef.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName//getTypeDefinitionName t.id.tasInfo typeDefinition
     let uperPresenceMask, extraComment =
@@ -115,7 +123,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                         | false ->
                             let sType = TypeHash childIcdTas.hash
                             let sConstraint = constraintsToIcdStr c.chType.ConstraintsAsn1Str
-                            let icdRow = [{IcdRow.fieldName = c.Name.Value; comments = childComments; sPresent=optionality;sType=sType; sConstraint=sConstraint; minLengthInBits = c.chType.acnMinSizeInBits; maxLengthInBits=c.chType.acnMaxSizeInBits;sUnits=None; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}]
+                            let icdRow = [{IcdRow.fieldName = c.Name.Value; comments = childComments; sPresent=optionality;sType=sType; sConstraint=sConstraint; minLengthInBits = c.chType.acnMinSizeInBits; maxLengthInBits=c.chType.acnMaxSizeInBits;sUnits=c.chType.unitsOfMeasure; rowType = IcdRowType.LengthDeterminantRow; idxOffset = None}]
                             let compChild = [childIcdTas]
                             icdRow, compChild
                     |None -> [],[]) |> List.unzip
@@ -128,7 +136,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
 
 
     let funcBody (us:State) (errCode:ErrorCode) (acnArgs: (AcnGenericTypes.RelativePath*AcnGenericTypes.AcnParameter) list) (nestingScope: NestingScope) (p:CodegenScope) =
-        let td = (lm.lg.getChoiceTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName)
+        let td = (lm.lg.getChoiceTypeDefinition o.typeDef).longTypedefName2 lm.lg.hasModules (ToC p.modName) lm.lg.constructCrossModuleTypeDefPrefix
         let acnSiblingMaxSize = children |> List.map (fun c -> c.chType.acnMaxSizeInBits) |> List.max
         let uperSiblingMaxSize = children |> List.map (fun c -> c.chType.uperMaxSizeInBits) |> List.max
         let handleChild (us:State) (idx:int) (child:ChChildInfo) =
@@ -180,10 +188,40 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
             let childBody =
                 let sChoiceTypeName = typeDefinitionName
                 match child.Optionality with
-                | Some (ChoiceAlwaysAbsent) -> Some (choiceChildAlwaysAbsent (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) errCode.errCodeName sChoiceTypeName codec)
+                | Some (ChoiceAlwaysAbsent) ->
+                    // Only backends that keep the ALWAYS ABSENT alternatives (Ada, choice_handle_always_absent_child) get
+                    // here. Encode: an arm of the case on the kind. Decode: an arm of the case on what selects the
+                    // alternative (q/issues.md Issue 82): the decoded index (its value is idx), the ENUMERATED
+                    // determinant local (the item's name); none for a determinant received as an Asn1UInt ref (the case
+                    // has a `when others`) or present-when conditions (the if / elsif chain has an `else`).
+                    let absentArm sCaseLabel soCovExempt =
+                        Some (choiceChildAlwaysAbsent (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) errCode.errCodeName sChoiceTypeName sCaseLabel soCovExempt codec)
+                    match codec, ec with
+                    | Encode, _         -> absentArm (idx.ToString()) None
+                    | Decode, CEC_uper  ->
+                        // coverage step 14g (K2): the index is decoded within 0 .. nMax and the case runs only when it is
+                        // in that range (Choice_decode); the ALWAYS ABSENT alternatives come after the nMax + 1 others,
+                        // so their arms cannot run. Not for the shapes without that check (one alternative, full index).
+                        let soCovExempt =
+                            match bOneAlternative, DecodeOutcome.acnChoiceFullIndex r deps lm o with
+                            | false, None       -> Some (covExemptJustification "ASN1SCC-COV-001")
+                            | false, Some _
+                            | true, _           -> None
+                        absentArm (idx.ToString()) soCovExempt
+                    | Decode, CEC_enum (enm, determinant) when not (isDeferredDeterminant determinant) ->
+                        let enmItem = enm.enm.items |> List.find(fun itm -> itm.Name.Value = child.Name.Value)
+                        let enumDefOrRef =
+                            match p.modName = ToC enm.modName with
+                            | true  -> ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = None; typedefName = ToC (r.args.TypePrefix + enm.tasName); definedInRtl = false}
+                            | false -> ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = Some (ToC enm.modName); typedefName = ToC (r.args.TypePrefix + enm.tasName); definedInRtl = false}
+                        absentArm (lm.lg.getNamedItemBackendName (Some enumDefOrRef) enmItem) None
+                    | Decode, CEC_enum _
+                    | Decode, CEC_presWhen -> None
                 | Some (ChoiceAlwaysPresent)
                 | None  ->
                     match ec with
+                    | CEC_uper when bOneAlternative ->
+                        Some (lm.uper.choice_one_alternative (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) childContent_funcBody)
                     | CEC_uper  ->
                         Some (choiceChild (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) (lm.lg.presentWhenName (Some defOrRef) child) (BigInteger idx) nIndexSizeInBits nMax childContent_funcBody sChildName sChildTypeDef sChoiceTypeName sChildInitExpr codec)
                     | CEC_enum (enm, determinant) ->
@@ -254,7 +292,15 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 match child.Optionality with
                 | Some ChoiceAlwaysAbsent           -> []
                 | Some ChoiceAlwaysPresent | None   -> childContent_localVariables
-            [{|childBody=childBody; lvs=childContent_localVariables; userDefFuncs=childContent_userDefFuncs; errCodes=childContent_errCodes; auxiliaries=auxiliaries; hasContent=childContentResult.IsSome|}], ns1
+            // coverage step 12b: the arm (the index of the uPER-like encoding, then the child)
+            let armOutcome =
+                let childOutcome = childContentResult |> Option.map (fun c -> c.encOutcome) |> Option.defaultValue EncodeOutcome.noWrite
+                match child.Optionality, ec with
+                | Some ChoiceAlwaysAbsent, _                    -> lm.lg.encodeTemplateOutcome EncChoiceAbsentArm
+                | (Some ChoiceAlwaysPresent | None), CEC_uper   -> EncodeOutcome.sequence [lm.lg.encodeTemplateOutcome EncRtlWritesOnly; childOutcome]
+                | (Some ChoiceAlwaysPresent | None), CEC_enum _
+                | (Some ChoiceAlwaysPresent | None), CEC_presWhen -> childOutcome
+            [{|childBody=childBody; lvs=childContent_localVariables; userDefFuncs=childContent_userDefFuncs; errCodes=childContent_errCodes; auxiliaries=auxiliaries; hasContent=childContentResult.IsSome; encOutcome=armOutcome|}], ns1
 
         let childrenStatements00, ns = children |> List.mapi (fun i x -> i,x)  |> foldMap (fun us (i,x) ->  handleChild us i x) us
         let childrenStatements0 = childrenStatements00 |> List.collect id
@@ -269,6 +315,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         let bBsIsUnReferenced =
             let noChildContent = childrenStatements0 |> List.forall (fun s -> not s.hasContent)
             match ec, codec with
+            | CEC_uper, Decode when bOneAlternative -> noChildContent      // coverage step 14c3: no index read
             | CEC_uper, _               -> false
             | _, Encode                 -> false
             | CEC_enum _, Decode
@@ -277,9 +324,51 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
         let choiceContent, resultExpr =
             let pp, resultExpr = joinedOrAsIdentifier lm codec p
             let access = lm.lg.getAccess p.accessPath
+            // coverage step 12e: the update of the determinant, earlier in this function, switched on the same selector
+            // with a failing default arm, and every alternative it accepts has an arm here (none is always absent)
+            let soCovExempt =
+                match codec, ec, alwaysAbsentChildren with
+                | Encode, (CEC_enum _ | CEC_presWhen), [] ->
+                    nestingScope.selectorExemption (choiceSelectorKey pp access) "ASN1SCC-COV-004" |> Option.map covExemptJustification
+                // coverage step 14c3: the determinant was decoded earlier in this function (AcnSequence: its local holds an
+                // item on every path that keeps ret TRUE), and every item of the field has an alternative here
+                | Decode, CEC_enum (enm, determinant), [] when not (isDeferredDeterminant determinant) ->
+                    let itemNames = determinantEnumItems deps determinant enm.enm |> List.map (fun itm -> itm.Name.Value) |> Set.ofList
+                    let childNames = children |> List.map (fun c -> c.Name.Value) |> Set.ofList
+                    match itemNames = childNames with
+                    | true  -> nestingScope.selectorExemption (getExternalField lm r deps t.id) "ASN1SCC-COV-008" |> Option.map covExemptJustification
+                    | false -> None
+                // coverage step 14e (E4): an --acn-v2 specialised CHOICE decoder receives its determinant as an
+                // AcnInsertedFieldRef. When the field is an ACN ENUMERATED field (decoded by a switch with a failing
+                // default arm, or assigned its only item; not -eee) of a SEQUENCE that holds this CHOICE, every caller
+                // decoded it before the call (the front end requires the field before its dependent; an ACN field is
+                // never optional) and stored the value of an item; every item has an alternative here
+                | Decode, CEC_enum (enm, determinant), [] when isDeferredDeterminant determinant ->
+                    let itemNames = determinantEnumItems deps determinant enm.enm |> List.map (fun itm -> itm.Name.Value) |> Set.ofList
+                    let childNames = children |> List.map (fun c -> c.Name.Value) |> Set.ofList
+                    let fieldDecodedBefore =
+                        match originalDeterminantField deps determinant with
+                        | Some ({Type = AcnReferenceToEnumerated fe} as field) when not (r.args.isEnumEfficientEnabled fe.enumerated.items.Length) ->
+                            let fieldPath = field.id.ToScopeNodeList
+                            let holder = List.take (fieldPath.Length - 1) fieldPath
+                            let choicePath = t.id.ToScopeNodeList
+                            holder.Length < choicePath.Length && List.take holder.Length choicePath = holder
+                        | Some _
+                        | None -> false
+                    match itemNames = childNames && fieldDecodedBefore with
+                    | true  -> Some (covExemptJustification "ASN1SCC-COV-009")
+                    | false -> None
+                | Encode, (CEC_enum _ | CEC_presWhen), _ :: _
+                | Encode, CEC_uper, _
+                | Decode, _, _                            -> None
             match ec with
             | CEC_uper        ->
-                choice_uper pp access childrenStatements nMax sChoiceIndexName td nIndexSizeInBits errCode.errCodeName codec, resultExpr
+                // coverage step 14c2a: 2^nIndexSizeInBits alternatives that cannot fail (DecodeOutcome.acnChoiceFullIndex)
+                match codec, bOneAlternative, DecodeOutcome.acnChoiceFullIndex r deps lm o with
+                | Decode, true, _                    -> String.concat "\n" childrenStatements, resultExpr
+                | Decode, false, Some (nFullBits, _) -> lm.acn.Choice_fullIndex pp access childrenStatements sChoiceIndexName td nFullBits, resultExpr
+                | Decode, false, None
+                | Encode, _, _                       -> choice_uper pp access childrenStatements nMax sChoiceIndexName td nIndexSizeInBits errCode.errCodeName codec, resultExpr
             | CEC_enum   enm  ->
                 let extField = getExternalField lm r deps t.id
                 // In deferred mode the case discriminant is Asn1UInt (det.Value),
@@ -288,11 +377,22 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFiel
                 // when-others would be redundant — Ada flags it as a warning,
                 // which becomes an error under -gnatwe.
                 let bIsDeferred = isDeferredDeterminant (snd enm)
-                choice_Enum pp access childrenStatements extField td errCode.errCodeName bIsDeferred codec, resultExpr
-            | CEC_presWhen    -> choice_preWhen pp  access childrenStatements td errCode.errCodeName codec, resultExpr
+                choice_Enum pp access childrenStatements extField td errCode.errCodeName bIsDeferred soCovExempt codec, resultExpr
+            | CEC_presWhen    -> choice_preWhen pp  access childrenStatements td errCode.errCodeName soCovExempt codec, resultExpr
         let choiceContent = lm.lg.generateChoiceProof r ACN t o choiceContent p.accessPath codec
         let aux = lm.lg.generateChoiceAuxiliaries r ACN t o nestingScope p.accessPath codec
-        Some ({AcnFuncBodyResult.funcBody = choiceContent; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; userDefinedFunctions=childrenUserDefFuncs; bValIsUnReferenced=false; bBsIsUnReferenced=bBsIsUnReferenced; resultExpr=resultExpr; auxiliaries=childrenAuxiliaries@aux; icdResult = Some icd}), ns
+        // coverage step 12b: one arm runs, then (C) the default arm of an invalid selector
+        let encOutcome =
+            // coverage step 14q: an exempted default arm (ASN1SCC-COV-004, the encode case of soCovExempt above)
+            // returns FALSE itself (writes no ret)
+            let defaultArm =
+                let pp, _ = joinedOrAsIdentifier lm codec p
+                match codec, ec, alwaysAbsentChildren with
+                | Encode, (CEC_enum _ | CEC_presWhen), [] when (nestingScope.selectorExemption (choiceSelectorKey pp (lm.lg.getAccess p.accessPath)) "ASN1SCC-COV-004").IsSome ->
+                    EncodeOutcome.noWrite
+                | _ -> lm.lg.encodeTemplateOutcome EncChoiceDefaultArm
+            encodeOutcomeOf codec (EncodeOutcome.sequence [EncodeOutcome.alternatives true (childrenStatements0 |> List.map (fun s -> s.encOutcome)); defaultArm])
+        Some ({AcnFuncBodyResult.funcBody = choiceContent; errCodes = errCode::childrenErrCodes; localVariables = localVariables@childrenLocalvars; userDefinedFunctions=childrenUserDefFuncs; bValIsUnReferenced=false; bBsIsUnReferenced=bBsIsUnReferenced; resultExpr=resultExpr; auxiliaries=childrenAuxiliaries@aux; icdResult = Some icd; encOutcome = encOutcome}), ns
 
 
     let soSparkAnnotations = Some(sparkAnnotations lm (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) codec)

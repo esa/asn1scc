@@ -9,7 +9,12 @@ open System.IO
 open Antlr.Runtime.Tree
 open Antlr.Runtime
 
-let c_keywords =  [ "auto"; "break"; "case"; "char"; "const"; "continue"; "default"; "do"; "double"; "else"; "enum"; "extern"; "float"; "for"; "goto"; "if"; "int"; "long"; "register"; "return"; "short"; "signed"; "sizeof"; "static"; "struct"; "switch"; "typedef"; "union"; "unsigned"; "void"; "volatile"; "while"; ] |> Set.ofList
+let c_keywords =  [ "auto"; "break"; "case"; "char"; "const"; "continue"; "default"; "do"; "double"; "else"; "enum"; "extern"; "float"; "for"; "goto"; "if"; "int"; "long"; "register"; "return"; "short"; "signed"; "sizeof"; "static"; "struct"; "switch"; "typedef"; "union"; "unsigned"; "void"; "volatile"; "while";
+                    // C99 (C++), and C23 keywords that C99 / C11 code gets as macros of <stdbool.h>, <stdalign.h>, <assert.h>,
+                    // <threads.h> (the generated code includes <stdbool.h>: a component `true` compiled to `NullType 1;`).
+                    // The reserved forms with an underscore and a capital (_Bool, _Atomic, ...) cannot be ASN.1 names.
+                    "inline"; "restrict";
+                    "alignas"; "alignof"; "bool"; "constexpr"; "false"; "nullptr"; "static_assert"; "thread_local"; "true"; "typeof"; "typeof_unqual"; ] |> Set.ofList
 let scala_keywords =  [ "abstract"; "case"; "catch"; "class"; "def"; "do"; "else"; "enum"; "export"; "extends"; "false"; "final"; "finally"; "float"; "for"; "given"; "if"; "implicit"; "import"; "int"; "lazy"; "match"; "new"; "null"; "object"; "override"; "package"; "private"; "protected"; "return"; "sealed"; "super"; "then"; "throw"; "trait"; "true"; "try"; "type"; "val"; "var"; "while"; "with"; "yield"; ] |> Set.ofList
 let ada_keywords =  [ "abort"; "else"; "new"; "return"; "abs"; "elsif"; "not"; "reverse"; "abstract"; "end"; "null"; "accept"; "entry"; "select"; "access"; "exception"; "of"; "separate"; "aliased"; "exit"; "or"; "some"; "all"; "others"; "subtype"; "and"; "for"; "out"; "synchronized"; "array"; "function"; "overriding"; "at"; "tagged"; "generic"; "package"; "task"; "begin"; "goto"; "pragma"; "terminate"; "body"; "private"; "then"; "if"; "procedure"; "type"; "case"; "in"; "protected"; "constant"; "interface"; "until"; "is"; "raise"; "use"; "declare"; "range"; "delay"; "limited"; "record"; "when"; "delta"; "loop"; "rem"; "while"; "digits"; "renames"; "with"; "do"; "mod"; "requeue"; "xor" ] |> Set.ofList
 let rust_keywords = FsUtils.rust_keywords
@@ -722,8 +727,8 @@ type FE_StringTypeDefinition = {
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_StringTypeDefinition>
 }
 with
-    member this.longTypedefName2 bHasUnits callerProgramUnit =
-        let z n = this.programUnit + "." + n
+    member this.longTypedefName2 bHasUnits callerProgramUnit (defQual : string -> string) =
+        let z n = defQual this.programUnit + n
         match bHasUnits with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -745,8 +750,8 @@ type FE_SizeableTypeDefinition = {
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_SizeableTypeDefinition>
 }
 with
-    member this.longTypedefName2 bHasUnits callerProgramUnit =
-        let z n = this.programUnit + "." + n
+    member this.longTypedefName2 bHasUnits callerProgramUnit (defQual : string -> string) =
+        let z n = defQual this.programUnit + n
         match bHasUnits with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -767,8 +772,8 @@ type FE_SequenceTypeDefinition = {
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_SequenceTypeDefinition>
 }
 with
-    member this.longTypedefName2 bHasUnits callerProgramUnit =
-        let z n = this.programUnit + "." + n
+    member this.longTypedefName2 bHasUnits callerProgramUnit (defQual : string -> string) =
+        let z n = defQual this.programUnit + n
         match bHasUnits with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -790,8 +795,8 @@ type FE_ChoiceTypeDefinition = {
     kind            : FE_NonPrimitiveTypeDefinitionKind<FE_ChoiceTypeDefinition>
 }
 with
-    member this.longTypedefName2 bHasModules callerProgramUnit =
-        let z n = this.programUnit + "." + n
+    member this.longTypedefName2 bHasModules callerProgramUnit (defQual : string -> string) =
+        let z n = defQual this.programUnit + n
         match bHasModules with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -816,8 +821,8 @@ type FE_EnumeratedTypeDefinition = {
 }
 with
 
-    member this.longTypedefName2 bHasUnits callerProgramUnit =
-        let z n = this.programUnit + "." + n
+    member this.longTypedefName2 bHasUnits callerProgramUnit (defQual : string -> string) =
+        let z n = defQual this.programUnit + n
         match bHasUnits with
         | false             -> this
         | true   when this.programUnit = callerProgramUnit   -> this
@@ -1002,12 +1007,12 @@ let rec uperIntersection r1 r2 (l:SrcLoc) =
     | (PosInf(a), PosInf(b))        -> PosInf(max a b)
     | (PosInf(a), NegInf(b))        -> if a<=b then Concrete(a,b) else emptyTypeError l
     | (PosInf(a1), Concrete(a,b))   -> if a1>b then emptyTypeError l
-                                        elif a1<=a then r1
+                                        elif a1<=a then r2
                                         else Concrete(a1,b)
     | (NegInf(a), NegInf(b))        -> NegInf(min a b)
     | (NegInf(a), PosInf(b))        -> if a>=b then Concrete(b,a) else emptyTypeError l
     | (NegInf(a1), Concrete(a,b))   -> if a1<a then emptyTypeError l
-                                        elif a1<b then Concrete(a1,b)
+                                        elif a1<b then Concrete(a,a1)
                                         else r2
     | (Concrete(a1,b1), Concrete(a2,b2)) -> if a1<=a2 && a2<=b1 && b1<=b2 then Concrete(a2,b1)
                                             elif a2<=a1 && a1<=b2 && b2<=b1 then Concrete(a1, b2)

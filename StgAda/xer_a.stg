@@ -66,6 +66,12 @@ is
     <arrsLocalVariables; separator="\n">
 begin
     <sContent>
+    <if(soIValidFuncName)>
+    --  the decoded value must satisfy the constraints of its type
+    if ret.Success then
+        ret := <soIValidFuncName>(<sVarName>);
+    end if;
+    <endif>
 end <sFuncName>_aux;
 pragma Warnings (On, "unused initial value of ""val""");
 
@@ -188,10 +194,10 @@ begin
     if ret.Success then
         <arrsItems; separator="\n">
 	    else
-		    ret.ErrorCode := <sErrCode>;
+		    ret.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
 	    end if;
     else
-	    ret.ErrorCode := <sErrCode>;
+	    ret.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
     end if;
 
 end;
@@ -199,12 +205,12 @@ end;
 
 
 
-OctetString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+OctetString_encode(p, sAcc, sTag, nLevel, nSizeMin, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 adaasn1rtl.encoding.xer.Xer_EncodeOctetString(bs, <sTag>, <p><sAcc>Data, <if(!bIsFixedSize)><p><sAcc>Length<else><nSizeMax><endif>, ret, <nLevel>);
 ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
-OctetString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+OctetString_decode(p, sAcc, sTag, nLevel, nSizeMin, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 <if(bIsFixedSize)>
 declare
 	fixed_length : Integer;
@@ -215,7 +221,17 @@ begin
 end;
 
 <else>
-adaasn1rtl.encoding.xer.Xer_DecodeOctetString(bs, <sTag>, <p><sAcc>Data, <p><sAcc>Length, ret);
+--  decode the length into an Integer: Length's subtype is <nSizeMin> .. <nSizeMax>, a shorter or longer value is an error
+declare
+	len : Integer;
+begin
+	adaasn1rtl.encoding.xer.Xer_DecodeOctetString(bs, <sTag>, <p><sAcc>Data, len, ret);
+	if ret.Success and then len >= <nSizeMin> and then len \<= <nSizeMax> then
+		<p><sAcc>Length := len;
+	else
+		ret.Success := False; -- COVERAGE_IGNORE
+	end if;
+end;
 <if(soCheckExp)><soCheckExp><endif>
 ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 
@@ -223,7 +239,7 @@ ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
 
-BitString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+BitString_encode(p, sAcc, sTag, nLevel, nSizeMin, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 <if(bitStringAlignment)>
 declare
    tmpBits : adaasn1rtl.BitArray(1 .. <nSizeMax>);
@@ -234,7 +250,7 @@ end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a declare block)<\n><else>
 adaasn1rtl.encoding.xer.Xer_EncodeBitString(bs, <sTag>, <p><sAcc>Data, <if(!bIsFixedSize)><p><sAcc>Length<else><nSizeMax><endif>, ret, <nLevel>);<\n><endif>ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 >>
 
-BitString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+BitString_decode(p, sAcc, sTag, nLevel, nSizeMin, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 <if(bIsFixedSize)>
 declare
 	fixed_length : Integer;
@@ -253,15 +269,25 @@ begin
 end;
 
 <else>
-<if(bitStringAlignment)>
+--  decode the length into an Integer: Length's subtype is <nSizeMin> .. <nSizeMax>, a shorter or longer value is an error
 declare
+	len : Integer;
+<if(bitStringAlignment)>
 	tmpBits : adaasn1rtl.BitArray(1 .. <nSizeMax>) := (others => 0);
+<endif>
 begin
-	adaasn1rtl.encoding.xer.Xer_DecodeBitString(bs, <sTag>, tmpBits, <p><sAcc>Length, ret);
+<if(bitStringAlignment)>
+	adaasn1rtl.encoding.xer.Xer_DecodeBitString(bs, <sTag>, tmpBits, len, ret);
 	adaasn1rtl.BitString_BitArray_To_Bytes(tmpBits, <nSizeMax>, <p><sAcc>Data);
-end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a declare block)
 <else>
-adaasn1rtl.encoding.xer.Xer_DecodeBitString(bs, <sTag>, <p><sAcc>Data, <p><sAcc>Length, ret);
+	adaasn1rtl.encoding.xer.Xer_DecodeBitString(bs, <sTag>, <p><sAcc>Data, len, ret);
+<endif>
+	if ret.Success and then len >= <nSizeMin> and then len \<= <nSizeMax> then
+		<p><sAcc>Length := len;
+	else
+		ret.Success := False; -- COVERAGE_IGNORE
+	end if;
+end;
 <endif>
 <if(soCheckExp)><soCheckExp><endif>
 ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
@@ -306,9 +332,9 @@ if ret.Success then
     <sI> := 1;
     while ret.Success and  not adaasn1rtl.encoding.xer.Xer_NextEndElementIs(bs, <sTag>) loop
         if <sI> > <nSizeMax> then
-            ret.Success := False;
-            ret.ErrorCode := <sErrCode>;
-            exit;
+            ret.Success := False; -- COVERAGE_IGNORE
+            ret.ErrorCode := <sErrCode>; -- COVERAGE_IGNORE
+            exit; -- COVERAGE_IGNORE
         end if;
 	    <sChildBody>
 	    <sI> := <sI> + 1;
@@ -323,7 +349,9 @@ end if;
 <if(soCheckExp)><soCheckExp><endif>
 
 <if(bFixedSize)>
-ret.ErrorCode := ( if ret.Success and then <sI> + 1 = <nSizeMax> then  0 else <sErrCode>);
+--  exactly <nSizeMax> items (<sI> is one past the last)
+ret.Success := ret.Success and then <sI> - 1 = <nSizeMax>;
+ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);
 
 <else>
 ret.ErrorCode := (if ret.Success then 0 else <sErrCode>);

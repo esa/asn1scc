@@ -1,0 +1,5 @@
+REJ DEFINITIONS ::= BEGIN
+    RR <INTEGER:y> [] { o [size y] }
+    QQ <INTEGER:x> [] { r <x> [] }
+    T [] { n INTEGER [encoding pos-int, size 8], c [] { list [] { <n> [] }, z [] } }
+END

@@ -59,7 +59,9 @@ GetEnumIndexByName(sEnumValuesArray, sEnumValuesArrayCount, sExp, bBinarySearch)
 
 
 ExpEqual(sExp1, sExp2) ::= "(<sExp1> = <sExp2>)"
-ExpStringEqual(sExp1, sExp2) ::= "(<sExp1> = <sExp2>)"
+/* nLen = number of characters of the literal: the Ada string is padded with NUL up to its array length, so only
+   the first nLen characters are compared (a whole-array comparison with a shorter literal is always False) */
+ExpStringEqual(sExp1, sExp2, nLen) ::= "(<rtlModuleName()>.getStringSize(<sExp1>) = <nLen> and then <sExp1>(1 .. <nLen>) = <sExp2>)"
 ExpGt(sExp1, sExp2) ::= "(<sExp1> \> <sExp2>)"
 ExpGte(sExp1, sExp2) ::= "(<sExp1> \>= <sExp2>)"
 ExpLt(sExp1, sExp2) ::= "(<sExp1> \< <sExp2>)"
@@ -87,14 +89,14 @@ end if;
 >>
 
 ExpressionOrStatement(sExp1, sStat2) ::= <<
-ret := <sExp1>;
+ret.Success := <sExp1>;
 if not ret.Success then
     <sStat2>
 end if;
 >>
 
 StatementOrExpression(sStat1, sExp2) ::= <<
-<sStat1>;
+<sStat1>
 if not ret.Success then
     ret.Success := <sExp2>;
 end if;
@@ -115,14 +117,14 @@ end if;
 >>
 
 StatementAndExpression(sStat1, sExp2) ::= <<
-<sStat1>;
+<sStat1>
 if ret.Success then
     ret.Success := <sExp2>;
 end if;
 >>
 
 StatementNot(sStat) ::= <<
-<sStat>;
+<sStat>
 ret.Success := not ret.Success;
 >>
 
@@ -143,7 +145,7 @@ end if;
 >>
 
 StatementExceptExpression(sStat1, sExp2) ::= <<
-<sStat1>;
+<sStat1>
 if ret.Success then
     ret.Success := not (<sExp2>);
 end if;
@@ -156,7 +158,7 @@ StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
 while ret.Success and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif> loop
     pragma Loop_Invariant (<i> \>= <p>.Data'First and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif>);
     pragma Loop_Variant (Increases => <i>);
-    <soInnerStatement>
+    <sInnerStatement>
     <i> := <i>+1;
 end loop;
 >>
@@ -337,6 +339,28 @@ pragma Assert (result.Success);
 JoinItemsNoCheck(sPart, sNestedPart) ::= <<
 <sPart>
 <sNestedPart>
+>>
+
+/* Coverage step 12b (DAstUtilFunctions.nestEncodeParts): the encode part before cannot fail and sets result
+   (an encoder whose contract states Post => result.Success). */
+JoinItemsCannotFail(sPart, sNestedPart, soCallee, bAssumed) ::= <<
+<sPart>
+<if(bAssumed)><if(soCallee)>-- no check: <soCallee> cannot fail (compiler analysis of the specialised body, no contract)<else>-- no check: the part above cannot fail (compiler analysis of this specialised body, no contract)<endif><\n>pragma Assume (result.Success);<else><if(soCallee)>-- no check: <soCallee> cannot fail (Post => result.Success)<else>-- no check: the part above cannot fail<endif><\n>pragma Assert (result.Success);<endif>
+<sNestedPart>
+>>
+
+/* Coverage step 12b: the encode part before does not write result (RTL procedures only). */
+JoinItemsNoWrite(sPart, sNestedPart, bComment) ::= <<
+<sPart>
+<if(bComment)>-- no check of result after a part that does not write it<endif>
+<sNestedPart>
+>>
+
+/* Coverage step 14q (DAstUtilFunctions.encodeNoCheckNote): a template whose part cannot fail does not check result after
+   it; the note says why and states the result where the part writes it (the text of JoinItemsCannotFail /
+   JoinItemsNoWrite). */
+EncodeNoCheckNote(soCallee, bAssumed, bWritesResult) ::= <<
+<if(bWritesResult)><if(bAssumed)><if(soCallee)>-- no check: <soCallee> cannot fail (compiler analysis of the specialised body, no contract)<else>-- no check: the part above cannot fail (compiler analysis of this specialised body, no contract)<endif><\n>pragma Assume (result.Success);<else><if(soCallee)>-- no check: <soCallee> cannot fail (Post => result.Success)<else>-- no check: the part above cannot fail<endif><\n>pragma Assert (result.Success);<endif><else>-- no check of result after a part that does not write it<endif>
 >>
 
 

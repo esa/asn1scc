@@ -1,0 +1,8 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+In1 <K2:k> [] { z [], y [determinant k] }
+In2 <K2:k> [] { s [] { y [determinant k] } }
+In3 <K2:k> [] { p [] { y [determinant k] }, q [] }
+O1 [] { k K2 [encoding pos-int, size 2], i1 <k> [] }
+O2 [] { k K2 [encoding pos-int, size 2], i2 <k> [] }
+O3 [] { k K2 [encoding pos-int, size 2], i3 <k> [] }
+END

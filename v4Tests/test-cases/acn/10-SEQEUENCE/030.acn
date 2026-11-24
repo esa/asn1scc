@@ -1,0 +1,37 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+    Pay <INTEGER:len> [] { has BOOLEAN [], d [present-when has, size len], e [] }
+    Pay2 <INTEGER:len> [] { has1 BOOLEAN [], has2 BOOLEAN [], d1 [present-when has1, size len], d2 [present-when has2, size len], e [] }
+    Mid <INTEGER:len> [] { hm BOOLEAN [], m [present-when hm, size len], q <len> [] }
+    Ch8 <INTEGER:k> [] { c8a [present-when k==0], c8b [present-when k==1] }
+    S1 [] { g BOOLEAN [], f BOOLEAN [], h [present-when f] { a [], n INTEGER [size 4, encoding pos-int] }, p [present-when g, size h.n], tail [] }
+    S2 [] { h [] { a [], n INTEGER [size 4, encoding pos-int] }, p [size h.n], tail [] }
+    S5 [] { g BOOLEAN [], f BOOLEAN [], h [present-when f] { a [], cl INTEGER [size 4, encoding pos-int] }, cont [present-when g, size h.cl], tail [] }
+    S6 [] { g BOOLEAN [], f BOOLEAN [], h [present-when f] { a [], n INTEGER [size 4, encoding pos-int] }, pl <h.n> [present-when g], tail [] }
+    S7 [] { g BOOLEAN [], n INTEGER [size 4, encoding pos-int], p [present-when g, size n], tail [] }
+    S8 [] { g BOOLEAN [], k INTEGER [size 4, encoding pos-int], c <k> [present-when g], tail [] }
+    S11 [] { h BOOLEAN [], n INTEGER [size 4, encoding pos-int], o [present-when h, size n], tail [] }
+    S9 [] { n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    S12 [] { n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    S17 [] { h BOOLEAN [], n INTEGER [size 4, encoding pos-int], o [present-when h, size n], pl <n> [], tail [] }
+    S18 [] { h BOOLEAN [], n INTEGER [size 4, encoding pos-int], o [present-when h, size n], pl <n> [], tail [] }
+    S19 [] { h BOOLEAN [], n INTEGER [size 4, encoding pos-int], o [present-when h, size n], pl <n> [], tail [] }
+    MsgPayload <MsgType:t> [determinant t]
+    Message [] { hasPayload BOOLEAN [], msgType MsgType [], payload <msgType> [present-when hasPayload] }
+    T1 [] { g BOOLEAN [], n Len [], p [present-when g, size n], tail [] }
+    PayL <Len5:len> [] { has BOOLEAN [], d [present-when has, size len], e [] }
+    T2 [] { n Len5 [], pl <n> [], tail [] }
+    Kind [encoding pos-int, size 4, encode-values]
+    T3 [] { g BOOLEAN [], k Kind [], c [present-when g, determinant k], tail [] }
+    Kc3 <Kind:k> [determinant k]
+    T3b [] { g BOOLEAN [], k Kind [], c <k> [present-when g], tail [] }
+    T4 [] { g BOOLEAN [], b BOOLEAN [true-value '1010'B], q [present-when g] { x [present-when b], y [] }, tail [] }
+    T6 [] { [] { f BOOLEAN [], g BOOLEAN [], h [present-when f] { a [], n INTEGER [size 4, encoding pos-int] }, p [present-when g, size h.n], tail [] } }
+    T7 [] { n INTEGER [size 4, encoding pos-int], c [] { ca [size n], cb [] }, tail [] }
+    MidP <INTEGER:len> [] { hq BOOLEAN [], q <len> [present-when hq], z [] }
+    T8 [] { n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    PG <INTEGER:len> [] { items [] { [size len] } }
+    T5 [] { n INTEGER [size 4, encoding pos-int], pl <n> [], tail [] }
+    T5b [] { n INTEGER [size 4, encoding pos-int], items [] { [size n] }, tail [] }
+    QQ <INTEGER:x> [] { o [size x] }
+    TA [] { n INTEGER [encoding pos-int, size 8], c [] { list [] { [] { q <n> [] } }, z [] } }
+END

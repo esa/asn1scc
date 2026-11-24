@@ -32,7 +32,20 @@ flag Acn_AlignToNextByte(BitStream* pBitStrm, flag bEncode)
 	}
 	return pBitStrm->currentByte * 8 + pBitStrm->currentBit <= pBitStrm->count * 8;
 }
-
+void Acn_Dec_AlignToNextByte(BitStream* pBitStrm)
+{
+	/* The byte alignment of a decoder (coverage step 14c3). It reads nothing, so it has nothing to check: when the
+	   current byte was partly read (currentBit != 0), that byte exists (currentByte < count), so the next byte boundary
+	   is at most the end of the stream (count * 8). A stream position already past the end (which no RTL read that
+	   succeeded leaves) is not checked here: the next read fails on its own bounds check. In streaming mode the move to
+	   the end of the buffer fetches the next one, as every read does. */
+	if (pBitStrm->currentBit != 0)
+	{
+		pBitStrm->currentBit = 0;
+		pBitStrm->currentByte++;
+		bitstream_fetch_data_if_required(pBitStrm);
+	}
+}
 flag Acn_AlignToNextWord(BitStream* pBitStrm, flag bEncode)
 {
 	if (bEncode)
@@ -225,8 +238,17 @@ flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_32(BitStream* pBitStrm, as
 
 flag Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(BitStream* pBitStrm, asn1SccUint* pIntVal)
 {
-    pBitStrm->currentByte += (8 - WORD_SIZE);
-
+#if WORD_SIZE!=8
+    /* the upper 8 - WORD_SIZE bytes must be 0: a larger value does not fit in asn1SccUint */
+    int i;
+    for (i = 0; i < 8 - WORD_SIZE; i++) {
+        byte b = 0;
+        if (!BitStream_ReadByte(pBitStrm, &b) || b != 0) {
+            *pIntVal = 0;
+            return FALSE;
+        }
+    }
+#endif
 	return Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_N(pBitStrm, pIntVal, WORD_SIZE);
 }
 
@@ -265,11 +287,19 @@ flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_32(BitStream* pBitStrm,
 
 flag Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(BitStream* pBitStrm, asn1SccUint* pIntVal)
 {
-    flag ret;
-	ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm, pIntVal, WORD_SIZE);
-    /* the upper 8 - WORD_SIZE bytes are skipped, but they must be in the stream */
-    ret = ret && pBitStrm->currentByte + (8 - WORD_SIZE) <= pBitStrm->count;
-    pBitStrm->currentByte += (8 - WORD_SIZE);
+#if WORD_SIZE!=8
+    int i;
+#endif
+	flag ret = Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm, pIntVal, WORD_SIZE);
+#if WORD_SIZE!=8
+    /* the upper 8 - WORD_SIZE bytes must be 0: a larger value does not fit in asn1SccUint */
+    for (i = 0; ret && i < 8 - WORD_SIZE; i++) {
+        byte b = 0;
+        ret = BitStream_ReadByte(pBitStrm, &b) && b == 0;
+    }
+    if (!ret)
+        *pIntVal = 0;
+#endif
     return ret;
 }
 
@@ -363,7 +393,16 @@ void Acn_Enc_Int_TwosComplement_ConstSize_big_endian_32(BitStream* pBitStrm, asn
 
 void Acn_Enc_Int_TwosComplement_ConstSize_big_endian_64(BitStream* pBitStrm, asn1SccSint intVal)
 {
+#if WORD_SIZE!=8
+    /* the upper 8 - WORD_SIZE bytes are the sign extension of the value (0xFF for a negative value) */
+    int i;
+    for (i = 0; i < 8 - WORD_SIZE; i++) {
+        BitStream_AppendByte0(pBitStrm, intVal < 0 ? 0xFF : 0x00);
+    }
+    Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_B(pBitStrm, int2uint(intVal), WORD_SIZE);
+#else
     Acn_Enc_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm, int2uint(intVal));
+#endif
 }
 
 void Acn_Enc_Int_TwosComplement_ConstSize_little_endian_16(BitStream* pBitStrm, asn1SccSint intVal)
@@ -378,7 +417,16 @@ void Acn_Enc_Int_TwosComplement_ConstSize_little_endian_32(BitStream* pBitStrm, 
 
 void Acn_Enc_Int_TwosComplement_ConstSize_little_endian_64(BitStream* pBitStrm, asn1SccSint intVal)
 {
+#if WORD_SIZE!=8
+    /* the upper 8 - WORD_SIZE bytes are the sign extension of the value (0xFF for a negative value) */
+    int i;
+    Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm, int2uint(intVal), WORD_SIZE);
+    for (i = 0; i < 8 - WORD_SIZE; i++) {
+        BitStream_AppendByte0(pBitStrm, intVal < 0 ? 0xFF : 0x00);
+    }
+#else
 	Acn_Enc_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm, int2uint(intVal));
+#endif
 }
 
 
@@ -443,10 +491,31 @@ flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_32(BitStream* pBitStrm, asn
 flag Acn_Dec_Int_TwosComplement_ConstSize_big_endian_64(BitStream* pBitStrm, asn1SccSint* pIntVal)
 {
 	asn1SccUint tmp = 0;
+#if WORD_SIZE!=8
+    /* the upper 8 - WORD_SIZE bytes must be the sign extension of the value: else it does not fit in asn1SccSint */
+    byte ext[8 - WORD_SIZE];
+    int i;
+    *pIntVal = 0;
+    for (i = 0; i < 8 - WORD_SIZE; i++) {
+        if (!BitStream_ReadByte(pBitStrm, &ext[i]))
+            return FALSE;
+    }
+	if (!Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_N(pBitStrm, &tmp, WORD_SIZE))
+		return FALSE;
+	*pIntVal = uint2int(tmp, WORD_SIZE);
+    for (i = 0; i < 8 - WORD_SIZE; i++) {
+        if (ext[i] != (*pIntVal < 0 ? 0xFF : 0x00)) {
+            *pIntVal = 0;
+            return FALSE;
+        }
+    }
+	return TRUE;
+#else
 	if (!Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_64(pBitStrm, &tmp))
 		return FALSE;
 	*pIntVal = uint2int(tmp, WORD_SIZE);
 	return TRUE;
+#endif
 }
 
 flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_16(BitStream* pBitStrm, asn1SccSint* pIntVal)
@@ -470,10 +539,26 @@ flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_32(BitStream* pBitStrm, 
 flag Acn_Dec_Int_TwosComplement_ConstSize_little_endian_64(BitStream* pBitStrm, asn1SccSint* pIntVal)
 {
 	asn1SccUint tmp = 0;
+#if WORD_SIZE!=8
+    /* the upper 8 - WORD_SIZE bytes must be the sign extension of the value: else it does not fit in asn1SccSint */
+    int i;
+	if (!Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_N(pBitStrm, &tmp, WORD_SIZE))
+		return FALSE;
+	*pIntVal = uint2int(tmp, WORD_SIZE);
+    for (i = 0; i < 8 - WORD_SIZE; i++) {
+        byte b = 0;
+        if (!BitStream_ReadByte(pBitStrm, &b) || b != (*pIntVal < 0 ? 0xFF : 0x00)) {
+            *pIntVal = 0;
+            return FALSE;
+        }
+    }
+	return TRUE;
+#else
 	if (!Acn_Dec_Int_PositiveInteger_ConstSize_little_endian_64(pBitStrm, &tmp))
 		return FALSE;
 	*pIntVal = uint2int(tmp, WORD_SIZE);
 	return TRUE;
+#endif
 }
 
 
@@ -2205,6 +2290,7 @@ void Acn_InitDet_IA5String_FixSize(BitStream* bs, int nChars, AcnInsertedFieldRe
     int i;
     det->pos = Acn_BitStream_GetPos(bs);
     det->is_set = FALSE;
+    det->in_stream = TRUE;
     det->value = 0;
     det->str_value[0] = '\0';
     for (i = 0; i < nChars * 7; i++)
@@ -2213,6 +2299,7 @@ void Acn_InitDet_IA5String_FixSize(BitStream* bs, int nChars, AcnInsertedFieldRe
 
 /* IA5String deferred patching: write string value at saved position */
 flag Acn_PatchDet_IA5String_FixSize(const char* strVal, BitStream* bs, int nChars, AcnInsertedFieldRef* det, int* err) {
+    if (!det->in_stream) return TRUE; /* the component holding the field is absent: it is not in the stream */
     if (!det->is_set) {
         int i, b;
         int slen = (int)strlen(strVal);

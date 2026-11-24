@@ -1,0 +1,12 @@
+-- Ada XER decoders of variable-size OCTET / BIT STRINGs passed the record's Length (subtype 2 .. 4 / 4 .. 8) as the
+-- out length parameter: a shorter value raised Constraint_Error at the call. They now decode the length into an
+-- Integer and fail with an error code. scripts/runWireTests.sh decodes such values with 002_decode_test.adb (Ada).
+
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    Msg ::= SEQUENCE {
+        o  OCTET STRING (SIZE(2..4)),
+        b  BIT STRING (SIZE(4..8))
+    }
+
+END

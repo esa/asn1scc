@@ -257,7 +257,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                         } |> Seq.choose id |> Seq.toList
 
                 let testcase_specFileName = Path.Combine(outDir, pu.testcase_specFileName)
-                let tstCasesHdrContent = lm.atc.PrintAutomaticTestCasesBodyFile (ToC pu.testcase_specFileName) pu.name (pu.name::pu.importedProgramUnits) [""] typeDefs false
+                let tstCasesHdrContent = lm.atc.PrintAutomaticTestCasesBodyFile (ToC pu.testcase_specFileName) (lm.lg.sanitizeModuleName pu.name) (lm.lg.sanitizeModuleName pu.name :: (pu.importedProgramUnits |> List.map lm.lg.sanitizeModuleName)) [""] typeDefs false
                 File.WriteAllText(testcase_specFileName, tstCasesHdrContent.Replace("\r",""))
 
             definitionsContent, "BODY"
@@ -459,7 +459,7 @@ let private printUnit (r:DAst.AstRoot)  (lm:LanguageMacros) (encodings: CommonTy
                 | false ->
                     [], []
             let rtlFiles = lm.lg.getRtlFiles r.args.encodings arrsTypeAssignments
-            let arrsImportedFiles = rtlFiles@pu.importedUserModules@pu.importedProgramUnits |> List.distinct
+            let arrsImportedFiles = rtlFiles@pu.importedUserModules@(pu.importedProgramUnits |> List.map lm.lg.sanitizeModuleName) |> List.distinct
             let arrsUserDefinedFunctions =
                 tases |> List.collect(fun t ->
                         (t.Type.acnEncFunction |> Option.toList |> List.collect (fun x -> x.userDefinedFunctions )) @

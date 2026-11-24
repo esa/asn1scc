@@ -1,0 +1,14 @@
+-- XER decoders check the constraints of the decoded value, as the uPER and ACN decoders do (XER checked only some
+-- INTEGERs). The automatic tests check the round trip; scripts/runWireTests.sh also decodes values outside the
+-- constraints with 001_decode_test.c (C), which must fail.
+
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+    Msg ::= SEQUENCE {
+        n  INTEGER (0..10),
+        s  IA5String (SIZE(1..5)),
+        o  OCTET STRING (SIZE(2..4)),
+        l  SEQUENCE (SIZE(1..3)) OF INTEGER (0..7)
+    }
+
+END

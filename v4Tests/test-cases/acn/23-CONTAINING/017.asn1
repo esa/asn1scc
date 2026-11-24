@@ -1,0 +1,23 @@
+-- C_ADA_ONLY (an Ada decoder check, Issue 133; the experimental backends are not checked on this file)
+-- A component, CHOICE alternative or alias whose type is an OCTET STRING (CONTAINING T) type assignment is decoded by a
+-- call of that type assignment's decoder, which fails when the contents do not fit the region. T's own decoder cannot
+-- fail; the Ada decoders of the parents classified the call by T, asserted success after it and decoded on, so a later
+-- component overwrote the failure (uPER and ACN, legacy and --acn-v2); with assertions enabled the corruption sweep
+-- stops at that pragma Assert. Byte-exact test of the wrong result: v4Tests/test-cases/uper-wire/002.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    T     ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN OPTIONAL, c INTEGER (0..255) OPTIONAL }
+    Box   ::= OCTET STRING (CONTAINING T)
+    Alias ::= Box
+    Ch    ::= CHOICE { o Box, n BOOLEAN }
+
+    MyPDU ::= SEQUENCE {
+        f   Box,
+        al  Alias,
+        ch  Ch,
+        z   BOOLEAN
+    }
+
+END
+
+--TCLS     MyPDU[]

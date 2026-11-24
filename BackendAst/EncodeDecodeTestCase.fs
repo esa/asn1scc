@@ -79,12 +79,77 @@ type private DecodeSweepParts = {
     helper      : string
 }
 
-let private decodeSweepParts (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (modName:string) (funcName:string) (sTasName:string) (sEnc:string) (sAmber:string) (isValidFunc: IsValidFunction option) (decFunName:string option) (isLiveDeduced:bool) =
+// Bit offsets of the offset round trips (Ada, 15b; C encodes from bit 1..7 since 14c1): a value is encoded again from
+// bit 1 .. last of a stream with `extra` bytes more than the type needs (the _aux Pre holds: last < 8 * extra). A type
+// with word / dword alignment needs the offsets up to 15 / 31 to reach every residue of its first alignment.
+let private offsetRoundTrips (maxAlignment:AcnGenericTypes.AcnAlignment option) =
+    match maxAlignment with
+    | None
+    | Some AcnGenericTypes.NextByte  -> 7I, 1I
+    | Some AcnGenericTypes.NextWord  -> 15I, 2I
+    | Some AcnGenericTypes.NextDWord -> 31I, 4I
+
+// Coverage cycle 15d: the bytes of the fragmentation headers (+ the byte after each) of the value of a test function whose
+// type has a fixed-size fragmented encoding (SIZE(N), N >= 64K): the decode sweep corrupts them too, as its head / tail
+// positions do not reach the headers deep inside the value. Only the shapes that corpus files test: the type of the test
+// function itself (a reference resolved, the value at bit 0), IA5String / NumericString / OCTET STRING / BIT STRING, uPER
+// and an ACN encoding that is the uPER one (a string without ACN properties; a fixed-size OCTET / BIT STRING is encoded
+// by ACN without headers). Not a SEQUENCE OF (no fixture). A position can only be wasted, not wrong: the corruption
+// oracle holds for any byte.
+type private SweepEncoding =
+    | SweepUper
+    | SweepAcn
+
+let rec private fragmentationHeaderBytes (enc:SweepEncoding) (t:Asn1AcnAst.Asn1Type) : BigInteger list =
+    // the sweep corrupts the first 2 and the last 2 bytes at any budget (asn1scc_sweep_positions / Ada
+    // Decode_Corruption_Sweep: at least 2 positions per end): not again
+    let fixedFragmented (minSize:BigInteger) (maxSize:BigInteger) (itemBits:BigInteger) =
+        match minSize = maxSize && maxSize >= FragmentationLayout.C64K with
+        | true  ->
+            let encodedBytes = (FragmentationLayout.fixedSizeFragmentedBits maxSize itemBits + 7I) / 8I
+            FragmentationLayout.fixedSizeFragmentationHeaderBytes maxSize itemBits |> List.filter (fun p -> p >= 2I && p < encodedBytes - 2I)
+        | false -> []
+    let stringHeaders (o:Asn1AcnAst.StringType) =
+        fixedFragmented o.minSize.uper o.maxSize.uper (GetNumberOfBitsForNonNegativeInteger (BigInteger (o.uperCharSet.Length - 1)))
+    match enc, t.acnAlignment with
+    | SweepAcn, Some _  -> []
+    | SweepAcn, None
+    | SweepUper, _      ->
+        match t.Kind, enc with
+        | Asn1AcnAst.ReferenceType z, _ ->
+            match z.encodingOptions with
+            | Some _    -> []           // a CONTAINING: the contents are inside an octet / bit string
+            | None      -> fragmentationHeaderBytes enc z.resolvedType
+        | Asn1AcnAst.IA5String o, SweepUper
+        | Asn1AcnAst.NumericString o, SweepUper -> stringHeaders o
+        | Asn1AcnAst.IA5String o, SweepAcn
+        | Asn1AcnAst.NumericString o, SweepAcn ->
+            match o.acnEncodingClass with
+            | Asn1AcnAst.Acn_Enc_String_uPER _                                   -> stringHeaders o
+            | Asn1AcnAst.Acn_Enc_String_uPER_Ascii _
+            | Asn1AcnAst.Acn_Enc_String_Ascii_Null_Terminated _
+            | Asn1AcnAst.Acn_Enc_String_Ascii_External_Field_Determinant _
+            | Asn1AcnAst.Acn_Enc_String_CharIndex_External_Field_Determinant _
+            | Asn1AcnAst.Acn_Enc_String_Ascii_Deduced _                          -> []
+        | Asn1AcnAst.OctetString o, SweepUper   -> fixedFragmented o.minSize.uper o.maxSize.uper 8I
+        | Asn1AcnAst.BitString o, SweepUper     -> fixedFragmented o.minSize.uper o.maxSize.uper 1I
+        | Asn1AcnAst.OctetString _, SweepAcn
+        | Asn1AcnAst.BitString _, SweepAcn      -> []
+        | Asn1AcnAst.Integer _, _ | Asn1AcnAst.Real _, _ | Asn1AcnAst.NullType _, _ | Asn1AcnAst.Boolean _, _
+        | Asn1AcnAst.Enumerated _, _ | Asn1AcnAst.ObjectIdentifier _, _ | Asn1AcnAst.TimeType _, _
+        | Asn1AcnAst.SequenceOf _, _ | Asn1AcnAst.Sequence _, _ | Asn1AcnAst.Choice _, _ -> []
+
+// The encoder (soEncFunName) and the value (sVal) are for the truncation at a bit offset (14c1): the value is encoded
+// again from bit 1..7 of the buffer. The Equal function, the init function and the offsets are for the Ada offset
+// round trips (15b).
+let private decodeSweepParts (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (modName:string) (funcName:string) (sTasName:string) (sEnc:string) (sAmber:string) (sVal:string) (isValidFunc: IsValidFunction option) (soEncFunName:string option) (decFunName:string option) (isLiveDeduced:bool) (soEqualFunc:string option) (maxAlignment:AcnGenericTypes.AcnAlignment option) (arrnCorruptAt:BigInteger list) =
     let soIsValid = isValidFunc |> Option.bind (fun f -> f.funcName)
+    let sInitFunc = sTasName + lm.init.methodNameSuffix()
+    let nLastOffset, nExtraBytes = offsetRoundTrips maxAlignment
     let parts bTruncate decName =
         {
-            DecodeSweepParts.statement = lm.atc.Codec_DecodeSweep modName funcName decName sTasName sEnc sAmber soIsValid bTruncate isLiveDeduced r.args.atcSweepBudget
-            adapter = lm.atc.Codec_DecodeSweep_adapter modName funcName decName sTasName sAmber soIsValid
+            DecodeSweepParts.statement = lm.atc.Codec_DecodeSweep modName funcName decName soEncFunName sTasName sEnc sAmber sVal soIsValid bTruncate isLiveDeduced r.args.atcSweepBudget soEqualFunc sInitFunc nLastOffset nExtraBytes arrnCorruptAt
+            adapter = lm.atc.Codec_DecodeSweep_adapter modName funcName decName soEncFunName sTasName sAmber soIsValid
             helper = lm.atc.Codec_DecodeSweep_helper r.args.atcSweepBudget
         }
     match decFunName, lm.lg.atcDecodeSweep isLiveDeduced with
@@ -132,7 +197,7 @@ let _createUperEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1
     match funcName  with
     | None              -> None, us
     | Some funcName     ->
-        let sweep = decodeSweepParts r lm modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sEnc sAmberDecode isValidFunc (decFunc |> Option.bind (fun f -> f.funcName)) false
+        let sweep = decodeSweepParts r lm modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sEnc sAmberDecode varName isValidFunc (encFunc |> Option.bind (fun f -> f.funcName)) (decFunc |> Option.bind (fun f -> f.funcName)) false eqFunc.isEqualFuncName None (fragmentationHeaderBytes SweepUper t)
 
         let printStatement stm sNestedContent =
             let content=
@@ -229,7 +294,7 @@ let _createAcnEncDecFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (t:Asn1A
         match funcName  with
         | None              -> None, us
         | Some funcName     ->
-            let sweep = decodeSweepParts r lm modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sEnc sAmberDecode isValidFunc (decFunc |> Option.bind (fun f -> f.funcName)) (isLiveDeduced t)
+            let sweep = decodeSweepParts r lm modName funcName (typeDefinition.longTypedefName2 (Some lm.lg) lm.lg.hasModules t.moduleName) sEnc sAmberDecode varName isValidFunc (encFunc |> Option.bind (fun f -> f.funcName)) (decFunc |> Option.bind (fun f -> f.funcName)) (isLiveDeduced t) eqFunc.isEqualFuncName t.maxAlignment (fragmentationHeaderBytes SweepAcn t)
             let printStatement stm sNestedContent =
                 let content=
                     match stm with

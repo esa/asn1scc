@@ -1,0 +1,22 @@
+--RUN_SPARK
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	Small ::= INTEGER (1 .. 999)
+
+	MyPDU ::= SEQUENCE {
+		u    INTEGER (0 .. 255),
+		s    INTEGER (-100 .. 100),
+		n    INTEGER (10 .. 20),
+		neg  INTEGER (-5 .. -1),
+		lo   INTEGER (5 .. MAX),
+		hi   INTEGER (MIN .. 10),
+		t    Small
+	}
+
+END
+
+-- ASCII null-terminated integers whose range is narrower than the RTL integer type: a decoded value outside the
+-- range must be rejected with an error code (Ada passed the field to the RTL procedure without bounds, so the
+-- automatic tests' corrupted streams raised Constraint_Error)
+--TCLS     MyPDU[] {u [encoding ASCII, size null-terminated], s [encoding ASCII, size null-terminated], n [encoding ASCII, size null-terminated], neg [encoding ASCII, size null-terminated], lo [encoding ASCII, size null-terminated], hi [encoding ASCII, size null-terminated], t [encoding ASCII, size null-terminated]}
+--TCLS     MyPDU[] {u [encoding ASCII, size null-terminated, termination-pattern 'FFFE'H], s [encoding ASCII, size null-terminated, termination-pattern '2C'H], n [encoding ASCII, size null-terminated, termination-pattern '2C'H], neg [encoding ASCII, size null-terminated, termination-pattern 'FF'H], lo [encoding ASCII, size null-terminated, termination-pattern 'FF'H], hi [encoding ASCII, size null-terminated, termination-pattern 'FF'H], t [encoding ASCII, size null-terminated, termination-pattern '0D0A'H]}

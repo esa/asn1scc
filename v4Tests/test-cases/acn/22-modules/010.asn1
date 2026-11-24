@@ -1,0 +1,22 @@
+-- Rust: a subtype with constraints of its own whose referenced type assignment is
+-- itself a constrained subtype in another module (T2 ::= T1 (0..10) with
+-- T1 ::= T0 (0..100) in MOD-A) calls the validator of that type assignment.
+-- Rust named it "MOD_A.T1_IsConstraintValid" instead of
+-- "crate::mod_a::T1_IsConstraintValid" (error E0425, PR #441).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   IMPORTS T1 FROM MOD-A;
+
+   T2 ::= T1 (0..10)
+
+   MyPDU ::= SEQUENCE {
+      a  T2,
+      b  T1
+   }
+END
+
+MOD-A DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   T0 ::= INTEGER (0..255)
+   T1 ::= T0 (0..100)
+END
+
+--TCLS     MyPDU[]

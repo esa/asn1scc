@@ -1,0 +1,6 @@
+-- q/issues.md Issue 122: a field of a child of the element passed to the elements of an inner SEQUENCE OF (legacy
+-- rejects, --acn-v2 accepts)
+REJ DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    Payload ::= SEQUENCE { d OCTET STRING (SIZE(0..15)) }
+    NestL ::= SEQUENCE (SIZE(1..2)) OF SEQUENCE { h SEQUENCE { a INTEGER(0..7) } OPTIONAL, items SEQUENCE (SIZE(1..2)) OF SEQUENCE { pl Payload OPTIONAL, z INTEGER(0..7) }, tail INTEGER(0..7) }
+END

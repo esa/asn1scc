@@ -24,22 +24,22 @@ RootXml(arrsFiles, arrsSortedTypeAssignmentRefs) ::= <<
 
 
 TypeAssignmentReference(sModuName, sTasName) ::= <<
-<TypeAssignmentReference ModuleName="$sModuName$" TypeAssignmentName="$sTasName$"/>
+<TypeAssignmentReference ModuleName="$sModuName; format="xml"$" TypeAssignmentName="$sTasName; format="xml"$"/>
 >>
 
 FileXml(sFileName, arrsModules) ::= <<
-<Asn1File FileName="$sFileName$">
+<Asn1File FileName="$sFileName; format="xml"$">
     $arrsModules;separator="\n"$
 </Asn1File>
 >>
 
 ModuleXml(sName, sCName, arrsImportedModules, arrsExpTypes, arrsExpVars, arrsTases, arrsVases) ::=<<
-<Asn1Module ID="$sName$">
+<Asn1Module ID="$sName; format="xml"$">
 <ExportedTypes>
-    $arrsExpTypes:{x|<ExportedType Name="$x$" />};separator="\n"$
+    $arrsExpTypes:{x|<ExportedType Name="$x; format="xml"$" />};separator="\n"$
 </ExportedTypes>
 <ExportedVariables>
-    $arrsExpVars:{x|<ExportedVariable Name="$x$" />};separator="\n"$
+    $arrsExpVars:{x|<ExportedVariable Name="$x; format="xml"$" />};separator="\n"$
 </ExportedVariables>
 <ImportedModules>
     $arrsImportedModules;separator="\n"$
@@ -54,42 +54,42 @@ ModuleXml(sName, sCName, arrsImportedModules, arrsExpTypes, arrsExpVars, arrsTas
 >>
 
 ImportedMod(sName, sCName, arrsTypes, arrsVars) ::= <<
-<ImportedModule ID="$sName$">
+<ImportedModule ID="$sName; format="xml"$">
     <ImportedTypes>
-        $arrsTypes:{t|<ImportedType Name="$t$" />};separator="\n"$
+        $arrsTypes:{t|<ImportedType Name="$t; format="xml"$" />};separator="\n"$
     </ImportedTypes>
     <ImportedVariables>
-        $arrsVars:{t|<ImportedVariable Name="$t$" />};separator="\n"$
+        $arrsVars:{t|<ImportedVariable Name="$t; format="xml"$" />};separator="\n"$
     </ImportedVariables>
 </ImportedModule>
 >>
 
 TasXml(sName, nLine, nPos, sType, sCName, sAssignOp, sContract, bAddedType) ::= <<
-<TypeAssignment Name="$sName$" Line="$nLine$" CharPositionInLine="$nPos$"  AddedType = "$bAddedType$">
+<TypeAssignment Name="$sName; format="xml"$" Line="$nLine$" CharPositionInLine="$nPos$"  AddedType = "$bAddedType$">
     $sType$
 </TypeAssignment>
 >>
 
 VasXml(sName, nLine, nPos, sType, sValue, sCName) ::= <<
-<VariableAssignment Name="$sName$" Line="$nLine$" CharPositionInLine="$nPos$">
+<VariableAssignment Name="$sName; format="xml"$" Line="$nLine$" CharPositionInLine="$nPos$">
     $sType$
     <Value>$sValue$</Value>
 </VariableAssignment>
 >>
 
 TypeGeneric(nLine, nPos, sAsnFile, sSubType, bHasAcnEncDecFunction, sCName, sScalaName, sAdaName) ::= <<
-<Type Line="$nLine$" CharPositionInLine="$nPos$" Asn1File="$sAsnFile$" HasAcnEncDecFunction = "$bHasAcnEncDecFunction$" cName="$sCName$" scalaName="$sScalaName$" adaName="$sAdaName$">
+<Type Line="$nLine$" CharPositionInLine="$nPos$" Asn1File="$sAsnFile; format="xml"$" HasAcnEncDecFunction = "$bHasAcnEncDecFunction$" cName="$sCName; format="xml"$" scalaName="$sScalaName; format="xml"$" adaName="$sAdaName; format="xml"$">
     $sSubType$
 </Type>
 >>
 
 
 MinMaxType(sName, sMin, sMax, bFixedSize, bIsUnsigned, bIsRealType) ::= <<
-<$sName$ Min="$sMin$" Max="$sMax$"/>
+<$sName$ Min="$sMin; format="xml"$" Max="$sMax; format="xml"$"/>
 >>
 
 MinMaxType2(sName, sMin, sMax, bFixedSize) ::= <<
-<$sName$ Min="$sMin$" Max="$sMax$">
+<$sName$ Min="$sMin; format="xml"$" Max="$sMax; format="xml"$">
 </$sName$>
 >>
 
@@ -102,11 +102,11 @@ IntegerType () ::= "IntegerType"
 RealType () ::= "RealType"
 
 BitStringNamedBit(sName, nVal, nLine, nPos) ::= <<
-<NamedBit Name="$sName$" Value="$nVal$" Line="$nLine$" CharPositionInLine="$nPos$"/>
+<NamedBit Name="$sName; format="xml"$" Value="$nVal$" Line="$nLine$" CharPositionInLine="$nPos$"/>
 >>
 
 BitStringType (sMin, sMax, bFixedSize, arrsNamedBits) ::= <<
-<BitStringType Min="$sMin$" Max="$sMax$">
+<BitStringType Min="$sMin; format="xml"$" Max="$sMax; format="xml"$">
     $arrsNamedBits;separator="\n"$
 </BitStringType>
 >>
@@ -125,7 +125,7 @@ AssignOpSpecialType () ::= "="
 
 
 EnumItem (sName, sCName, nVal, nLine, nPos, sCID) ::= <<
-<EnumValue StringValue="$sName$" IntValue="$nVal$" Line="$nLine$" CharPositionInLine="$nPos$" EnumID ="$sCID$" />
+<EnumValue StringValue="$sName; format="xml"$" IntValue="$nVal$" Line="$nLine$" CharPositionInLine="$nPos$" EnumID ="$sCID; format="xml"$" />
 >>
 
 EnumType(arrsItems) ::= <<
@@ -138,7 +138,7 @@ EnumType(arrsItems) ::= <<
 
 
 ChoiceChild(sName, sCName, sScala, sAdaName, nLine, nPos, sChildContent, sNamePresent, bRemovedChild  ) ::= <<
-<ChoiceChild VarName="$sName$" Line="$nLine$" CharPositionInLine="$nPos$" EnumID ="$sNamePresent$" RemovedChild="$bRemovedChild$">
+<ChoiceChild VarName="$sName; format="xml"$" Line="$nLine$" CharPositionInLine="$nPos$" EnumID ="$sNamePresent; format="xml"$" RemovedChild="$bRemovedChild$">
     $sChildContent$
 </ChoiceChild>
 >>
@@ -151,7 +151,7 @@ ChoiceType(arrsChildren) ::= <<
 
 
 SequenceChild(sName, sCName, sScalaName, sAdaName, bOptional, sDefVal, nLine, nPos, sChildContent, bAlwaysPresent, bAlwaysAbsent ) ::= <<
-<SequenceOrSetChild VarName="$sName$" CName="$sCName$" ScalaName="$sScalaName$" AdaName="$sAdaName$" Optional="$bOptional$"$if(sDefVal)$ DefaultValue="$sDefVal.HtmlEsc$"$endif$ Line="$nLine$" CharPositionInLine="$nPos$" bAlwaysPresent = "$bAlwaysPresent$" bAlwaysAbsent="$bAlwaysAbsent$">
+<SequenceOrSetChild VarName="$sName; format="xml"$" CName="$sCName; format="xml"$" ScalaName="$sScalaName; format="xml"$" AdaName="$sAdaName; format="xml"$" Optional="$bOptional$"$if(sDefVal)$ DefaultValue="$sDefVal.HtmlEsc$"$endif$ Line="$nLine$" CharPositionInLine="$nPos$" bAlwaysPresent = "$bAlwaysPresent$" bAlwaysAbsent="$bAlwaysAbsent$">
     $sChildContent$
 </SequenceOrSetChild>
 >>
@@ -164,23 +164,23 @@ SequenceType(arrsChildren) ::= <<
 
 
 SequenceOfType(sMin, sMax, sChild, bFixedSize) ::= <<
-<SequenceOfType Min="$sMin$" Max="$sMax$">
+<SequenceOfType Min="$sMin; format="xml"$" Max="$sMax; format="xml"$">
     $sChild$
 </SequenceOfType>
 >>
 
 RefTypeMinMax(sMin, sMax, sName, sModName, sCName, sCModName, bFixedSize, soResolvedType) ::= <<
-<ReferenceType ReferencedTypeName="$sName$" Min="$sMin$" Max="$sMax$"$if(sModName)$ ReferencedModName="$sModName$"$endif$/>
+<ReferenceType ReferencedTypeName="$sName; format="xml"$" Min="$sMin; format="xml"$" Max="$sMax; format="xml"$"$if(sModName)$ ReferencedModName="$sModName; format="xml"$"$endif$/>
 >>
 
 RefType(sName, sModName, sCName, sCModName, soResolvedType) ::= <<
 $if(soResolvedType)$
-<ReferenceType ReferencedTypeName="$sName$"$if(sModName)$ ReferencedModName="$sModName$"$endif$>
+<ReferenceType ReferencedTypeName="$sName; format="xml"$"$if(sModName)$ ReferencedModName="$sModName; format="xml"$"$endif$>
     $soResolvedType$
 </ReferenceType>
 
 $else$
-<ReferenceType ReferencedTypeName="$sName$"$if(sModName)$ ReferencedModName="$sModName$"$endif$/>
+<ReferenceType ReferencedTypeName="$sName; format="xml"$"$if(sModName)$ ReferencedModName="$sModName; format="xml"$"$endif$/>
 
 $endif$
 >>
@@ -196,7 +196,7 @@ ContractExprSequence(arrsChildren) ::= ""
 /* Print Values (not implemented yet for python) */
 Print_IntegerValue(nVal) ::= "$nVal$"
 Print_RealValue(dVal) ::= "$dVal$"
-Print_StringValue(v) ::= "<![CDATA[$v$]]>"
+Print_StringValue(v) ::= <<<![CDATA[$v; format="cdata"$]]\>>>
 Print_TrueValue() ::= "true"
 Print_FalseValue() ::= "false"
 Print_BitStringValue(v) ::= "$v$"

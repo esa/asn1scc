@@ -1,0 +1,35 @@
+-- copy of test-cases/acn/01-INTEGER/011 without the SPARK marker (the ws=4 legs run on msp430, where no corpus file is proved)
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+	Len ::= INTEGER (0 .. 20)
+	SLen ::= INTEGER (-5 .. 20)
+
+	MyPDU ::= SEQUENCE {
+		s OCTET STRING (SIZE(0 .. 20))
+	}
+
+	Comp ::= SEQUENCE {
+		a INTEGER (-5 .. 20)
+	}
+
+	En ::= SEQUENCE {
+		ev ENUMERATED { m(-1), z(0), p(7) }
+	}
+
+END
+
+-- ACN fields of a referenced INTEGER type: the signedness of the encoding follows the range of the type, as for an
+-- ASN.1 INTEGER component (ASCII of an unsigned range writes no sign character). Before, it followed the encoding
+-- (ASCII and twos-complement signed, pos-int and BCD unsigned) while the field's local had the type of the range, and
+-- every mismatch generated code that did not compile. Encodings that cannot hold the range are rejected.
+--TCLS     MyPDU[] {len Len [encoding ASCII, size null-terminated], s [size len]}
+--TCLS     MyPDU[] {len Len [encoding ASCII, size 16], s [size len]}
+--TCLS     Len[encoding ASCII, size null-terminated, termination-pattern '2C'H] MyPDU[] {len Len [], s [size len]}
+--TCLS     MyPDU[] {len SLen [encoding ASCII, size null-terminated], s [size len]}
+--TCLS     MyPDU[] {len Len [encoding BCD, size null-terminated], s [size len]}
+--TCLS     MyPDU[] {len SLen [encoding twos-complement, size 8], s [size len]}
+--TCLFC    MyPDU[] {len Len [encoding twos-complement, size 8], s [size len]}    $$$ sample1.acn:4:14: error: Acn property twos-complement cannot be applied to non negative INTEGER types
+--TCLFC    MyPDU[] {len SLen [encoding pos-int, size 8], s [size len]}    $$$ sample1.acn:4:14: error: Acn property pos-int cannot be applied to signed INTEGER types
+--TCLFC    MyPDU[] {len SLen [encoding BCD, size null-terminated], s [size len]}    $$$ sample1.acn:4:14: error: Acn property BCD cannot be applied to signed INTEGER types
+--TCLFC    Comp[] {a [encoding BCD, size null-terminated]}    $$$ sample1.acn:4:11: error: Acn property BCD cannot be applied to signed INTEGER types
+--TCLFC    En[] {ev [encoding BCD, size null-terminated, encode-values]}    $$$ sample1.asn1:16:5: error: Acn property BCD cannot be applied to signed INTEGER types

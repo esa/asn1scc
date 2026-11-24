@@ -27,6 +27,18 @@ let JoinItemsNoCheck (sPart:string) (sNestedPart:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "isvalid_rust" "JoinItemsNoCheck" [("sPart",(if sPart = null then null else ST.StrHelper sPart:>Object) );("sNestedPart",(if sNestedPart = null then null else ST.StrHelper sNestedPart:>Object) )]
 
+let JoinItemsCannotFail (sPart:string) (sNestedPart:string) (soCallee:string option) (bAssumed:bool) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "isvalid_rust" "JoinItemsCannotFail" [("sPart",(if sPart = null then null else ST.StrHelper sPart:>Object) );("sNestedPart",(if sNestedPart = null then null else ST.StrHelper sNestedPart:>Object) );("soCallee",(if soCallee.IsNone then null else ST.StrHelper soCallee.Value:>Object) );("bAssumed",bAssumed :>Object)]
+
+let JoinItemsNoWrite (sPart:string) (sNestedPart:string) (bComment:bool) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "isvalid_rust" "JoinItemsNoWrite" [("sPart",(if sPart = null then null else ST.StrHelper sPart:>Object) );("sNestedPart",(if sNestedPart = null then null else ST.StrHelper sNestedPart:>Object) );("bComment",bComment :>Object)]
+
+let EncodeNoCheckNote (soCallee:string option) (bAssumed:bool) (bWritesResult:bool) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "isvalid_rust" "EncodeNoCheckNote" [("soCallee",(if soCallee.IsNone then null else ST.StrHelper soCallee.Value:>Object) );("bAssumed",bAssumed :>Object);("bWritesResult",bWritesResult :>Object)]
+
 let validation_comment (sText:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "isvalid_rust" "validation_comment" [("sText",(if sText = null then null else ST.StrHelper sText:>Object) )]
@@ -83,9 +95,9 @@ let ExpEqual (sExp1:string) (sExp2:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "isvalid_rust" "ExpEqual" [("sExp1",(if sExp1 = null then null else ST.StrHelper sExp1:>Object) );("sExp2",(if sExp2 = null then null else ST.StrHelper sExp2:>Object) )]
 
-let ExpStringEqual (sExp1:string) (sExp2:string) =
+let ExpStringEqual (sExp1:string) (sExp2:string) (nLen:BigInteger) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "isvalid_rust" "ExpStringEqual" [("sExp1",(if sExp1 = null then null else ST.StrHelper sExp1:>Object) );("sExp2",(if sExp2 = null then null else ST.StrHelper sExp2:>Object) )]
+    ST.call "isvalid_rust" "ExpStringEqual" [("sExp1",(if sExp1 = null then null else ST.StrHelper sExp1:>Object) );("sExp2",(if sExp2 = null then null else ST.StrHelper sExp2:>Object) );("nLen",nLen :>Object)]
 
 let ExpGt (sExp1:string) (sExp2:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true

@@ -1,0 +1,22 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Inner [] {
+    a [encoding pos-int, size 8],
+    b [encoding pos-int, size 2]
+}
+
+Wrap <INTEGER:len> [] {
+    p [size len]
+}
+
+Ch <INTEGER:len> [] {
+    s <len> [],
+    n [encoding pos-int, size 4]
+}
+
+Msg [] {
+    len INTEGER [encoding pos-int, size 8],
+    c   <len> []
+}
+
+END

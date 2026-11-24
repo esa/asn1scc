@@ -1,9 +1,10 @@
--- ACNV2_ONLY NO_AUTOMATIC_TEST_CASES
+-- ACNV2_ONLY
 -- 016 and 017 together, in the shape of a JPEG 2000 Reader Requirements
 -- box (ITU-T T.801 M.11.1): ML, the mask length, sizes two direct masks and
 -- the mask of every element of two lists, each with its own count. With
 -- both lists empty, only the direct masks give ML. Values whose sizes
--- differ cannot be encoded, so the automatic test cases are not run;
+-- differ cannot be encoded; the automatic test values build all elements
+-- of a list from one test value of the element;
 -- scripts/runWireTests.sh checks the encoding (018_wire_test.c).
 TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 

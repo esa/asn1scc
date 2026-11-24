@@ -110,6 +110,7 @@ let GetIntEncodingClass (integerSizeInBytes:BigInteger) (alignment: AcnAlignment
                 match bUINT with
                 | true                                          -> ASCII_UINT_ConstSize fxVal, fxVal, fxVal
                 | false                                         -> ASCII_ConstSize  fxVal, fxVal, fxVal
+            | BCD, _, _                                         when not bUINT       ->  raise(SemanticError(errLoc, "Acn property BCD cannot be applied to signed INTEGER types"))
             | BCD, Fixed(fxVal) , BigEndianness   when fxVal > maxDigitsInInteger*4I       ->  raise(SemanticError(errLoc, (sprintf "Size must be less than %A" (maxDigitsInInteger*4I))))
             | BCD, Fixed(fxVal) , BigEndianness   when fxVal % 4I <> 0I       ->  raise(SemanticError(errLoc, "size value should be multiple of 4"))
             | BCD, Fixed(fxVal) , BigEndianness                 ->  BCD_ConstSize fxVal, fxVal, fxVal
@@ -211,7 +212,7 @@ let GetStringEncodingClass (alignment: AcnAlignment option) errLoc (p  : StringA
         match  bAsciiEncoding, p.sizeProp with
         | false, None                                  ->       Acn_Enc_String_uPER charSizeInBits, uperMinSizeInBits, uperMaxSizeInBits
         | false, Some (StrExternalField longField)     ->       Acn_Enc_String_CharIndex_External_Field_Determinant (charSizeInBits, longField) , asn1Min*charSizeInBits,  asn1Max*charSizeInBits
-        | false, Some (StrNullTerminated b)            ->       raise(BugErrorException(sprintf "when a string type has the acn property 'size null-terminated' it must also have the acn property 'encoding ASCII'" ))
+        | false, Some (StrNullTerminated _)            ->       raise(SemanticError(errLoc, "'size null-terminated' on string types requires 'encoding ASCII'"))
         | false, Some StrDeduced                       ->       raise(SemanticError(errLoc, "'size deduced' on string types requires 'encoding ASCII'"))
         | true, None                                   ->       Acn_Enc_String_uPER_Ascii charSizeInBits, lengthDeterminantSize + asn1Min*charSizeInBits, lengthDeterminantSize + asn1Max*charSizeInBits
         | true, Some (StrExternalField longField)      ->       Acn_Enc_String_Ascii_External_Field_Determinant (charSizeInBits, longField), asn1Min*charSizeInBits,  asn1Max*charSizeInBits
@@ -281,7 +282,14 @@ let GetBooleanEncodingClass (alignment: AcnAlignment option) errLoc (p  : Boolea
     sz, sz + getAlignmentSize alignment
 
 
-let GetChoiceEncodingClass  (children : ChChildInfo list) (alignment: AcnAlignment option) errLoc (p  : ChoiceAcnProperties) =
+let GetChoiceEncodingClass  (allChildren : ChChildInfo list) (alignment: AcnAlignment option) errLoc (p  : ChoiceAcnProperties) =
+    // The encoding has no index and no contents for an ALWAYS ABSENT alternative (WITH COMPONENTS {x ABSENT}),
+    // as the backend encodes it (AcnChoice.isAcnChild): counting it made the sizes one bit too large, and the
+    // trailing constant of a 'size deduced' field before such a CHOICE wrong.
+    let children =
+        match allChildren |> List.filter (fun c -> c.Optionality <> Some ChoiceAlwaysAbsent) with
+        | []       -> allChildren
+        | encoded  -> encoded
     let maxChildSize = children |> List.map(fun c -> c.Type.acnMaxSizeInBits) |> Seq.max
     let minChildSize = children |> List.map(fun c -> c.Type.acnMinSizeInBits) |> Seq.min
 

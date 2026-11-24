@@ -1,0 +1,73 @@
+-- KNOWN_FAILURE(python): the Python backend names no class for the INTEGER of an inline component (ASN1SCC_PwPDU_header_a), leaves a string determinant undefined (NameError: s) and reads the local of a BOOLEAN determinant whose component is absent (UnboundLocalError: more)
+-- A determinant field inside an OPTIONAL component, its dependent outside it (the front end accepts the path because
+-- the dependent is OPTIONAL too). When the stream says the component is absent and the dependent present, the field is
+-- not in the stream: the decoder fails with the dependent's error code (it used to read the field's unset local: C
+-- wrote past the array of an OCTET STRING sized by it, Ada raised Constraint_Error on the CHOICE determinant). A
+-- present-when BOOLEAN field of an absent component reads FALSE (the dependent is absent). One type per dependent:
+-- the automatic tests' corruption of the component's presence bit reaches every new failure. Not proved by SPARK:
+-- gnatprove flow reports the encoders of these shapes ("might not be initialized": the field is set under the
+-- dependent's presence check, read under its _is_initialized flag); the decoders prove.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+    -- size of an OCTET STRING (8-bit field, no range check: the shape that wrote past the array in C)
+    OctPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        data    OCTET STRING (SIZE(0..255)) OPTIONAL
+    }
+    -- size of an IA5String
+    StrPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        str     IA5String (SIZE(0..20)) OPTIONAL
+    }
+    -- size of a BIT STRING
+    BitPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        bits    BIT STRING (SIZE(0..15)) OPTIONAL
+    }
+    -- size of a SEQUENCE OF
+    SqfPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        sq      SEQUENCE (SIZE(0..10)) OF INTEGER(0..7) OPTIONAL
+    }
+    -- present-when a BOOLEAN field of the component: absent with the component
+    BoolPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        x       INTEGER(0..7) OPTIONAL
+    }
+    -- CHOICE determinant (ENUMERATED field)
+    Kind ::= ENUMERATED { c1, c2 }
+    ChPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        ch      CHOICE { c1 INTEGER(0..7), c2 BOOLEAN } OPTIONAL
+    }
+    -- CHOICE alternatives present-when an INTEGER field
+    PwPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        cp      CHOICE { p1 INTEGER(0..7), p2 BOOLEAN } OPTIONAL
+    }
+    -- CHOICE alternatives present-when a string field
+    Tag ::= IA5String (SIZE(2))
+    PwStrPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        cs      CHOICE { s1 INTEGER(0..7), s2 BOOLEAN } OPTIONAL
+    }
+    -- the shape inside a SEQUENCE OF element (the field's local is declared once, before the loop)
+    ElemPDU ::= SEQUENCE {
+        elems   SEQUENCE (SIZE(1..3)) OF SEQUENCE {
+            hh SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+            dd OCTET STRING (SIZE(0..15)) OPTIONAL
+        }
+    }
+    -- nested components present when the same field says so as the dependent: no check
+    Nest2PDU ::= SEQUENCE {
+        h1      SEQUENCE { a INTEGER(0..255), h2 SEQUENCE { b INTEGER(0..255) } OPTIONAL } OPTIONAL,
+        d       OCTET STRING (SIZE(0..15)) OPTIONAL
+    }
+    -- the component and the dependent present when the same field says so: the dependent is decoded only when the
+    -- component is present, no check
+    SamePDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        data    OCTET STRING (SIZE(0..15)) OPTIONAL
+    }
+END
+
+--TCFS     026.acn

@@ -1,4 +1,3 @@
--- C_ONLY (Ada: the ACN encoder of the CONTAINING field uses the unrenamed name `body`, a reserved word)
 -- A CONTAINING reference to a constrained subtype must validate the subtype.
 TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
 

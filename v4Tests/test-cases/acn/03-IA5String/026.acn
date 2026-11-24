@@ -1,0 +1,9 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+   Str [encoding ASCII]
+   SubFix [encoding ASCII]
+   SubVar [encoding ASCII]
+   SubNT [encoding ASCII, size null-terminated]
+   MyPDU []
+
+END

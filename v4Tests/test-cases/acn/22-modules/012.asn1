@@ -1,0 +1,30 @@
+-- Ada automatic tests: modules whose packages have the names of the locals of the
+-- bit-offset round trips of the test functions (Offset_Valid, Offset_Decode); the
+-- generated test bodies qualify these packages with Standard so that a local
+-- declaration cannot hide them.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   IMPORTS Rec FROM Offset-Valid
+           Msg FROM Offset-Decode;
+
+   MyPDU ::= SEQUENCE {
+      r  Rec,
+      m  Msg
+   }
+END
+
+Offset-Valid DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   Rec ::= SEQUENCE {
+      a  INTEGER (0..10),
+      b  BOOLEAN
+   }
+END
+
+Offset-Decode DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   Msg ::= SEQUENCE {
+      n  INTEGER (1..20),
+      s  OCTET STRING (SIZE (0..4))
+   }
+END
+
+--TCLS     MyPDU[]
+--TCLS     MyPDU[] {r[] {a[], b[align-to-next byte]}, m[] {n[], s[]}}

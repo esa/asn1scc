@@ -1,0 +1,6 @@
+-- a parameter passed on to the elements (legacy rejects, --acn-v2 accepts)
+REJ DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    E ::= SEQUENCE { o OCTET STRING (SIZE(0..15)) }
+    P ::= SEQUENCE { items SEQUENCE (SIZE(0..2)) OF E }
+    T ::= SEQUENCE { a INTEGER(0..255), pl P, tail INTEGER(0..255) }
+END

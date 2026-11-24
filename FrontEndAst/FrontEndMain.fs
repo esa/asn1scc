@@ -122,17 +122,30 @@ let constructAst_int (args:CommandLineSettings) (lms:(ProgrammingLanguage*Langua
         TL "CheckLongReferences.checkDeducedSizePlacement" (fun () ->
             CheckLongReferences.checkDeducedSizePlacement acnAst)
 
+        TL "CheckLongReferences.checkSizeParameterRanges" (fun () ->
+            CheckLongReferences.checkSizeParameterRanges acnDeps)
+
         if not args.acnDeferred then
             TL "CheckLongReferences.checkLegacySequenceOfArguments" (fun () ->
                 CheckLongReferences.checkLegacySequenceOfArguments acnDeps)
+            TL "CheckLongReferences.checkLegacySequenceOfConsumers" (fun () ->
+                CheckLongReferences.checkLegacySequenceOfConsumers acnAst acnDeps)
+            TL "CheckLongReferences.checkLegacyContainingSizeFields" (fun () ->
+                CheckLongReferences.checkLegacyContainingSizeFields acnDeps)
 
         // When acnDeferred is enabled, transform implicit cross-scope ACN references
         // into explicit acnParameters/acnArguments (closure conversion) and rewrite
         // deps so that resolveParam stops at the new parameter level.
         let acnAst, acnDeps =
             if args.acnDeferred then
-                TL "AcnClosureConversion.closureConvertAcnReferences" (fun () ->
-                    AcnClosureConversion.closureConvertAcnReferences acnAst acnDeps)
+                // q/issues.md Issue 124: a field consumed inside SEQUENCE OF elements of its own encoding function
+                TL "CheckLongReferences.checkSameFunctionLoopConsumers" (fun () ->
+                    CheckLongReferences.checkSameFunctionLoopConsumers acnAst acnDeps true)
+                let acnAst, acnDeps =
+                    TL "AcnClosureConversion.closureConvertAcnReferences" (fun () ->
+                        AcnClosureConversion.closureConvertAcnReferences acnAst acnDeps)
+                CheckLongReferences.checkSameFunctionLoopConsumers acnAst acnDeps false
+                acnAst, acnDeps
             else
                 acnAst, acnDeps
 

@@ -1,0 +1,34 @@
+-- ACNV2_ONLY C_ADA_ONLY (Issue 134: without --acn-v2 these specifications are rejected, v4Tests/test-cases/acn-wire/009 in runWireTests.sh)
+-- --acn-v2 decodes a CONTAINING region in place, without a temporary buffer, and gives an embedded-length or fixed-size
+-- region whose ACN specification overrides the encoding of the contents a function of its own with the merged contents
+-- (Issue 135; before, the region's sizes followed the specification but the code called T's own function: a wrong
+-- stream, and for the embedded forms a length outside its range, which the C encoder wrote through a read past a mask
+-- table of the runtime). OCTET STRING fixed (f, g) and embedded (i), BIT STRING embedded (h) and fixed (j), an override
+-- of the same width (e, k: endianness), the specification on the CONTAINING type assignments (x Box, y BBox), and a
+-- present-when only site (p, a property of the container: no function of its own). Bytes: acn-wire/013.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    T     ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN OPTIONAL }
+    Fx    ::= SEQUENCE { a INTEGER (0..255), b INTEGER (0..255) }
+    Tc    ::= SEQUENCE { a INTEGER (0..255), c INTEGER (0..65535) OPTIONAL }
+    Tf    ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN }
+    Box   ::= OCTET STRING (CONTAINING T)
+    BBox  ::= BIT STRING (CONTAINING T)
+
+    MyPDU ::= SEQUENCE {
+        f   OCTET STRING (CONTAINING T),
+        g   OCTET STRING (CONTAINING Fx),
+        h   BIT STRING (CONTAINING T),
+        i   OCTET STRING (CONTAINING Tc),
+        j   BIT STRING (CONTAINING Tf),
+        e   OCTET STRING (CONTAINING Tc),
+        k   BIT STRING (CONTAINING Tc),
+        x   Box,
+        y   BBox,
+        p   OCTET STRING (CONTAINING T) OPTIONAL,
+        z   BOOLEAN
+    }
+
+END
+
+--TCLS     Box[] { a[size 32, encoding pos-int], b[] } BBox[] { a[size 32, encoding pos-int], b[] } MyPDU[] { f[] { a[size 32, encoding pos-int], b[] }, g[] { a[size 32, encoding pos-int], b[] }, h[] { a[size 32, encoding pos-int], b[] }, i[] { a[size 32, encoding pos-int], c[] }, j[] { a[size 32, encoding pos-int], b[] }, e[] { a[], c[size 16, encoding pos-int, endianness little] }, k[] { a[size 8, encoding pos-int], c[size 16, encoding pos-int, endianness little] }, x[], y[], pl BOOLEAN [], p[present-when pl], z[] }

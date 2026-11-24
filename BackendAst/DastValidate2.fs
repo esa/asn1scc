@@ -52,6 +52,22 @@ let ValidationBlockAsStringExpr = function
     | VCBStatement (sStat,_) -> sStat
 
 
+/// Cycle i174 round 2 (ILangGeneric.unionRestartsStatementOperand): the second operand of a union runs only after the
+/// first one failed, so the result holds FALSE there, while a validation statement starts from a valid result (a loop
+/// runs while it holds, an OPTIONAL / CHOICE child check that does not apply leaves it). The operand is preceded by a
+/// reset to TRUE, except when its first line assigns the result anyway (the reset would be a dead store: gnatprove flow
+/// "unused assignment" in Ada).
+let unionStatementOperand (lm:LanguageMacros) (sStat:string) =
+    match lm.lg.unionRestartsStatementOperand with
+    | false -> sStat
+    | true  ->
+        let noSpace (s:string) = s.Replace(" ", "").Replace("\t", "")
+        let assignPrefix = noSpace ((lm.isvalid.ExpressionToStatement "\u0001").Split('\u0001').[0])
+        let firstLine = noSpace ((sStat.TrimStart().Split('\n').[0]))
+        match firstLine.StartsWith assignPrefix with
+        | true  -> sStat
+        | false -> lm.isvalid.ExpressionToStatement lm.lg.TrueLiteral + "\n" + sStat
+
 let ValidationCodeBlock_OR (lm:LanguageMacros) vp1 vp2 =
     let expressionOrStatement  =  lm.isvalid.ExpressionOrStatement
     let statementOrExpression  = lm.isvalid.StatementOrExpression
@@ -63,9 +79,9 @@ let ValidationCodeBlock_OR (lm:LanguageMacros) vp1 vp2 =
     | VCBFalse, _                                        -> vp2
     | _, VCBFalse                                        -> vp1
     | VCBExpression sExp1, VCBExpression sExp2    -> VCBExpression (expOr sExp1 sExp2)
-    | VCBExpression sExp1, VCBStatement (sStat2, lv2)    -> VCBStatement(expressionOrStatement sExp1 sStat2, lv2)
+    | VCBExpression sExp1, VCBStatement (sStat2, lv2)    -> VCBStatement(expressionOrStatement sExp1 (unionStatementOperand lm sStat2), lv2)
     | VCBStatement (sStat1, lv1), VCBExpression sExp2    -> VCBStatement(statementOrExpression sStat1 sExp2, lv1)
-    | VCBStatement (sStat1, lv1), VCBStatement (sStat2,lv2)    -> VCBStatement(statementOrStatement sStat1 sStat2, lv1@lv2)
+    | VCBStatement (sStat1, lv1), VCBStatement (sStat2,lv2)    -> VCBStatement(statementOrStatement sStat1 (unionStatementOperand lm sStat2), lv1@lv2)
 
 let ValidationCodeBlock_AND  (lm:LanguageMacros) vp1 vp2 =
     let expressionAndStatement  = lm.isvalid.ExpressionAndStatement
@@ -199,7 +215,9 @@ let foldSizableConstraint (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) hasCount co
         c
         st
 
-let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (typeId:ReferenceToType)   (c:IA5StringConstraint) (us0:State) =
+/// maxChars: the most characters a value of the type can hold (its SIZE maximum). Cycle i174 round 4: a single value
+/// longer than that is never equal (no comparison: Ada would take a slice past the typedef's array, a compile error).
+let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (typeId:ReferenceToType) (maxChars:BigInteger)  (c:IA5StringConstraint) (us0:State) =
     let print_AlphabetCheckFunc = lm.isvalid.Print_AlphabetCheckFunc
     let stringContainsChar    (v:String)  =
         let newStr =
@@ -229,7 +247,10 @@ let ia5StringConstraint2ValidationCodeBlock  (r:Asn1AcnAst.AstRoot) (lm:Language
 
     let typeName = ToC ((typeId.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm"))
     foldStringTypeConstraint2 (con_or lm) (con_and lm) (con_not lm) (con_except lm) con_root (con_root2 lm)
-        (fun _ v  s         -> (fun p -> VCBExpression (lm.isvalid.ExpStringEqual (p.accessPath.joined lm.lg) (lm.lg.quoteStringLiteral (lm.lg.escapeStringLiteral v))))  ,s)
+        (fun _ v  s         ->
+            match BigInteger v.Length > maxChars with
+            | true  -> (fun p -> VCBFalse), s
+            | false -> (fun p -> VCBExpression (lm.isvalid.ExpStringEqual (p.accessPath.joined lm.lg) (lm.lg.quoteStringLiteral (lm.lg.escapeStringLiteral v)) (BigInteger v.Length)))  ,s)
         (fun _ intCon s     -> foldSizeRangeTypeConstraint r lm (fun l p -> lm.isvalid.StrLen (p.accessPath.joined lm.lg)) intCon s)
         (fun _ alphcon (s:State)      ->
             let alphaBody p =
@@ -256,16 +277,22 @@ let integerConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (lm:LanguageMac
     foldRangeTypeConstraint (con_or lm) (con_and lm) (con_not lm) (con_except lm) con_root (con_root2 lm)
         (fun _ v  s         -> (fun p -> VCBExpression (lm.isvalid.ExpEqual (lm.lg.getValue p.accessPath) (valToStrFunc  v))) ,s)
         (fun asn1 v1 v2  minIsIn maxIsIn s   ->
-            let exp1 = con_rangeConstraint_val_MAX  lm intClass.Min intClass.Max v1 minIsIn valToStrFunc p2StrFunc
-            let exp2 = con_rangeConstraint_MIN_val  lm intClass.Min intClass.Max v2 maxIsIn valToStrFunc p2StrFunc
-            con_and  lm asn1 exp1 exp2 s)
+            match v1 = v2 && minIsIn && maxIsIn with
+            | true  ->
+                // a range of one value (field (0..0)): an equality. With the lower bound dropped as the
+                // type's minimum, "x <= 0" on an Ada subtype 0..1 is a -gnatwc error ("can never be less than")
+                (fun p -> VCBExpression (lm.isvalid.ExpEqual (lm.lg.getValue p.accessPath) (valToStrFunc v1))), s
+            | false ->
+                let exp1 = con_rangeConstraint_val_MAX  lm intClass.Min intClass.Max v1 minIsIn valToStrFunc p2StrFunc
+                let exp2 = con_rangeConstraint_MIN_val  lm intClass.Min intClass.Max v2 maxIsIn valToStrFunc p2StrFunc
+                con_and  lm asn1 exp1 exp2 s)
         (fun _ v1 minIsIn s   -> con_rangeConstraint_val_MAX  lm intClass.Min intClass.Max v1 minIsIn valToStrFunc p2StrFunc, s)
         (fun _ v2 maxIsIn s   -> con_rangeConstraint_MIN_val  lm intClass.Min intClass.Max v2 maxIsIn valToStrFunc p2StrFunc, s)
         c
         st
 
 
-let realConstraint2ValidationCodeBlock  (l:LanguageMacros) (acnEncodingClass : RealEncodingClass) (c:RealTypeConstraint) st =
+let realConstraint2ValidationCodeBlock  (l:LanguageMacros) (acnEncodingClass : RealEncodingClass) (c:RealTypeConstraint) (st:State) =
     let valToStrFunc (v:double) = 
         let d2str (v:double) = v.ToString(FsUtils.doubleParseString, NumberFormatInfo.InvariantInfo)
         let d2str_b (v:double) = v.ToString("G17", NumberFormatInfo.InvariantInfo)
@@ -276,7 +303,12 @@ let realConstraint2ValidationCodeBlock  (l:LanguageMacros) (acnEncodingClass : R
             match FsUtils.nearestFloat32 v with
             | None -> ()
             | Some (nearestLow, nearestHi) ->
-                printfn "Warning: The constant %A cannot be precisely represented in IEEE754-1985-32 encoding.\n The closest representable values are %A and %A" (d2str_b v) (f2str nearestLow) (f2str nearestHi)
+                match st.constructionPass with
+                | EmittingPass ->
+                    printfn "Warning: The constant %A cannot be precisely represented in IEEE754-1985-32 encoding.\n The closest representable values are %A and %A" (d2str_b v) (f2str nearestLow) (f2str nearestHi)
+                | ValidatorOutcomePass ->
+                    // cycle 15a2: the emitting construction of the same type assignment prints it
+                    ()
         | _ -> ()
 
         d2str v
@@ -349,9 +381,12 @@ let enumeratedConstraint2ValidationCodeBlock  (l:LanguageMacros) (o:Asn1AcnAst.E
         ret
     foldGenericCon l  printNamedItem c st
 
-let octetStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (typeId:ReferenceToType) (o:Asn1AcnAst.OctetString) (equalFunc:EqualFunction) (c:OctetStringConstraint) st =
+/// typedefFixed: the layout of the typedef (Asn1AcnAstUtilFunctions.typedefIsFixedSize), not the type's size class: a
+/// fixed-size subtype of a variable-size type (Octs4 ::= Octs (SIZE(4))) shares the typedef with the length field,
+/// whose value must be checked against the fixed size (q/issues.md Issue 46).
+let octetStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (typeId:ReferenceToType) (o:Asn1AcnAst.OctetString) (typedefFixed:bool) (equalFunc:EqualFunction) (c:OctetStringConstraint) st =
     let getSizeFunc (lm:LanguageMacros) p =
-        if o.isFixedSize then
+        if typedefFixed then
             l.isvalid.StrLen (p.accessPath.joined l.lg)
         else
             l.lg.Length (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath)
@@ -360,14 +395,15 @@ let octetStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:Language
         let octet_fix_string_equal = l.isvalid.octet_fix_string_equal
         let printOctetArrayAsCompoundLiteral = l.vars.PrintOctetArrayAsCompoundLiteral
         let octArrLiteral = printOctetArrayAsCompoundLiteral  (v |> List.map (fun b -> b.Value))
-        match o.isFixedSize with
+        match typedefFixed with
         | true   -> VCBExpression (octet_fix_string_equal (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) o.minSize.uper (v.Length.AsBigInt) octArrLiteral)
         | false  -> VCBExpression (octet_var_string_equal (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath)  (v.Length.AsBigInt) octArrLiteral)
-    let hasCount = (not o.isFixedSize) || l.lg.FixedSizeSizableHasCount
+    let hasCount = (not typedefFixed) || l.lg.FixedSizeSizableHasCount
     let fnc, ns = foldSizableConstraint r l hasCount compareSingleValueFunc getSizeFunc c st
     fnc, ns
 
-let bitStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (typeId:ReferenceToType) (o:Asn1AcnAst.BitString) (equalFunc:EqualFunction) (c:BitStringConstraint) st =
+/// typedefFixed: see octetStringConstraint2ValidationCodeBlock.
+let bitStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (typeId:ReferenceToType) (o:Asn1AcnAst.BitString) (typedefFixed:bool) (equalFunc:EqualFunction) (c:BitStringConstraint) st =
     let getSizeFunc (l:LanguageMacros) p = l.lg.Length (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath)
     let compareSingleValueFunc (p:CodegenScope) (v:Asn1AcnAst.BitStringValue, (id,loc))  =
         let bit_var_string_equal = l.isvalid.bit_var_string_equal
@@ -376,10 +412,10 @@ let bitStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageM
         let bytes = bitStringValueToByteArray (StringLoc.ByValue v.Value)
         let octArrLiteral = printOctetArrayAsCompoundLiteral  bytes
         let bitArrLiteral = variables_a.PrintBitArrayAsCompoundLiteral  (v.Value.ToCharArray() |> Seq.map(fun c -> if c = '0' then 0uy else 1uy))
-        match o.isFixedSize with
+        match typedefFixed with
         | true   -> VCBExpression (bit_fix_string_equal (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) o.minSize.uper (v.Value.Length.AsBigInt) octArrLiteral bitArrLiteral)
         | false  -> VCBExpression (bit_var_string_equal (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath)  (v.Value.Length.AsBigInt) octArrLiteral bitArrLiteral)
-    let fnc, ns = foldSizableConstraint r l (not o.isFixedSize) compareSingleValueFunc getSizeFunc c st
+    let fnc, ns = foldSizableConstraint r l (not typedefFixed) compareSingleValueFunc getSizeFunc c st
     fnc, ns
 
 
@@ -387,9 +423,9 @@ let rec anyConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMac
     match t.ActualType.Kind, ac with
     | Integer o, IntegerTypeConstraint c        -> integerConstraint2ValidationCodeBlock r l (o.baseInfo.intClass) c st
     | Real o, RealTypeConstraint   c            -> realConstraint2ValidationCodeBlock l o.baseInfo.acnEncodingClass c st
-    | IA5String  o, IA5StringConstraint c       -> ia5StringConstraint2ValidationCodeBlock r l t.id  c st
-    | OctetString o, OctetStringConstraint c    -> octetStringConstraint2ValidationCodeBlock r l  t.id o.baseInfo  o.equalFunction c st
-    | BitString o, BitStringConstraint c        -> bitStringConstraint2ValidationCodeBlock r l  t.id o.baseInfo o.equalFunction c st
+    | IA5String  o, IA5StringConstraint c       -> ia5StringConstraint2ValidationCodeBlock r l t.id o.baseInfo.maxSize.uper c st
+    | OctetString o, OctetStringConstraint c    -> octetStringConstraint2ValidationCodeBlock r l  t.id o.baseInfo (typedefIsFixedSize r t.ActualType.toAsn1AcnAst) o.equalFunction c st
+    | BitString o, BitStringConstraint c        -> bitStringConstraint2ValidationCodeBlock r l  t.id o.baseInfo (typedefIsFixedSize r t.ActualType.toAsn1AcnAst) o.equalFunction c st
     | NullType o, NullConstraint                -> (fun p -> VCBTrue), st
     | Boolean o, BoolConstraint c               -> booleanConstraint2ValidationCodeBlock l c st
     | Enumerated o, EnumConstraint c            -> enumeratedConstraint2ValidationCodeBlock  l  o.baseInfo o.definitionOrRef c st
@@ -398,7 +434,7 @@ let rec anyConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMac
     | Sequence o, SeqConstraint c               ->
         let valToStrFunc (p:CodegenScope) (v:Asn1AcnAst.SeqValue) = VCBTrue //currently single value constraints are ignored.
         sequenceConstraint2ValidationCodeBlock r l t.id o.Asn1Children valToStrFunc  c st
-    | SequenceOf o, SequenceOfConstraint c      -> sequenceOfConstraint2ValidationCodeBlock r l t.id o.baseInfo o.childType o.equalFunction c st
+    | SequenceOf o, SequenceOfConstraint c      -> sequenceOfConstraint2ValidationCodeBlock r l t.id o.baseInfo (typedefIsFixedSize r t.ActualType.toAsn1AcnAst) o.childType o.equalFunction c st
     | Choice o, ChoiceConstraint c              ->
         let valToStrFunc (p:CodegenScope) (v:Asn1AcnAst.ChValue) = VCBTrue //currently single value constraints are ignored.
         choiceConstraint2ValidationCodeBlock r l t.id o.children valToStrFunc o.definitionOrRef c st
@@ -525,7 +561,8 @@ and choiceConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacro
         c
         st
 
-and sequenceOfConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (typeId:ReferenceToType) (o:Asn1AcnAst.SequenceOf) (child:Asn1Type) (equalFunc:EqualFunction) (c:SequenceOfConstraint) st =
+/// typedefFixed: see octetStringConstraint2ValidationCodeBlock.
+and sequenceOfConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (typeId:ReferenceToType) (o:Asn1AcnAst.SequenceOf) (typedefFixed:bool) (child:Asn1Type) (equalFunc:EqualFunction) (c:SequenceOfConstraint) st =
 
     let expressionToStatement              = l.isvalid.ExpressionToStatement
     let statementForLoop                 = l.isvalid.StatementForLoop
@@ -536,7 +573,7 @@ and sequenceOfConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageM
     foldSequenceOfTypeConstraint2 (con_or l) (con_and l) (con_not l) (con_except l) con_root (con_root2 l)
         (fun _ v  s           -> (fun p -> compareSingleValueFunc p v) ,s)
         (fun _ intCon s       ->
-            match o.isFixedSize with
+            match typedefFixed with
             | false  -> foldSizeRangeTypeConstraint r l getSizeFunc intCon s
             | true  -> (fun p -> VCBTrue), s)
         (fun _ c loc s ->
@@ -671,6 +708,13 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
             nonEmbeddedChildrenValidFuncs          = nonEmbeddedChildrenValidFuncs
             outcome                     = outcome
         }
+    // coverage step 14p: callers (references) look the outcome up by the name of the function they call
+    let ns =
+        match funcName with
+        | Some fn ->
+            let key = DAstUtilFunctions.encodeCallKey lm t.id.ModName fn
+            {ns with validatorOutcomes = ns.validatorOutcomes.Add (key, outcome); tasValidatorKeys = ns.tasValidatorKeys.Add key}
+        | None    -> ns
     Some ret, ns
 
 let funcBody l fncs (e:ErrorCode) (p:CodegenScope) =
@@ -727,31 +771,6 @@ let rec private seqOfSizeIsOneInterval (c:SequenceOfConstraint) : bool =
     | SeqOfSizeSingleValueConstraint _
     | SeqOfSeqWithComponentConstraint _          -> false
 
-/// The typedef that declares the value's Ada type: the type's own, or, for a type that resolves a reference to a
-/// type assignment without new constraints (inheritInfo), the type assignment's own (the type shares it, with the
-/// same constraints). None for an RTL type or anything else.
-let private declaringTypedef (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefinitionOrReference) : TypeDefinition option =
-    match typeDefinition, t.inheritInfo with
-    | TypeDefinition td, _                     -> Some td
-    | ReferenceToExistingDefinition rd, Some inh when not rd.definedInRtl && not inh.hasAdditionalConstraints ->
-        let tasDefinition =
-            r.modulesMap.TryFind inh.modName |>
-            Option.bind (fun m -> m.typeAssignmentsMap.TryFind inh.tasName) |>
-            Option.bind (fun tas ->
-                match tas.Type.Kind with
-                | Asn1AcnAst.Integer o      -> Some (l.lg.definitionOrRef o.definitionOrRef)
-                | Asn1AcnAst.OctetString o  -> Some (l.lg.definitionOrRef o.definitionOrRef)
-                | Asn1AcnAst.BitString o    -> Some (l.lg.definitionOrRef o.definitionOrRef)
-                | Asn1AcnAst.SequenceOf o   -> Some (l.lg.definitionOrRef o.definitionOrRef)
-                | Asn1AcnAst.Real _ | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _ | Asn1AcnAst.NullType _
-                | Asn1AcnAst.Boolean _ | Asn1AcnAst.Enumerated _ | Asn1AcnAst.ObjectIdentifier _ | Asn1AcnAst.TimeType _
-                | Asn1AcnAst.Sequence _ | Asn1AcnAst.Choice _ | Asn1AcnAst.ReferenceType _ -> None)
-        match tasDefinition with
-        | Some (TypeDefinition td)                   -> Some td
-        | Some (ReferenceToExistingDefinition _)
-        | None                                       -> None
-    | ReferenceToExistingDefinition _, _       -> None
-
 /// INTEGER: the typedef is a ranged subtype of the type's uPER range (DAstTypeDefinition.createInteger; a subtype
 /// narrows the range too).
 let private integerRangeEnforcedByTypedef (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefinitionOrReference) (cons:IntegerTypeConstraint list) =
@@ -771,6 +790,20 @@ let private sizeEnforcedByTypedef (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:A
         match td.baseType with
         | Some _ -> false
         | None   -> consAreOneInterval
+
+/// Coverage step 14b2: the length check of a variable-size OCTET / BIT STRING or SEQUENCE OF encoder
+/// (Length >= checkedMin AND Length <= checkedMax) cannot fail when the value's own typedef declares Length with exactly
+/// that range: a new typedef (not a subtype of a wider one, which keeps the parent's Length range) declares it as
+/// typeMin .. typeMax, the type's uPER SIZE range (Define_new_octet_string / _bit_string / _sequence_of).
+let varSizeLengthCheck (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (typeDefinition:TypeDefinitionOrReference) (typeMin:BigInteger, typeMax:BigInteger) (checkedMin:BigInteger, checkedMax:BigInteger) =
+    match l.lg.typedefConstraintModel, declaringTypedef r l t typeDefinition with
+    | TypedefsAreBaseTypes, _
+    | TypedefsEnforceRanges, None   -> LengthChecked
+    | TypedefsEnforceRanges, Some td ->
+        match td.baseType with
+        | Some _                                                        -> LengthChecked
+        | None when typeMin = checkedMin && typeMax = checkedMax        -> LengthEnforcedByTypedef
+        | None                                                          -> LengthChecked
 
 /// ENUMERATED: every item is valid, and an Ada enumeration holds only its items.
 let private enumEnforcedByTypedef (l:LanguageMacros) (o:Asn1AcnAst.Enumerated) =
@@ -836,19 +869,19 @@ let createBoolFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.A
     createIsValidFunction r l t (funcBody l fncs)  typeDefinition [] [] [] [] (Some errorCodeComment) ns
 
 let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.OctetString) (typeDefinition:TypeDefinitionOrReference) (equalFunc:EqualFunction) (printValue  : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string) (us:State)  =
-    let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> octetStringConstraint2ValidationCodeBlock r l  t.id o equalFunc c us) us
+    let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> octetStringConstraint2ValidationCodeBlock r l  t.id o (typedefIsFixedSize r t) equalFunc c us) us
     let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
     let enforced = (not o.cons.IsEmpty) && sizeEnforcedByTypedef r l t typeDefinition o.isFixedSize (o.cons |> List.forall sizeIsOneInterval)
     createIsValidFunction r l t (funcBodyOrImplied l enforced fncs errorCodeComment)  typeDefinition [] [] [] [] (Some errorCodeComment) ns
 
 let createBitStringFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.BitString) (typeDefinition:TypeDefinitionOrReference) (defOrRef:TypeDefinitionOrReference) (equalFunc:EqualFunction) (printValue  : string -> (Asn1ValueKind option) -> (Asn1ValueKind) -> string) (us:State)  =
-    let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> bitStringConstraint2ValidationCodeBlock r l  t.id o equalFunc c us) us
+    let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> bitStringConstraint2ValidationCodeBlock r l  t.id o (typedefIsFixedSize r t) equalFunc c us) us
     let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
     let enforced = (not o.cons.IsEmpty) && sizeEnforcedByTypedef r l t typeDefinition o.isFixedSize (o.cons |> List.forall sizeIsOneInterval)
     createIsValidFunction r l t (funcBodyOrImplied l enforced fncs errorCodeComment)  typeDefinition [] [] [] [] (Some errorCodeComment) ns
 
 let createStringFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.StringType) (typeDefinition:TypeDefinitionOrReference) (us:State)  =
-    let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> ia5StringConstraint2ValidationCodeBlock r  l t.id c us) {us with alphaIndex=0; alphaFuncs=[]}
+    let fncs, ns = o.cons |> Asn1Fold.foldMap (fun us c -> ia5StringConstraint2ValidationCodeBlock r  l t.id o.maxSize.uper c us) {us with alphaIndex=0; alphaFuncs=[]}
     let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
     createIsValidFunction r l t (funcBody l fncs) typeDefinition ns.alphaFuncs [] [] [] (Some errorCodeComment) ns
 
@@ -916,7 +949,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Ac
     let sequenceOf          = l.isvalid.sequenceOf2
     let callBaseTypeFunc    = l.isvalid.call_base_type_func
 
-    let vcbs, ns2 = o.cons |> Asn1Fold.foldMap(fun cs c -> sequenceOfConstraint2ValidationCodeBlock r l t.id o (childType:Asn1Type) equalFunc c cs) us
+    let vcbs, ns2 = o.cons |> Asn1Fold.foldMap(fun cs c -> sequenceOfConstraint2ValidationCodeBlock r l t.id o (typedefIsFixedSize r t) (childType:Asn1Type) equalFunc c cs) us
 
     let chp (p:CodegenScope) = 
         let i = sprintf "i%d" (p.accessPath.SequenceOfLevel + 1)
@@ -1134,20 +1167,57 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
 
     let childrenContent, ns1 =  children |> Asn1Fold.foldMap (fun us child -> handleChild child us) us
     let childrenContent = childrenContent |> List.choose id
-    // a CHOICE still calls every alternative's function: no check follows the call, so there is nothing to drop
+    // Coverage step 14i: when the selector can only name an alternative (Ada) and no alternative can be invalid, the
+    // CHOICE cannot be invalid either (no constraint of its own): the validator calls nothing and always succeeds, and
+    // the functions of inline alternatives that only it called are not emitted (as for a SEQUENCE child, 11b).
+    // Otherwise a CHOICE still calls every alternative's function.
+    let alternativeCannotBeInvalid (child:ChChildInfo) =
+        match child.chType.isValidFunction with
+        | None                                  -> true
+        | Some {IsValidFunction.outcome = AlwaysValid}  -> true
+        | Some {IsValidFunction.outcome = MayBeInvalid} -> false
+    let noAlternativeChecked =
+        match l.lg.choiceSelectorHoldsOnlyAlternatives with
+        | false -> false
+        | true  -> o.cons.IsEmpty && (children |> List.forall alternativeCannotBeInvalid)
+    let childrenContent =
+        match noAlternativeChecked with
+        | false -> childrenContent
+        | true  ->
+            List.zip children childrenContent |>
+            List.map (fun (child, z) ->
+                match z, child.chType.isValidFunction with
+                | IsValidProcCall c, _       -> IsValidNotCalled {|childName = l.lg.getAsn1ChChildBackendName child; chidIsValidFunction = c.chidIsValidFunction|}
+                | IsValidEmbedded _, _
+                | IsValidNotCalled _, _      -> z)
     let childrenErrCodes = childrenContent |> List.collect(fun s -> match s with IsValidEmbedded c -> c.childErrCodes | IsValidProcCall _ | IsValidNotCalled _ -> [])
     let alphaFuncs = childrenContent |> List.collect(fun s -> match s with IsValidEmbedded c -> c.alphaFuncs | IsValidProcCall _ | IsValidNotCalled _ -> []) //childrenContent |> List.collect(fun c -> c.alphaFuncs)
     let localVars = childrenContent |> List.collect(fun s -> match s with IsValidEmbedded c -> c.localVars | IsValidProcCall _ | IsValidNotCalled _ -> []) //childrenContent |> List.collect(fun c -> c.localVars)
-    let nonEmbeddedChildrenValidFuncs = childrenContent |> List.choose(fun s -> match s with IsValidEmbedded c -> None | IsValidProcCall c -> Some c.chidIsValidFunction | IsValidNotCalled c -> Some c.chidIsValidFunction)
+    let nonEmbeddedChildrenValidFuncs =
+        childrenContent |>
+        List.choose(fun s ->
+            match s with
+            | IsValidEmbedded c  -> None
+            | IsValidProcCall c  -> Some c.chidIsValidFunction
+            | IsValidNotCalled c ->
+                match noAlternativeChecked && not l.lg.keepsUncalledChildValidators with
+                | true  -> None
+                | false -> Some c.chidIsValidFunction)
     let valToStrFunc (p:CodegenScope) (v:Asn1AcnAst.ChValue) = VCBTrue
     let vcbs, ns2 =  o.cons |> Asn1Fold.foldMap(fun cs c -> choiceConstraint2ValidationCodeBlock r l t.id children valToStrFunc defOrRef  c cs) ns1
     let funBody (errCode: ErrorCode) (p:CodegenScope) =
+      match noAlternativeChecked with
+      | true  ->
+        prependComment
+            (Some (l.isvalid.validation_comment "no alternative can hold an invalid value, and the selector can only name an alternative"))
+            (convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName)
+      | false ->
         let choice_switch_check, lv1 =
             let childrenChecks, lv1 =
                 childrenContent |>
                 List.choose(fun z ->
                     match z with
-                    | IsValidNotCalled _ -> None    // not produced for a CHOICE
+                    | IsValidNotCalled _ -> None    // only when no alternative is checked (that body is above)
                     | IsValidEmbedded c ->
                         match c.isValidStatement p with
                         | ValidationStatementTrue st
@@ -1178,7 +1248,8 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
     createIsValidFunction r l t funBody  typeDefinition alphaFuncs localVars childrenErrCodes nonEmbeddedChildrenValidFuncs (Some errorCodeComment) ns2
 
 
-let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (refTypeId:ReferenceToType) (refCons:Asn1AcnAst.AnyConstraint list) (typeDefinition:TypeDefinitionOrReference) (resolvedType:Asn1Type)  (us:State)  =
+/// t: the reference type; its actual type (the merged type) decides the typedef layout of a sizeable type.
+let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (refTypeId:ReferenceToType) (refCons:Asn1AcnAst.AnyConstraint list) (typeDefinition:TypeDefinitionOrReference) (resolvedType:Asn1Type)  (us:State)  =
     match resolvedType.Kind with
     | Sequence sq    ->
         let asn1Children = sq.children |> List.choose(fun c -> match c with Asn1Child x -> Some x | AcnChild _ -> None)
@@ -1186,7 +1257,7 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
         let valToStrFunc (p:CodegenScope) (v:Asn1AcnAst.SeqValue) = VCBTrue
         cons |> Asn1Fold.foldMap(fun cs c -> sequenceConstraint2ValidationCodeBlock r l refTypeId asn1Children valToStrFunc  c cs) us
     | ReferenceType rt    ->
-        createReferenceTypeFunction_this_type r l refTypeId refCons typeDefinition rt.resolvedType  us
+        createReferenceTypeFunction_this_type r l t refTypeId refCons typeDefinition rt.resolvedType  us
     | Integer rt ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.IntegerTypeConstraint z -> Some z | _ -> None )
         cons |> Asn1Fold.foldMap (fun us c -> integerConstraint2ValidationCodeBlock r l (rt.baseInfo.intClass) c us) us
@@ -1198,13 +1269,13 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
         cons |> Asn1Fold.foldMap (fun us c -> booleanConstraint2ValidationCodeBlock l c us) us
     | OctetString oc ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.OctetStringConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap (fun us c -> octetStringConstraint2ValidationCodeBlock r l  refTypeId oc.baseInfo resolvedType.equalFunction c us) us
+        cons |> Asn1Fold.foldMap (fun us c -> octetStringConstraint2ValidationCodeBlock r l  refTypeId oc.baseInfo (typedefIsFixedSize r t.ActualType) resolvedType.equalFunction c us) us
     | BitString bs ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.BitStringConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap (fun us c -> bitStringConstraint2ValidationCodeBlock r l  refTypeId bs.baseInfo resolvedType.equalFunction c us) us
+        cons |> Asn1Fold.foldMap (fun us c -> bitStringConstraint2ValidationCodeBlock r l  refTypeId bs.baseInfo (typedefIsFixedSize r t.ActualType) resolvedType.equalFunction c us) us
     | IA5String st ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.IA5StringConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap (fun us c -> ia5StringConstraint2ValidationCodeBlock r  l refTypeId c us) {us with alphaIndex=0; alphaFuncs=[]}
+        cons |> Asn1Fold.foldMap (fun us c -> ia5StringConstraint2ValidationCodeBlock r  l refTypeId st.baseInfo.maxSize.uper c us) {us with alphaIndex=0; alphaFuncs=[]}
     | ObjectIdentifier _ ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.ObjectIdConstraint z -> Some z | _ -> None )
         cons |> Asn1Fold.foldMap (fun us c -> objIdConstraint2ValidationCodeBlock r l c us) us
@@ -1234,13 +1305,13 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
         cons |> Asn1Fold.foldMap(fun cs c -> choiceConstraint2ValidationCodeBlock r l refTypeId ch.children valToStrFunc typeDefinition  c cs) us
     | SequenceOf sqo ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.SequenceOfConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap(fun cs c -> sequenceOfConstraint2ValidationCodeBlock r l refTypeId sqo.baseInfo sqo.childType resolvedType.equalFunction c cs) us
+        cons |> Asn1Fold.foldMap(fun cs c -> sequenceOfConstraint2ValidationCodeBlock r l refTypeId sqo.baseInfo (typedefIsFixedSize r t.ActualType) sqo.childType resolvedType.equalFunction c cs) us
 
 
 let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (resolvedType:Asn1Type)  (us:State)  =
     let callBaseTypeFunc = l.isvalid.call_base_type_func
     let callSuperclassFunc = l.isvalid.call_superclass_func
-    let vcbs,us = createReferenceTypeFunction_this_type r l t.id o.refCons typeDefinition resolvedType us
+    let vcbs,us = createReferenceTypeFunction_this_type r l t t.id o.refCons typeDefinition resolvedType us
 
     let moduleName, typeDefinitionName, typeDefinitionName0 =
         match typeDefinition with
@@ -1282,7 +1353,11 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
             let tas = (r.GetModuleByName o.modName).GetTypeAssignmentByName o.tasName r
             let tasTypeDef = l.lg.getTypeDefinition tas.Type.FT_TypeDefinition
             if l.lg.hasModules && ToC t.id.ModName <> tasTypeDef.programUnit then
-                tasTypeDef.programUnit + "." + tasTypeDef.typeName
+                // Qualify with the language's cross-module function prefix: it is
+                // "<mod>." for Ada/C, but Rust functions live in the body module
+                // and must be reached as "crate::<mod>::" (a bare "DV." is not a
+                // Rust path and fails to compile with E0425).
+                l.lg.constructCrossModuleFuncPrefix tasTypeDef.programUnit + tasTypeDef.typeName
             else tasTypeDef.typeName
         else baseTypeDefinitionName
     let baseFncName = l.lg.constructReferenceFuncName checkedTypeDefinitionName "" (l.isvalid.methodNameSuffix())
@@ -1290,10 +1365,35 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
     // coverage step 11b: the referenced type's function always succeeds, so it is not called. Only without
     // constraints at the reference site: with them resolvedType is the narrower merged type (e.g. a fixed SIZE),
     // whose outcome says nothing about the called function of the wider referenced type.
+    // Coverage step 14p: first the outcome of the function the reference calls (State.validatorOutcomes; sortTypes
+    // creates referenced type assignments first). The copy of the referenced type at a site with ids of its own (ACN
+    // arguments, CONTAINING) has inline children whose typedefs are references to the type assignment's, so the 11b
+    // rules do not see the ranges they enforce and the copy is MayBeInvalid while the called function is AlwaysValid.
+    // The site's own constraints (vcbs) are still checked below.
+    let calledFunctionOutcome = us.validatorOutcomes.TryFind (DAstUtilFunctions.encodeCallKey l t.id.ModName baseFncName)
     let referencedNotCalled =
-        match resolvedType.isValidFunction with
-        | Some rf -> rf.outcome = AlwaysValid && o.refCons.IsEmpty && not (containsSubtypeConstraints o.resolvedType)
-        | None    -> false
+        match resolvedType.isValidFunction, calledFunctionOutcome with
+        | Some _, Some AlwaysValid       -> true
+        | Some rf, (Some MayBeInvalid | None) -> rf.outcome = AlwaysValid && o.refCons.IsEmpty && not (containsSubtypeConstraints o.resolvedType)
+        | None, _                        -> false
+    // Coverage step 14p: an INTEGER reference with constraints of its own (MyPDU ::= T1 (0 .. 100)) declares the
+    // subtype `range a .. b` of the merged uPER range (DAstTypeDefinition.createInteger_u); when every constraint at the
+    // site is one interval, the range holds them all (the merged range is their intersection with the base's), so
+    // with the typedefs enforcing ranges (Ada) the check becomes a pragma Assert, as 11b does for a type's own range.
+    let siteRangeEnforced =
+        match l.lg.typedefConstraintModel, typeDefinition, t.ActualType.Kind with
+        | TypedefsEnforceRanges, TypeDefinition _, Asn1AcnAst.Integer io ->
+            let intCons = o.refCons |> List.choose (fun c -> match c with Asn1AcnAst.IntegerTypeConstraint z -> Some z | _ -> None)
+            let declaresRange =
+                match io.uperRange with
+                | Concrete _ | NegInf _     -> true
+                | PosInf a                  -> a <> 0I      // `range 0 .. MAX` declares no range (createInteger)
+                | Full                      -> false
+            declaresRange && not intCons.IsEmpty && intCons.Length = o.refCons.Length &&
+                intCons |> List.forall (rangeIsOneInterval (fun x -> x + 1I) (fun x -> x - 1I))
+        | TypedefsAreBaseTypes, _, _
+        | TypedefsEnforceRanges, ReferenceToExistingDefinition _, _
+        | TypedefsEnforceRanges, TypeDefinition _, _ -> false
     let ns =
         // the call is registered only when it is made (else the referenced function would be emitted as dead
         // code when nothing else calls it); Scala's ACN encoders of OPTIONAL children call it anyway
@@ -1307,12 +1407,24 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
                 addFunctionCallToState us caller callee
         | Some _, true
         | None, _      -> us
+    // coverage step 14q (Q3 b): the function this site's validation calls, so that an encoder of the site may call the
+    // referenced encoder's body (without its validation) only when that validation is the one done here
+    let ns =
+        match resolvedType.isValidFunction, referencedNotCalled with
+        | Some _, false -> {ns with siteValidatorCalls = ns.siteValidatorCalls.Add (t.id.AsString, DAstUtilFunctions.encodeCallKey l t.id.ModName baseFncName)}
+        | Some _, true
+        | None, _       -> ns
+    let errorCodeComment0 = o.refCons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
     let funBody (errCode: ErrorCode) (p:CodegenScope) =
         let with_component_check, lv2 =
             convertMultipleVCBsToStatementAndSetErrorCode l p errCode vcbs |>
             List.unzip
 
         match resolvedType.isValidFunction with
+        | Some _ when referencedNotCalled && siteRangeEnforced && (impliedCheck l vcbs errorCodeComment0 p).IsSome ->
+            let comment = l.isvalid.validation_comment "the referenced type is not checked: it cannot hold an invalid value"
+            let st = (impliedCheck l vcbs errorCodeComment0 p).Value
+            ValidationStatementImplied (comment + "\n" + st + "\n" + l.isvalid.convertVCBTRUEToStatementAndUpdateErrCode (), [])
         | Some _ when referencedNotCalled ->
             let comment = l.isvalid.validation_comment "the referenced type is not checked: it cannot hold an invalid value"
             match (with_component_check) |> DAstUtilFunctions.nestItems_ret l  with
@@ -1336,8 +1448,6 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
             | None   -> convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName
             | Some s ->ValidationStatement (s, (lv2 |>List.collect id))
 
-    let errorCodeComment = o.refCons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
-
-    createIsValidFunction r l t funBody  typeDefinition [] [] [] [] (Some errorCodeComment) ns
+    createIsValidFunction r l t funBody  typeDefinition [] [] [] [] (Some errorCodeComment0) ns
 
 

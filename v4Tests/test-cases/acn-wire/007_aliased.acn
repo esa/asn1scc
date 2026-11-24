@@ -1,0 +1,4 @@
+ALIASED DEFINITIONS ::= BEGIN
+    P <INTEGER:a, INTEGER:b> [] { d [size b], items [] { [size a] } }
+    T [] { n INTEGER [encoding pos-int, size 8], payload <n,n> [] }
+END

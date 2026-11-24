@@ -1,0 +1,59 @@
+-- ACNV2_ONLY C_ADA_ONLY (legacy: no CHOICE of CONTAINING regions sized by an ACN parameter, as 009)
+-- q/issues.md Issue 62: the size determinant of a CONTAINING region with a width other than 8/16/32/64 bits.
+-- With --acn-v2 the region's PatchDet called Acn_PatchDet_ConstSize / _TwosComplement_ConstSize without the
+-- width (C: too few arguments, Ada: missing argument), in all paths: OCTET STRING (MsgA, MsgC: twos-complement)
+-- and BIT STRING (MsgB) of a type with an ACN function, a contained type with an ACN parameter (MsgD: inline
+-- body in the region) and a CHOICE of regions sized by an ACN parameter (MsgE).
+-- q/issues.md Issue 63: MsgD, the Ada region around an inline body that cannot fail read result before anything
+-- had written it ("result.Success" may be referenced before it has a value).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+Inner ::= SEQUENCE {
+    a INTEGER (0..255),
+    b INTEGER (0..3)
+}
+
+Inner2 ::= SEQUENCE {
+    a INTEGER (0..255),
+    b INTEGER (0..3) OPTIONAL
+}
+
+MsgA ::= SEQUENCE {
+    flag    INTEGER (0..7),
+    payload OCTET STRING (CONTAINING Inner),
+    tail    INTEGER (0..15)
+}
+
+MsgB ::= SEQUENCE {
+    flag    INTEGER (0..7),
+    payload BIT STRING (CONTAINING Inner),
+    tail    INTEGER (0..15)
+}
+
+MsgC ::= SEQUENCE {
+    payload OCTET STRING (CONTAINING Inner),
+    tail    INTEGER (0..15)
+}
+
+MsgD ::= SEQUENCE {
+    payload OCTET STRING (CONTAINING Inner2),
+    tail    INTEGER (0..15)
+}
+
+Inner3 ::= SEQUENCE {
+    x INTEGER (0..7)
+}
+
+Pl ::= CHOICE {
+    v1 BIT STRING (CONTAINING Inner),
+    v2 BIT STRING (CONTAINING Inner3)
+}
+
+MsgE ::= SEQUENCE {
+    payload Pl,
+    tail    INTEGER (0..15)
+}
+
+END
+
+--TCFS   031.acn

@@ -1,0 +1,1056 @@
+{
+  "navOrder": [
+    "DeltaAngle@UNITS-TEST.DeltaAngle",
+    "DeltaVelocity@UNITS-TEST.DeltaVelocity",
+    "Angle@UNITS-TEST.Angle",
+    "AngleDeg@UNITS-TEST.AngleDeg",
+    "Plain@UNITS-TEST.Plain",
+    "Name@UNITS-TEST.Name",
+    "Vec@UNITS-TEST.Vec",
+    "Temps@UNITS-TEST.Temps",
+    "Packet@UNITS-TEST.Packet",
+    "Packet-nested@UNITS-TEST.Packet.nested",
+    "Packet-ch@UNITS-TEST.Packet.ch"
+  ],
+  "tables": [
+    {
+      "id": "DeltaAngle@UNITS-TEST.DeltaAngle",
+      "name": "DeltaAngle",
+      "kind": "REAL",
+      "tasInfo": {
+        "modName": "UNITS-TEST",
+        "tasName": "DeltaAngle"
+      },
+      "module": "UNITS-TEST",
+      "usagePath": "UNITS-TEST.DeltaAngle",
+      "usageSites": [
+        "UNITS-TEST.DeltaAngle"
+      ],
+      "hasAcnDefinition": true,
+      "minLengthInBytes": 4,
+      "maxLengthInBytes": 4,
+      "comments": [],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "REAL"
+          },
+          "sConstraint": "(-0.25 .. 0.25)",
+          "minLengthInBits": 32,
+          "maxLengthInBits": 32,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "DeltaVelocity@UNITS-TEST.DeltaVelocity",
+      "name": "DeltaVelocity",
+      "kind": "REAL",
+      "tasInfo": {
+        "modName": "UNITS-TEST",
+        "tasName": "DeltaVelocity"
+      },
+      "module": "UNITS-TEST",
+      "usagePath": "UNITS-TEST.DeltaVelocity",
+      "usageSites": [
+        "UNITS-TEST.DeltaVelocity"
+      ],
+      "hasAcnDefinition": true,
+      "minLengthInBytes": 4,
+      "maxLengthInBytes": 4,
+      "comments": [],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "REAL"
+          },
+          "sConstraint": "(-16 .. 16)",
+          "minLengthInBits": 32,
+          "maxLengthInBits": 32,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Angle@UNITS-TEST.Angle",
+      "name": "Angle",
+      "kind": "INTEGER",
+      "tasInfo": {
+        "modName": "UNITS-TEST",
+        "tasName": "Angle"
+      },
+      "module": "UNITS-TEST",
+      "usagePath": "UNITS-TEST.Angle",
+      "usageSites": [
+        "UNITS-TEST.Angle"
+      ],
+      "hasAcnDefinition": false,
+      "minLengthInBytes": 2,
+      "maxLengthInBytes": 2,
+      "comments": [],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(0 .. 1000)",
+          "minLengthInBits": 10,
+          "maxLengthInBits": 10,
+          "sUnits": "rad",
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "AngleDeg@UNITS-TEST.AngleDeg",
+      "name": "AngleDeg",
+      "kind": "INTEGER",
+      "tasInfo": {
+        "modName": "UNITS-TEST",
+        "tasName": "AngleDeg"
+      },
+      "module": "UNITS-TEST",
+      "usagePath": "UNITS-TEST.AngleDeg",
+      "usageSites": [
+        "UNITS-TEST.AngleDeg"
+      ],
+      "hasAcnDefinition": false,
+      "minLengthInBytes": 2,
+      "maxLengthInBytes": 2,
+      "comments": [],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (Angle)"
+          },
+          "sConstraint": "(0 .. 1000)",
+          "minLengthInBits": 10,
+          "maxLengthInBits": 10,
+          "sUnits": "deg",
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Plain@UNITS-TEST.Plain",
+      "name": "Plain",
+      "kind": "INTEGER",
+      "tasInfo": {
+        "modName": "UNITS-TEST",
+        "tasName": "Plain"
+      },
+      "module": "UNITS-TEST",
+      "usagePath": "UNITS-TEST.Plain",
+      "usageSites": [
+        "UNITS-TEST.Plain"
+      ],
+      "hasAcnDefinition": false,
+      "minLengthInBytes": 2,
+      "maxLengthInBytes": 2,
+      "comments": [],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(0 .. 1000)",
+          "minLengthInBits": 10,
+          "maxLengthInBits": 10,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Name@UNITS-TEST.Name",
+      "name": "Name",
+      "kind": "IA5String",
+      "tasInfo": {
+        "modName": "UNITS-TEST",
+        "tasName": "Name"
+      },
+      "module": "UNITS-TEST",
+      "usagePath": "UNITS-TEST.Name",
+      "usageSites": [
+        "UNITS-TEST.Name"
+      ],
+      "hasAcnDefinition": false,
+      "minLengthInBytes": 2,
+      "maxLengthInBytes": 10,
+      "comments": [],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": 1,
+          "fieldName": "Length",
+          "comments": [
+            "The number of characters"
+          ],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(1 .. 10)",
+          "minLengthInBits": 4,
+          "maxLengthInBits": 4,
+          "sUnits": null,
+          "rowType": "LengthDeterminantRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        },
+        {
+          "idxOffset": 2,
+          "fieldName": "",
+          "comments": [
+            "Each character occupies 7 bits."
+          ],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": "IA5String"
+          },
+          "sConstraint": "(1 .. 10)",
+          "minLengthInBits": 7,
+          "maxLengthInBits": 70,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "range",
+            "minBits": 0,
+            "maxBits": 4,
+            "display": "0..4"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Vec@UNITS-TEST.Vec",
+      "name": "Vec",
+      "kind": "SEQUENCE",
+      "tasInfo": {
+        "modName": "UNITS-TEST",
+        "tasName": "Vec"
+      },
+      "module": "UNITS-TEST",
+      "usagePath": "UNITS-TEST.Vec",
+      "usageSites": [
+        "UNITS-TEST.Packet.v",
+        "UNITS-TEST.Vec"
+      ],
+      "hasAcnDefinition": false,
+      "minLengthInBytes": 2,
+      "maxLengthInBytes": 2,
+      "comments": [],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": 1,
+          "fieldName": "x",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(0 .. 100)",
+          "minLengthInBits": 7,
+          "maxLengthInBits": 7,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        },
+        {
+          "idxOffset": 2,
+          "fieldName": "y",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(0 .. 100)",
+          "minLengthInBits": 7,
+          "maxLengthInBits": 7,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 7,
+            "maxBits": 7,
+            "display": "7"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Temps@UNITS-TEST.Temps",
+      "name": "Temps",
+      "kind": "SEQUENCE OF",
+      "tasInfo": {
+        "modName": "UNITS-TEST",
+        "tasName": "Temps"
+      },
+      "module": "UNITS-TEST",
+      "usagePath": "UNITS-TEST.Temps",
+      "usageSites": [
+        "UNITS-TEST.Packet.t",
+        "UNITS-TEST.Temps"
+      ],
+      "hasAcnDefinition": false,
+      "minLengthInBytes": 1,
+      "maxLengthInBytes": 2,
+      "comments": [
+        ""
+      ],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": 1,
+          "fieldName": "Length",
+          "comments": [
+            "The number of items"
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 2,
+          "maxLengthInBits": 2,
+          "sUnits": null,
+          "rowType": "LengthDeterminantRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        },
+        {
+          "idxOffset": 2,
+          "fieldName": "Item #1",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(0 .. 10)",
+          "minLengthInBits": 4,
+          "maxLengthInBits": 4,
+          "sUnits": "K",
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 2,
+            "maxBits": 2,
+            "display": "2"
+          }
+        },
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": ""
+          },
+          "sConstraint": null,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 0,
+          "sUnits": null,
+          "rowType": "ThreeDOTs",
+          "offset": {
+            "kind": "none",
+            "minBits": null,
+            "maxBits": null,
+            "display": null
+          }
+        },
+        {
+          "idxOffset": 4,
+          "fieldName": "Item #3",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(0 .. 10)",
+          "minLengthInBits": 4,
+          "maxLengthInBits": 4,
+          "sUnits": "K",
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "variable",
+            "minBits": null,
+            "maxBits": null,
+            "display": "variable"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Packet@UNITS-TEST.Packet",
+      "name": "Packet",
+      "kind": "SEQUENCE",
+      "tasInfo": {
+        "modName": "UNITS-TEST",
+        "tasName": "Packet"
+      },
+      "module": "UNITS-TEST",
+      "usagePath": "UNITS-TEST.Packet",
+      "usageSites": [
+        "UNITS-TEST.Packet"
+      ],
+      "hasAcnDefinition": false,
+      "minLengthInBytes": 23,
+      "maxLengthInBytes": 34,
+      "comments": [],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": 1,
+          "fieldName": "dAngle",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "REAL (DeltaAngle)"
+          },
+          "sConstraint": "(-0.25 .. 0.25)",
+          "minLengthInBits": 32,
+          "maxLengthInBits": 32,
+          "sUnits": "deg",
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        },
+        {
+          "idxOffset": 2,
+          "fieldName": "dVelocity",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "REAL (DeltaVelocity)"
+          },
+          "sConstraint": "(-16 .. 16)",
+          "minLengthInBits": 32,
+          "maxLengthInBits": 32,
+          "sUnits": "m/s",
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 32,
+            "maxBits": 32,
+            "display": "32"
+          }
+        },
+        {
+          "idxOffset": 3,
+          "fieldName": "a1",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (Angle)"
+          },
+          "sConstraint": "(0 .. 1000)",
+          "minLengthInBits": 10,
+          "maxLengthInBits": 10,
+          "sUnits": "deg",
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 64,
+            "maxBits": 64,
+            "display": "64"
+          }
+        },
+        {
+          "idxOffset": 4,
+          "fieldName": "a2",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (Angle)"
+          },
+          "sConstraint": "(0 .. 1000)",
+          "minLengthInBits": 10,
+          "maxLengthInBits": 10,
+          "sUnits": "rad",
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 74,
+            "maxBits": 74,
+            "display": "74"
+          }
+        },
+        {
+          "idxOffset": 5,
+          "fieldName": "a3",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (Angle) (AngleDeg)"
+          },
+          "sConstraint": "(0 .. 1000)",
+          "minLengthInBits": 10,
+          "maxLengthInBits": 10,
+          "sUnits": "deg",
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 84,
+            "maxBits": 84,
+            "display": "84"
+          }
+        },
+        {
+          "idxOffset": 6,
+          "fieldName": "p1",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (Plain)"
+          },
+          "sConstraint": "(0 .. 1000)",
+          "minLengthInBits": 10,
+          "maxLengthInBits": 10,
+          "sUnits": "m",
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 94,
+            "maxBits": 94,
+            "display": "94"
+          }
+        },
+        {
+          "idxOffset": 7,
+          "fieldName": "p2",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (Plain)"
+          },
+          "sConstraint": "(0 .. 1000)",
+          "minLengthInBits": 10,
+          "maxLengthInBits": 10,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 104,
+            "maxBits": 104,
+            "display": "104"
+          }
+        },
+        {
+          "idxOffset": 8,
+          "fieldName": "Length",
+          "comments": [
+            "The number of characters"
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(1 .. 10)",
+          "minLengthInBits": 4,
+          "maxLengthInBits": 4,
+          "sUnits": null,
+          "rowType": "LengthDeterminantRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 114,
+            "maxBits": 114,
+            "display": "114"
+          }
+        },
+        {
+          "idxOffset": 9,
+          "fieldName": "nm",
+          "comments": [
+            "Each character occupies 7 bits."
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "IA5String (Name)"
+          },
+          "sConstraint": "(1 .. 10)",
+          "minLengthInBits": 7,
+          "maxLengthInBits": 70,
+          "sUnits": "mm",
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 118,
+            "maxBits": 118,
+            "display": "118"
+          }
+        },
+        {
+          "idxOffset": 10,
+          "fieldName": "v",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "reference",
+            "id": "Vec@UNITS-TEST.Vec"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 14,
+          "maxLengthInBits": 14,
+          "sUnits": "km",
+          "rowType": "LengthDeterminantRow",
+          "offset": {
+            "kind": "range",
+            "minBits": 125,
+            "maxBits": 188,
+            "display": "125..188"
+          }
+        },
+        {
+          "idxOffset": 11,
+          "fieldName": "nested",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "reference",
+            "id": "Packet-nested@UNITS-TEST.Packet.nested"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 10,
+          "maxLengthInBits": 10,
+          "sUnits": null,
+          "rowType": "LengthDeterminantRow",
+          "offset": {
+            "kind": "range",
+            "minBits": 139,
+            "maxBits": 202,
+            "display": "139..202"
+          }
+        },
+        {
+          "idxOffset": 12,
+          "fieldName": "ch",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "reference",
+            "id": "Packet-ch@UNITS-TEST.Packet.ch"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 12,
+          "maxLengthInBits": 12,
+          "sUnits": null,
+          "rowType": "LengthDeterminantRow",
+          "offset": {
+            "kind": "range",
+            "minBits": 149,
+            "maxBits": 212,
+            "display": "149..212"
+          }
+        },
+        {
+          "idxOffset": 13,
+          "fieldName": "sq",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "SEQUENCE OF"
+          },
+          "sConstraint": "(1 .. 3)",
+          "minLengthInBits": 12,
+          "maxLengthInBits": 32,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "range",
+            "minBits": 161,
+            "maxBits": 224,
+            "display": "161..224"
+          }
+        },
+        {
+          "idxOffset": 1,
+          "fieldName": "sq[1]",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (Plain)"
+          },
+          "sConstraint": "(0 .. 1000)",
+          "minLengthInBits": 10,
+          "maxLengthInBits": 10,
+          "sUnits": "Pa",
+          "rowType": "SubItemRow",
+          "offset": {
+            "kind": "none",
+            "minBits": null,
+            "maxBits": null,
+            "display": null
+          }
+        },
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": ""
+          },
+          "sConstraint": null,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 0,
+          "sUnits": null,
+          "rowType": "ThreeDOTs",
+          "offset": {
+            "kind": "none",
+            "minBits": null,
+            "maxBits": null,
+            "display": null
+          }
+        },
+        {
+          "idxOffset": 3,
+          "fieldName": "sq[3]",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (Plain)"
+          },
+          "sConstraint": "(0 .. 1000)",
+          "minLengthInBits": 10,
+          "maxLengthInBits": 10,
+          "sUnits": "Pa",
+          "rowType": "SubItemRow",
+          "offset": {
+            "kind": "none",
+            "minBits": null,
+            "maxBits": null,
+            "display": null
+          }
+        },
+        {
+          "idxOffset": 14,
+          "fieldName": "t",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "SEQUENCE OF"
+          },
+          "sConstraint": "(1 .. 3)",
+          "minLengthInBits": 6,
+          "maxLengthInBits": 14,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "range",
+            "minBits": 173,
+            "maxBits": 256,
+            "display": "173..256"
+          }
+        },
+        {
+          "idxOffset": 1,
+          "fieldName": "t[1]",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(0 .. 10)",
+          "minLengthInBits": 4,
+          "maxLengthInBits": 4,
+          "sUnits": "K",
+          "rowType": "SubItemRow",
+          "offset": {
+            "kind": "none",
+            "minBits": null,
+            "maxBits": null,
+            "display": null
+          }
+        },
+        {
+          "idxOffset": null,
+          "fieldName": "",
+          "comments": [],
+          "sPresent": "",
+          "sType": {
+            "kind": "plain",
+            "value": ""
+          },
+          "sConstraint": null,
+          "minLengthInBits": 0,
+          "maxLengthInBits": 0,
+          "sUnits": null,
+          "rowType": "ThreeDOTs",
+          "offset": {
+            "kind": "none",
+            "minBits": null,
+            "maxBits": null,
+            "display": null
+          }
+        },
+        {
+          "idxOffset": 3,
+          "fieldName": "t[3]",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER"
+          },
+          "sConstraint": "(0 .. 10)",
+          "minLengthInBits": 4,
+          "maxLengthInBits": 4,
+          "sUnits": "K",
+          "rowType": "SubItemRow",
+          "offset": {
+            "kind": "none",
+            "minBits": null,
+            "maxBits": null,
+            "display": null
+          }
+        }
+      ]
+    },
+    {
+      "id": "Packet-nested@UNITS-TEST.Packet.nested",
+      "name": "Packet-nested",
+      "kind": "SEQUENCE",
+      "tasInfo": null,
+      "module": "UNITS-TEST",
+      "usagePath": "UNITS-TEST.Packet.nested",
+      "usageSites": [
+        "UNITS-TEST.Packet.nested"
+      ],
+      "hasAcnDefinition": false,
+      "minLengthInBytes": 2,
+      "maxLengthInBytes": 2,
+      "comments": [],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": 1,
+          "fieldName": "p2",
+          "comments": [],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (Plain)"
+          },
+          "sConstraint": "(0 .. 1000)",
+          "minLengthInBits": 10,
+          "maxLengthInBits": 10,
+          "sUnits": "A",
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        }
+      ]
+    },
+    {
+      "id": "Packet-ch@UNITS-TEST.Packet.ch",
+      "name": "Packet-ch",
+      "kind": "CHOICE",
+      "tasInfo": null,
+      "module": "UNITS-TEST",
+      "usagePath": "UNITS-TEST.Packet.ch",
+      "usageSites": [
+        "UNITS-TEST.Packet.ch"
+      ],
+      "hasAcnDefinition": false,
+      "minLengthInBytes": 2,
+      "maxLengthInBytes": 2,
+      "comments": [],
+      "acnParameters": [],
+      "rows": [
+        {
+          "idxOffset": 1,
+          "fieldName": "ChoiceIndex",
+          "comments": [
+            "Special field used by ACN to indicate which choice alternative is present."
+          ],
+          "sPresent": "always",
+          "sType": {
+            "kind": "plain",
+            "value": "unsigned int"
+          },
+          "sConstraint": null,
+          "minLengthInBits": 2,
+          "maxLengthInBits": 2,
+          "sUnits": null,
+          "rowType": "LengthDeterminantRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 0,
+            "maxBits": 0,
+            "display": "0"
+          }
+        },
+        {
+          "idxOffset": 2,
+          "fieldName": "c1",
+          "comments": [],
+          "sPresent": "ChoiceIndex = 0",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (Plain)"
+          },
+          "sConstraint": "(0 .. 1000)",
+          "minLengthInBits": 10,
+          "maxLengthInBits": 10,
+          "sUnits": "Hz",
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 2,
+            "maxBits": 2,
+            "display": "2"
+          }
+        },
+        {
+          "idxOffset": 3,
+          "fieldName": "c2",
+          "comments": [],
+          "sPresent": "ChoiceIndex = 1",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (Angle)"
+          },
+          "sConstraint": "(0 .. 1000)",
+          "minLengthInBits": 10,
+          "maxLengthInBits": 10,
+          "sUnits": "deg",
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 2,
+            "maxBits": 2,
+            "display": "2"
+          }
+        },
+        {
+          "idxOffset": 4,
+          "fieldName": "c3",
+          "comments": [],
+          "sPresent": "ChoiceIndex = 2",
+          "sType": {
+            "kind": "plain",
+            "value": "INTEGER (Plain)"
+          },
+          "sConstraint": "(0 .. 1000)",
+          "minLengthInBits": 10,
+          "maxLengthInBits": 10,
+          "sUnits": null,
+          "rowType": "FieldRow",
+          "offset": {
+            "kind": "exact",
+            "minBits": 2,
+            "maxBits": 2,
+            "display": "2"
+          }
+        }
+      ]
+    }
+  ]
+}

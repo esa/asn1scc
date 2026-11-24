@@ -182,7 +182,7 @@ impl <td.typeName> {
 }
 >>
 
-Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage, arr_Asn1Encoding) ::= <<
+Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage, arrnAlphaChars, arr_Asn1Encoding) ::= <<
 pub type <td.typeName> = <prTd.typeName>;
 >>
 

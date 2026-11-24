@@ -74,7 +74,7 @@ let private createAcnChild (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:
         // (Περίπτωση Α) still need funcUpdateStatement for the inline path.
         let isDeferred =
             match parentData with
-            | DAst.SequenceParentData deferredNames -> Set.contains ch.Name.Value deferredNames
+            | DAst.SequenceParentData deferredIds -> Set.contains ch.id deferredIds
             | _ -> false
         // A deferred child still needs the value it takes for an automatic test value (CHOICEs
         // sharing it must select the same alternative, AcnSequence.isTestCaseValidForAcnChildren).
@@ -603,7 +603,7 @@ let private createSequenceOf (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInserted
     let defOrRef            =  lm.lg.definitionOrRef o.definitionOrRef
     //let typeDefinition = DAstTypeDefinition.createSequenceOf r l t o childType.typeDefinition us0
     let equalFunction       = DAstEqual.createSequenceOfEqualFunction r lm t o defOrRef childType
-    let initFunction        = DAstInitialize.createSequenceOfInitFunc r lm t o defOrRef childType
+    let initFunction        = DAstInitialize.createSequenceOfInitFunc r deps lm t o defOrRef childType
     let isValidFunction, s1     = DastValidate2.createSequenceOfFunction r lm t o defOrRef childType equalFunction us0
     let uperEncFunction, s2     = DAstUPer.createSequenceOfFunction r lm Codec.Encode t o  defOrRef None isValidFunction childType s1
     let uperDecFunction, s3     = DAstUPer.createSequenceOfFunction r lm Codec.Decode t o  defOrRef None isValidFunction childType s2
@@ -654,7 +654,7 @@ let private createAsn1Child (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (m:Asn1A
             Optionality        = ch.Optionality
             // acnArgs            = ch.acnArgs
             Comments           = ch.Comments |> Seq.toArray
-            isEqualBodyStats   = DAstEqual.isEqualBodySequenceChild lm ch newChildType
+            isEqualBodyStats   = DAstEqual.isEqualBodySequenceChild r lm ch newChildType
         }
     Asn1Child ret, us
 
@@ -938,8 +938,8 @@ let private mapType (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1Acn
 
         (fun pi t ti us -> DAst.SequenceOfParentData, us)
         (fun pi t ti us ->
-            let deferredNames = DAstACNDeferred.collectDeferredDetNamesFromAst r t ti
-            DAst.SequenceParentData deferredNames, us)
+            let deferredIds = DAstACNDeferred.collectDeferredDetIdsFromAst r deps ti
+            DAst.SequenceParentData deferredIds, us)
         (fun pi t ti us -> DAst.ChoiceParentData, us)
 
         deps
@@ -997,7 +997,63 @@ let private mapTas (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnA
     // class) while avoiding the pathological "_2_2_2..." chains that a single flat global set
     // produces across type assignments. Error-code VALUES (currErrorCode) stay globally monotonic.
     let us = if lm.lg.scopeErrorCodeNamesPerTypeAssignment then {us with curErrCodeNames = Set.empty} else us
+    let us = {us with tasValidatorKeys = Set.empty}
+    // the validators the construction of this type assignment created, with their final outcomes
+    let createdOutcomes (s:State) =
+        s.tasValidatorKeys |> Seq.map (fun k -> k, s.validatorOutcomes.TryFind k) |> Map.ofSeq
+    // Cycle 15a2: a type assignment that is a reference (Outer ::= Alias ('010203'H), Alias ::= Base (SIZE(3))) is
+    // built in one construction level per alias of the chain (Asn1Fold folds the resolved type first), every level
+    // creating an IsConstraintValid under the type assignment's name; the encoder is built, or lent upward, at an inner
+    // level, before the function that is finally emitted under the name (the type assignment's level) exists. A first
+    // construction from the same state (ValidatorOutcomePass: prints no warning) gives the outcome of every validator as
+    // emitted; its state is discarded (error codes, ICD entries and encode outcomes come from the second construction,
+    // which starts from the same state as without it).
+    let firstOutcomes =
+        match tas.Type.Kind with
+        | Asn1AcnAst.ReferenceType o ->
+            match o.hasExtraConstrainsOrChildrenOrAcnArgs with
+            | false ->
+                // no constraints, components, ACN properties or arguments of its own anywhere in the chain: the type
+                // assignment's level builds its encoder itself, after creating the validator it emits, so the encoder's
+                // own outcome is the emitted one (and an extra construction of every plain alias would double the
+                // construction time of alias-heavy grammars)
+                None
+            | true ->
+                try
+                    let _, first = TL "mapType_validatorOutcomes" (fun () -> mapType r icdStgFileName deps lm m (tas.Type, {us with constructionPass = ValidatorOutcomePass}))
+                    Some (createdOutcomes first)
+                with _ ->
+                    // the second construction raises the same error, after the diagnostics it prints before it; the
+                    // encoders of this type assignment keep the rule for functions not in the map
+                    None
+        | Asn1AcnAst.Integer _ | Asn1AcnAst.Real _ | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _
+        | Asn1AcnAst.OctetString _ | Asn1AcnAst.NullType _ | Asn1AcnAst.TimeType _ | Asn1AcnAst.BitString _
+        | Asn1AcnAst.Boolean _ | Asn1AcnAst.Enumerated _ | Asn1AcnAst.SequenceOf _ | Asn1AcnAst.Sequence _
+        | Asn1AcnAst.Choice _ | Asn1AcnAst.ObjectIdentifier _ ->
+            // not a reference: the type assignment's encoder is built at the level that creates the emitted validator
+            None
+    // only the names this type assignment creates (or changes): for any other function the encoders keep the rule of
+    // DAstUtilFunctions.encoderSkipsValidation for functions not in the map
+    let us =
+        match firstOutcomes with
+        | Some first ->
+            let own = first |> Map.toSeq |> Seq.choose (fun (k, v) -> match v with Some o when us.validatorOutcomes.TryFind k <> Some o -> Some (k, o) | Some _ | None -> None) |> Map.ofSeq
+            {us with emittedValidatorOutcomes = own}
+        | None       -> {us with emittedValidatorOutcomes = Map.empty}
     let newType, ns = TL "mapType" (fun () -> mapType r icdStgFileName deps lm m (tas.Type, us))
+    // The premise of the first construction: validators never read encoder state, so both constructions create the
+    // same validators with the same outcomes. If it ever breaks, an encoder may skip a validator that can fail.
+    match firstOutcomes with
+    | Some first when createdOutcomes ns <> first ->
+        let second = createdOutcomes ns
+        let differing =
+            Seq.append (Map.keys first) (Map.keys second) |> Seq.distinct |>
+            Seq.filter (fun k -> first.TryFind k <> second.TryFind k) |> Seq.toList
+        raise (BugErrorException (sprintf "%s.%s: the validator outcomes of the first construction differ from the second's (%A)" m.Name.Value tas.Name.Value differing))
+    | Some _
+    | None   -> ()
+    // no stale map reaches the next type assignment or the value assignments (mapVas)
+    let ns = {ns with emittedValidatorOutcomes = Map.empty}
     {
         TypeAssignment.Name = tas.Name
         c_name = tas.c_name
@@ -1330,7 +1386,7 @@ let DoWork (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnIn
         //Seq.groupBy id |>
         //Seq.map(fun (id, lst) -> (id, Seq.length lst)) |>
         //Map.ofSeq
-    let initialState = {currErrorCode = 1; curErrCodeNames = Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[];typeIdsSet=typeIdsSet; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty; functionCalls=Map.empty}
+    let initialState = {currErrorCode = 1; curErrCodeNames = Set.empty; (*allocatedTypeDefNames = []; allocatedTypeDefNameInTas = Map.empty;*) alphaIndex=0; alphaFuncs=[];typeIdsSet=typeIdsSet; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty; functionCalls=Map.empty; encodeCallOutcomes=Map.empty; validatorOutcomes=Map.empty; encodeBodies=Map.empty; siteValidatorCalls=Map.empty; acnSequenceCheckedSelectors=[]; emittedValidatorOutcomes=Map.empty; constructionPass=EmittingPass; tasValidatorKeys=Set.empty}
     let sortedTypes = sortTypes r
     //let private mapTas (r:Asn1AcnAst.AstRoot) (icdStgFileName:string) (deps:Asn1AcnAst.AcnInsertedFieldDependencies)  (lm:LanguageMacros) (m:Asn1AcnAst.Asn1Module) (tas:Asn1AcnAst.TypeAssignment) (us:State)=
 

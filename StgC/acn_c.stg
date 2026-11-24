@@ -21,7 +21,7 @@ EmitEncodingSizeConstants(sTypeDefName, nMaxBytesInACN, nMaxBitsInACN) ::= <<
 
 
 
-EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut) ::= <<
+EmitTypeAssignment_primitive_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut, bDeferredSpecialization, bValInitUnused) ::= <<
 <arrsErrcodes; separator="\n">
 
 flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>);
@@ -69,7 +69,7 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, in
 }
 >>
 
-EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut) ::= <<
+EmitTypeAssignment_primitive_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInACN, nMaxBitsInACN, arrsAcnPrms, soSparkAnnotations, bValInOut, bDeferredSpecialization, bValInitUnused) ::= <<
 <arrsErrcodes; separator="\n">
 flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pErrCode<if(arrsAcnPrms)>, <arrsAcnPrms; separator=", "><endif>);
 >>
@@ -122,6 +122,9 @@ if (ret) {
 <endif>
 >>
 
+/* not used: the field is decoded and mapped in place (ILangGeneric.acnMappedIntDecodeViaTemporary, Ada only) */
+acn_int_mapped_read(p, sWireRead, sMF, soMFM, sTmpType, noMin, noMax, nFieldMin) ::= "/* not used */"
+
 MappingFunctionDeclaration_encode(sTypeName, sMF) ::= <<
 extern <sTypeName> <sMF>_encode(<sTypeName>);
 >>
@@ -141,13 +144,25 @@ for(<i>=0; (<i> \< (int)<fixedSize>) && ret; <i>++)
 
 
 
-alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
+alignToNext_encode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bByteAlignment) ::= <<
 Acn_AlignTo<sAlignmentValue>(pBitStrm, TRUE);
 <sMainBody>
 >>
 
 
-alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset) ::= <<
+alignToNext_decode(sMainBody, sAlignmentValue, nAlignmentValue, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bByteAlignment) ::= <<
+<if(bByteAlignment)><alignToNextByte_noCheck(sMainBody=sMainBody)><else><alignToNext_checked(sMainBody=sMainBody, sAlignmentValue=sAlignmentValue)><endif>
+>>
+
+/* Coverage step 14c3: the byte alignment of a decoder reads nothing and cannot fail (Acn_Dec_AlignToNextByte). */
+alignToNextByte_noCheck(sMainBody) /*nogen*/ ::= <<
+/* byte alignment: reads nothing and cannot pass the end of the stream, so it is not checked */
+Acn_Dec_AlignToNextByte(pBitStrm);
+<sMainBody>
+>>
+
+/* A word / double word alignment fails when the stream ends before the boundary. */
+alignToNext_checked(sMainBody, sAlignmentValue) /*nogen*/ ::= <<
 ret = Acn_AlignTo<sAlignmentValue>(pBitStrm, FALSE);
 *pErrCode = ret ? 0 : ERR_INSUFFICIENT_DATA;
 if (ret) {
@@ -507,6 +522,14 @@ EnumeratedEncIdx_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActual
 EnumeratedEncValues_encode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, soCovExempt) ::= <<
 switch(<p>) {
     <arrsItem; separator="\n">
+<if(soCovExempt)>
+    default:                                    /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_ON "<soCovExempt>" */
+        *pErrCode = <sErrCode>;                 /*COVERAGE_IGNORE*/
+        return FALSE;                           /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_OFF */
+}
+/* no check of ret: the default arm returns (coverage step 14q) */
+<sActualCodecFunc>
+<else>
     default:                                    /*COVERAGE_IGNORE*/
         ret = FALSE;                            /*COVERAGE_IGNORE*/
         *pErrCode = <sErrCode>;                 /*COVERAGE_IGNORE*/
@@ -514,6 +537,7 @@ switch(<p>) {
 if (ret) {
 	<sActualCodecFunc>
 }
+<endif>
 >>
 
 EnumeratedEncValues_decode(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sErrCode, sFirstItemName, sIntVal, soCovExempt) ::= <<
@@ -569,6 +593,9 @@ if (ret) {
 
 
 /* Strings */
+/* Ada only: a fixed-size string subtype that shares a longer typedef (the calls here take nAsn1Max). */
+Acn_String_Ascii_FixSize_prefix(p, nAsn1Max) ::= "<p>"
+
 Acn_String_Ascii_FixSize_encode(p, sErrCode, nAsn1Max) ::= "Acn_Enc_String_Ascii_FixSize(pBitStrm, <nAsn1Max>, <p>);"
 Acn_String_Ascii_FixSize_decode(p, sErrCode, nAsn1Max) ::= <<
 ret = Acn_Dec_String_Ascii_FixSize(pBitStrm, <nAsn1Max>, <p>);
@@ -673,24 +700,24 @@ if (ret) {
 >>
 
 
-seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType) ::= <<
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType, bItemCannotFail, bItemWritesResult, bLengthEnforced) ::= <<
 BitStream_EncodeConstraintWholeNumber(pBitStrm, <p><sAcc>nCount, <nSizeMin>, <nSizeMax>);
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
 >>
 
-seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType) ::= <<
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, sType, bItemCannotFail, bItemWritesResult, bLengthEnforced) ::= <<
 ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nSizeMin>, <nSizeMax>);
 *pErrCode = ret ? 0 : <sErrCode>;
 <p><sAcc>nCount = (long)nCount;
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
 >>
 
-sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
+sqf_external_field_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux, bItemCannotFail, bItemWritesResult) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
 >>
 
 
-sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
+sqf_external_field_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux, bItemCannotFail, bItemWritesResult) ::= <<
 ret = (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>));
 <A(sErrCode)>
 if (ret) {
@@ -699,12 +726,12 @@ if (ret) {
 }
 >>
 
-sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
+sqf_external_field_fix_size_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux, bItemCannotFail, bItemWritesResult) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[nSizeMax])>
 >>
 
 
-sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux) ::= <<
+sqf_external_field_fix_size_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, sExtFld, bIsUnsigned, nAlignSize, sErrCode, nIntItemMinSize, nIntItemMaxSize, sChildInitExpr, bIntroSnap, soCallAux, bItemCannotFail, bItemWritesResult) ::= <<
 ret = (<if(noSizeMin)>(<noSizeMin>\<=<sExtFld>) && <endif>(<sExtFld>\<=<nSizeMax>));
 <A(sErrCode)>
 if (ret) {
@@ -712,12 +739,12 @@ if (ret) {
 }
 >>
 
-oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType, bFixedSize) ::= <<
+oct_sqf_null_terminated_encode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType, bFixedSize, bItemCannotFail, bItemWritesResult) ::= <<
 <if(bFixedSize)><loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=nSizeMax)><else><loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])><endif>
 BitStream_AppendBits(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>);
 >>
 
-oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType, bFixedSize) ::= <<
+oct_sqf_null_terminated_decode(p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, arruNullBytes, nBitPatternLength, sErrCode, nIntItemMinSize, nIntItemMaxSize, sType, bFixedSize, bItemCannotFail, bItemWritesResult) ::= <<
 <i>=0;
 ret = TRUE;
 while(ret && <i> \< <nSizeMax> && ( (checkBitPatternPresentResult = BitStream_checkBitPatternPresent(pBitStrm, (byte[]){<arruNullBytes; separator=", ">}, <nBitPatternLength>)) == 1))
@@ -752,7 +779,7 @@ if (ret && (checkBitPatternPresentResult == 0)) {
 str_ascii_deduced_encode(p, sErrCode, nAsn1Max, nTrailingBits, sType) ::= "Acn_Enc_String_Ascii_External_Field_Determinant(pBitStrm, <nAsn1Max>, <p>);"
 str_ascii_deduced_decode(p, sErrCode, nAsn1Max, nTrailingBits, sType) ::= <<
 {
-	long ded_avail_bits = (pBitStrm->count * 8L - <nTrailingBits>) - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);
+	long ded_avail_bits = (pBitStrm->count * 8L - pBitStrm->unusedTailBits - <nTrailingBits>) - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);
 	asn1SccSint ded_count = ded_avail_bits / 8;
 	ret = (ded_avail_bits \>= 0) && (ded_count \<= <nAsn1Max>);
 	<A(sErrCode)>
@@ -769,7 +796,7 @@ ret = BitStream_EncodeOctetString_no_length(pBitStrm, <p><sAcc>arr, <p><sAcc>nCo
 
 oct_deduced_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, nTrailingBits, sErrCode) ::= <<
 {
-	long ded_avail_bits = (pBitStrm->count * 8L - <nTrailingBits>) - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);
+	long ded_avail_bits = (pBitStrm->count * 8L - pBitStrm->unusedTailBits - <nTrailingBits>) - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);
 	asn1SccSint ded_count = ded_avail_bits / 8;
 	ret = (ded_avail_bits \>= 0) && <if(noSizeMin)>(<noSizeMin> \<= ded_count) && <endif>(ded_count \<= <nSizeMax>);
 	<A(sErrCode)>
@@ -781,13 +808,13 @@ oct_deduced_decode(sTypedefName, p, sAcc, noSizeMin, nSizeMax, nTrailingBits, sE
 }
 >>
 
-sqf_deduced_fix_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemSize, sErrCode) ::= <<
+sqf_deduced_fix_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemSize, sErrCode, bItemCannotFail, bItemWritesResult) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
 >>
 
-sqf_deduced_fix_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemSize, sErrCode) ::= <<
+sqf_deduced_fix_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemSize, sErrCode, bItemCannotFail, bItemWritesResult) ::= <<
 {
-	long ded_avail_bits = (pBitStrm->count * 8L - <nTrailingBits>) - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);
+	long ded_avail_bits = (pBitStrm->count * 8L - pBitStrm->unusedTailBits - <nTrailingBits>) - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);
 	asn1SccSint ded_count = ded_avail_bits / <nIntItemSize>;
 	ret = (ded_avail_bits \>= 0) && (ded_avail_bits - ded_count * <nIntItemSize> \< 8) && <if(noSizeMin)>(<noSizeMin> \<= ded_count) && <endif>(ded_count \<= <nSizeMax>);
 	<A(sErrCode)>
@@ -798,13 +825,13 @@ sqf_deduced_fix_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, 
 }
 >>
 
-sqf_deduced_var_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemMinSize, sErrCode) ::= <<
+sqf_deduced_var_elem_encode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemMinSize, sErrCode, bItemCannotFail, bItemWritesResult) ::= <<
 <loopFixedItem(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "nCount"])>
 >>
 
-sqf_deduced_var_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemMinSize, sErrCode) ::= <<
+sqf_deduced_var_elem_decode(sTypeDefName, p, sAcc, i, sInternalItem, noSizeMin, nSizeMax, nTrailingBits, nIntItemMinSize, sErrCode, bItemCannotFail, bItemWritesResult) ::= <<
 {
-	long ded_budget_end = pBitStrm->count * 8L - <nTrailingBits>;
+	long ded_budget_end = pBitStrm->count * 8L - pBitStrm->unusedTailBits - <nTrailingBits>;
 	long ded_pos = pBitStrm->currentByte * 8L + pBitStrm->currentBit;
 	<i> = 0;
 	ret = (ded_pos \<= ded_budget_end);
@@ -936,6 +963,48 @@ sequence_presence_optChild_pres_str_decode(p, sAcc, sChName, sExtFldName, sVal) 
 <p><sAcc>exist.<sChName> = (strcmp(<sExtFldName>, "<sVal>") == 0) ? 1 : 0;
 >>
 
+/* q/issues.md Issue 106: the decoder of a dependent whose determinant field is in a component the stream may say absent (BackendAst/AbsentHolder.fs) */
+acn_dec_absent_holder_guard(arrsGuards, sBody, sErrCode, sFields, sHolders) ::= <<
+if (<arrsGuards; separator=" && ">) {
+    <sBody>
+} else {
+    /* <sFields> is in <sHolders>, absent in this stream: the stream does not hold it */
+    ret = FALSE;
+    *pErrCode = <sErrCode>;
+}
+>>
+
+acn_dec_absent_holder_fail(sBody, sErrCode, sFields, sHolders) ::= <<
+/* <sFields> is in <sHolders>, which is always absent: the stream never holds it */
+ret = FALSE;
+*pErrCode = <sErrCode>;
+>>
+
+acn_dec_absent_holder_reset(sLocal, sInitValue, sField, sHolders) ::= <<
+/* <sField> is in <sHolders>: FALSE unless the stream holds it */
+<sLocal> = <sInitValue>;
+>>
+
+/* q/issues.md Issue 108: the encoder of a dependent whose determinant field is in a component the value may leave absent (BackendAst/AbsentHolder.fs); bTestsCannotReach: no automatic test value can show the component absent with the dependent present (AbsentHolder.holderAbsentChecks) */
+acn_enc_absent_holder_guard(arrsGuards, sBody, sErrCode, sFields, sHolders, bTestsCannotReach) ::= <<
+if (<arrsGuards; separator=" && ">) {
+    <sBody>
+} else {
+    /* <sFields> is in <sHolders>, absent in this value: the stream cannot hold the field */
+    ret = FALSE;<if(bTestsCannotReach)>  /*COVERAGE_IGNORE*/<endif>
+    *pErrCode = <sErrCode>;<if(bTestsCannotReach)>  /*COVERAGE_IGNORE*/<endif>
+}
+>>
+
+/* the body of a guarded dependent without bits (a NULL without pattern, an empty SEQUENCE) */
+acn_enc_absent_holder_no_bits() ::= "/* no bits to encode */"
+
+acn_enc_absent_holder_fail(sBody, sErrCode, sFields, sHolders, bTestsCannotReach) ::= <<
+/* <sFields> is in <sHolders>, which is always absent: the stream never holds the field */
+ret = FALSE;<if(bTestsCannotReach)>  /*COVERAGE_IGNORE*/<endif>
+*pErrCode = <sErrCode>;<if(bTestsCannotReach)>  /*COVERAGE_IGNORE*/<endif>
+>>
+
 sequence_save_bitStream_start_encode(sBitStreamPositionsLocalVar) ::=<<
 <sBitStreamPositionsLocalVar> = *pBitStrm; //save the initial position of the bit stream at
 >>
@@ -953,18 +1022,20 @@ sequence_save_bitstream_decode(sBitStreamPositionsLocalVar, sChName) ::=<<
 <sBitStreamPositionsLocalVar>.<sChName> = *pBitStrm; //save position of the bit stream
 >>
 
-sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
+sequence_acn_child_encode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive, bAlwaysInitialized) ::= <<
 /*Encode <sChName> */
-if (<sChName>_is_initialized) {
+<if(bAlwaysInitialized)>/* no check of <sChName>_is_initialized: its update above sets <sChName> on every path that reaches here */
+<soSaveBitStrmPosStatement>
+<sChildContent><else>if (<sChName>_is_initialized) {
     ret = TRUE;
     <soSaveBitStrmPosStatement>
     <sChildContent>
 } else {
     *pErrCode = <sErrCode>;         /*COVERAGE_IGNORE*/
     ret = FALSE;                    /*COVERAGE_IGNORE*/
-}
+}<endif>
 >>
-sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive) ::= <<
+sequence_acn_child_decode(sChName, sChildContent, sErrCode, soSaveBitStrmPosStatement, bIsPrimitive, bAlwaysInitialized) ::= <<
 /*Decode <sChName> */
 <soSaveBitStrmPosStatement>
 <sChildContent>
@@ -1065,14 +1136,14 @@ extern flag <sFncName>(const <sTypedefName>* pPDU, BitStream* pStartBitStrm, <sE
 
 
 /* Choice like uper*/
-ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
+ChoiceChildAlwaysAbsent_encode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName, sCaseLabel, soCovExempt) ::= <<
 case <sChildID>:
     ret = FALSE;
     *pErrCode = <sErrorCodeName>;
 	break;
 >>
 
-ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName) ::= <<
+ChoiceChildAlwaysAbsent_decode(p, sAcc, sChildID, nChildIndex, sErrorCodeName, sChoiceTypeName, sCaseLabel, soCovExempt) ::= <<
 case <nChildIndex>:
     ret = FALSE;
     *pErrCode = <sErrorCodeName>;
@@ -1136,17 +1207,21 @@ ChoiceChild_preWhen_decode(p, sAcc, sChildID, sChildBody, arrsConditions, bFirst
 >>
 
 
-Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
+Choice_preWhen_encode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode, soCovExempt) ::= <<
 switch(<p><sAcc>kind)
 {
 <arrsChildren; separator="\n">
-default:
+default:<if(soCovExempt)>                                    /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_ON "<soCovExempt>" */<endif>
     *pErrCode = <sErrCode>;         /*COVERAGE_IGNORE*/
-    ret = FALSE;                    /*COVERAGE_IGNORE*/
+<if(soCovExempt)>
+    return FALSE;                   /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_OFF */<\n>
+<else>
+    ret = FALSE;                    /*COVERAGE_IGNORE*/<\n>
+<endif>
 }
 >>
 
-Choice_preWhen_decode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode) ::= <<
+Choice_preWhen_decode(p, sAcc, arrsChildren, td/*:FE_ChoiceTypeDefinition*/, sErrCode, soCovExempt) ::= <<
 *pErrCode = 0;
 <arrsChildren; separator="\n">
 else {
@@ -1174,23 +1249,27 @@ case <sEnmName>:
 >>
 
 
-Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred) ::= <<
+Choice_Enum_encode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred, soCovExempt) ::= <<
 switch(<p><sAcc>kind)
 {
     <arrsChildren; separator="\n">
-default:
+default:<if(soCovExempt)>                                    /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_ON "<soCovExempt>" */<endif>
     *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
-    ret = FALSE;                    /*COVERAGE_IGNORE*/
+<if(soCovExempt)>
+    return FALSE;                   /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_OFF */<\n>
+<else>
+    ret = FALSE;                    /*COVERAGE_IGNORE*/<\n>
+<endif>
 }
 >>
 
-Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred) ::= <<
+Choice_Enum_decode(p, sAcc, arrsChildren, sEnmExtFld, td/*:FE_ChoiceTypeDefinition*/, sErrCode, bIsDeferred, soCovExempt) ::= <<
 switch(<sEnmExtFld>)
 {
     <arrsChildren; separator="\n">
-default:
+default:<if(soCovExempt)>                                    /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_ON "<soCovExempt>" */<endif>
     *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
-    ret = FALSE;                    /*COVERAGE_IGNORE*/
+    ret = FALSE;                    /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_OFF */<endif>
 }
 >>
 
@@ -1201,61 +1280,66 @@ default:
 
 
 
-SizeDependency(v, sCount, nMin, nMax, bCheckRange, bCheckMin, sTypedefName) ::= <<
-<v>_is_initialized = TRUE;
-<v> = <sCount>;
+SizeDependency(v, sCount, nMin, nMax, bCheckRange, bCheckMin, sTypedefName, bSetInitFlag) ::= <<
+<if(bSetInitFlag)><v>_is_initialized = TRUE;<\n><endif><v> = <sCount>;
 >>
 
-SizeDependencyFixedSize(v, nFixedSize) ::= <<
-<v>_is_initialized = TRUE;
-<v> = <nFixedSize>;
+SizeDependencyFixedSize(v, nFixedSize, bSetInitFlag) ::= <<
+<if(bSetInitFlag)><v>_is_initialized = TRUE;<\n><endif><v> = <nFixedSize>;
 >>
 
 
 
 
-ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, nChoiceIdx, bIsOptional) ::= <<
+ChoiceDependencyEnum_Item(v, sChildCID, sChildCIDHolder, sEnumCName, nChoiceIdx, bIsOptional, bSetInitFlag) ::= <<
 case <sChildCID>:
-    <v>_is_initialized = TRUE;
-	<v> = <sEnumCName>;
+    <v> = <sEnumCName>;<if(bSetInitFlag)><\n>    <v>_is_initialized = TRUE;<endif>
     break;
 >>
 
-ChoiceDependencyEnum(sV, sChPath, sAcc, arrsChoiceEnumItems, bIsOptional, sDefaultExpr) ::= <<
+ChoiceDependencyEnum(sV, sChPath, sAcc, arrsChoiceEnumItems, bIsOptional, sDefaultExpr, soCovExempt) ::= <<
 switch (<sChPath><sAcc>kind) {
     <arrsChoiceEnumItems; separator="\n">
-    default:
-        ret = FALSE;                            /*COVERAGE_IGNORE*/
+    default:<if(soCovExempt)>                                    /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_ON "<soCovExempt>" */<endif>
+<if(soCovExempt)>
         *pErrCode = ERR_INVALID_ENUM_VALUE;     /*COVERAGE_IGNORE*/
+        return FALSE;                           /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_OFF */<\n>
+<else>
+        ret = FALSE;                            /*COVERAGE_IGNORE*/
+        *pErrCode = ERR_INVALID_ENUM_VALUE;     /*COVERAGE_IGNORE*/<\n>
+<endif>
 }
 >>
 
 
 
-PresenceDependency(v, sSeqPath, sAcc, sChildName) ::= <<
-<v>_is_initialized = TRUE;
-<v> = (<sSeqPath><sAcc>exist.<sChildName> == 1);
+PresenceDependency(v, sSeqPath, sAcc, sChildName, bSetInitFlag) ::= <<
+<if(bSetInitFlag)><v>_is_initialized = TRUE;<\n><endif><v> = (<sSeqPath><sAcc>exist.<sChildName> == 1);
 >>
 
-ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal, sChoiceTypeName) ::= <<
+ChoiceDependencyIntPres_child(v, sChildNamePresent, sChildRetVal, sChoiceTypeName, bSetInitFlag) ::= <<
 case <sChildNamePresent>:
-		<v>_is_initialized = TRUE;
-		<v> = <sChildRetVal>;
+		<v> = <sChildRetVal>;<if(bSetInitFlag)><\n>		<v>_is_initialized = TRUE;<endif>
     break;
 >>
 
-ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChoiceTypeName, sInsertedFieldTypeName) ::= <<
+ChoiceDependencyStrPres_child(v, sChildNamePresent, sChildRetVal, arruChildRetValBytes, arrsNullChars, sChoiceTypeName, sInsertedFieldTypeName, bSetInitFlag) ::= <<
 case <sChildNamePresent>:
-    <v>_is_initialized = TRUE;
-		strcpy(<v>, "<sChildRetVal>");
+    strcpy(<v>, "<sChildRetVal>");<if(bSetInitFlag)><\n>    <v>_is_initialized = TRUE;<endif>
     break;
 >>
 
-ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems, sChoiceTypeName) ::= <<
+ChoiceDependencyPres(v, sChPath, sAcc, arrsChoiceItems, sChoiceTypeName, soCovExempt) ::= <<
 switch (<sChPath><sAcc>kind) {
     <arrsChoiceItems; separator="\n">
-    default:
-        ret = FALSE;                            /*COVERAGE_IGNORE*/
+    default:<if(soCovExempt)>                                    /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_ON "<soCovExempt>" */<endif>
+<if(soCovExempt)>
+        *pErrCode = ERR_INVALID_CHOICE_ALTERNATIVE;     /*COVERAGE_IGNORE*/
+        return FALSE;                                   /*COVERAGE_IGNORE*/ /* GNATCOV_EXEMPT_OFF */<\n>
+<else>
+        ret = FALSE;                                    /*COVERAGE_IGNORE*/
+        *pErrCode = ERR_INVALID_CHOICE_ALTERNATIVE;     /*COVERAGE_IGNORE*/<\n>
+<endif>
 }
 >>
 
@@ -1265,35 +1349,62 @@ MultiAcnUpdate_checkEqual_pri0(p1,p2) ::= "(<p1> == <p2>)"
 MultiAcnUpdate_checkEqual_str0(p1,p2) ::= "(strcmp(<p1>,<p2>) == 0)"
 
 MultiAcnUpdate_get_first_init_value_pri(sV0, sVi, sChPath, bIsFirst, bIsSingleElement) ::= <<
+<if(bIsSingleElement)>
+/* <sVi>: its update is not under a check of the path, so it is set (coverage step 14q) */
+<sV0> = <sVi>;
+<else>
 <if(!bIsFirst)>else <endif>if (<sVi>_is_initialized) { /*COVERAGE_IGNORE*/
     <sV0> = <sVi>; /*COVERAGE_IGNORE*/
 } /*COVERAGE_IGNORE*/
+<endif>
 >>
 
 MultiAcnUpdate_get_first_init_value_str(sV0, sVi, sChPath, bIsFirst, bIsSingleElement) ::= <<
+<if(bIsSingleElement)>
+/* <sVi>: its update is not under a check of the path, so it is set (coverage step 14q) */
+strcpy(<sV0>, <sVi>);
+<else>
 <if(!bIsFirst)>else <endif>if (<sVi>_is_initialized) { /*COVERAGE_IGNORE*/
     strcpy(<sV0>, <sVi>); /*COVERAGE_IGNORE*/
 } /*COVERAGE_IGNORE*/
+<endif>
 >>
 
 MultiAcnUpdate_checkEqual_pri(sV0, sVi, sChPath, bIsAlwaysInit) ::= "((<sVi>_is_initialized && <sV0> == <sVi>) || !<sVi>_is_initialized)"
 MultiAcnUpdate_checkEqual_str(sV0, sVi, sChPath, bIsAlwaysInit) ::= "((<sVi>_is_initialized && strcmp(<sV0>,<sVi>) == 0) || !<sVi>_is_initialized)"
 
 
-MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr) ::= <<
+MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatements, arrsGetFirstIntValue, bIsFirstIntValueSingle, arrsLocalCheckEquality, sDefaultExpr, bSetInitFlag, bNoSourceDefault, bNoSourceLeavesUnset) ::= <<
 {
     <arrsLocalDeclarations; separator="\n">
 
     <arrsLocalUpdateStatements; separator="\n">
 
     if (ret) {
+<if(bIsFirstIntValueSingle)>
+        <arrsGetFirstIntValue; separator=" ">
+        ret = (<arrsLocalCheckEquality; separator=" && ">);<if(bSetInitFlag)><\n>        <v>_is_initialized = TRUE;<endif><\n>
+<else>
+<if(bNoSourceLeavesUnset)>
+        <v>_is_initialized = TRUE;<\n>
+<endif>
         <arrsGetFirstIntValue; separator=" "> else {
-            ret = FALSE; /*COVERAGE_IGNORE*/
+<if(bNoSourceDefault)>
+            /* no source is set: no consumer of the determinant is in the value, it takes its default value */
+            <v> = <sDefaultExpr>; /*COVERAGE_IGNORE*/<\n>
+<else>
+<if(bNoSourceLeavesUnset)>
+            /* no source is set: no consumer of <v> is in the value; it stays unset and its flag FALSE, so the determinant it is a source of ignores it */
+            <v>_is_initialized = FALSE;<\n>
+<else>
+            ret = FALSE; /*COVERAGE_IGNORE*/<\n>
+<endif>
+<endif>
         }
         if (ret) {
-            ret = (<arrsLocalCheckEquality; separator=" && ">);
-            <v>_is_initialized = TRUE;
-        }
+            ret = (<arrsLocalCheckEquality; separator=" && ">);<if(bSetInitFlag)><if(!bNoSourceLeavesUnset)><\n>            <v>_is_initialized = TRUE;<endif><endif>
+        }<\n>
+<endif>
         if (!ret) {
             *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
         }
@@ -1306,14 +1417,18 @@ MultiAcnUpdate(v, sV0, sErrCode, arrsLocalDeclarations, arrsLocalUpdateStatement
 
 
 
-checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr) ::= <<
+checkAccessPath(arrsCheckPaths, sUpdateStatement, v, sInitExpr, bDefaultWhenAbsent) ::= <<
+<if(bDefaultWhenAbsent)>
+/* the default value of <v>, kept when no consumer of it is in the value */
+<v> = <sInitExpr>;<\n>
+<endif>
 if (<arrsCheckPaths; separator=" && ">) {
     <sUpdateStatement>
 }
 >>
 
 
-SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner, sLocalVarType) ::= <<
+SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner, sLocalVarType, bSetInitFlag, soNoCheckNote) ::= <<
 {
     /*first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string*/
     BitStream_Init(&bitStrm, arr, sizeof(arr));
@@ -1322,19 +1437,23 @@ SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIs
     <sInner>
     pBitStrm = pBitStrm_save;
 }
+<if(soNoCheckNote)>
+<soNoCheckNote>
+<v> = <if(bIsOctet)>bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1)<else>bitStrm.currentByte*8+bitStrm.currentBit<endif>;<if(bSetInitFlag)><\n><v>_is_initialized = TRUE;<endif><\n>
+<else>
 if (ret) {
-	<v> = <if(bIsOctet)>bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1)<else>bitStrm.currentByte*8+bitStrm.currentBit<endif>;
-	<v>_is_initialized = TRUE;
-}
+	<v> = <if(bIsOctet)>bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1)<else>bitStrm.currentByte*8+bitStrm.currentBit<endif>;<if(bSetInitFlag)><\n>	<v>_is_initialized = TRUE;<endif>
+}<\n>
+<endif>
 
 >>
 
 
-octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner, bDeducedContent) ::= <<
+octet_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, nReqBytes, sExtField, sErrCode, soInner, bDeducedContent) ::= <<
 ret = BitStream_EncodeOctetString_no_length(pBitStrm, arr, (int)<sExtField>);
 >>
 
-octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sExtField, sErrCode, soInner, bDeducedContent) ::= <<
+octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, nReqBytes, sExtField, sErrCode, soInner, bDeducedContent) ::= <<
 /*open new scope to declare some variables*/
 {
 	
@@ -1360,94 +1479,107 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 }
 >>
 
-/* CONTAINING with deferred patching: encode directly, PatchDet with measured distance */
-octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
+/* CONTAINING with deferred patching: encode directly, PatchDet with measured distance.
+   soFixedOctets (also in the _embedded_ and _wrapper_ variants): every encoding of the contents takes that many whole
+   octets, so the zero padding to whole octets is never needed and is omitted (coverage step 14e, E3). */
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 {
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
-    if (ret) {
-        /*pad the contained encoding to the next byte boundary: the region is
-          measured in whole octets and the decoder resumes at a byte boundary*/
-        if (pBitStrm->currentBit != 0) {
-            BitStream_AppendNBitZero(pBitStrm, 8 - pBitStrm->currentBit); /*COVERAGE_IGNORE*/
-        }
+<if(soNoCheckNote)>
+    <soNoCheckNote><if(soFixedOctets)><\n>    /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>    /*pad the contained encoding to a whole number of octets from its start: the<\n>      region is measured in octets (as legacy writes it), also when it does not<\n>      start at a byte boundary*/<\n>    if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>        BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>    }<endif>
+    AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
+    asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
+    ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <if(soNBits)><soNBits>, <endif><sDetParamName>, pErrCode);<if(bCannotFail)> /* cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value) */<else><\n>    if (!ret) {<\n>        *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<\n>        return FALSE; /*COVERAGE_IGNORE*/<\n>    }<endif><\n>
+<else>
+    if (ret) {<if(soFixedOctets)><\n>        /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>        /*pad the contained encoding to a whole number of octets from its start: the<\n>          region is measured in octets (as legacy writes it), also when it does not<\n>          start at a byte boundary*/<\n>        if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>            BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>        }<endif>
         AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
         asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
-        ret = <sPatchFuncName>((asn1SccUint)<if(soMF)><soMF>_encode(acn_nCount)<else>acn_nCount<endif>, pBitStrm, <sDetParamName>, pErrCode);
-        if (!ret) {
-            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
-            return FALSE; /*COVERAGE_IGNORE*/
-        }
-    }
+        ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <if(soNBits)><soNBits>, <endif><sDetParamName>, pErrCode);<if(bCannotFail)> /* cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value) */<else><\n>        if (!ret) {<\n>            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<\n>            return FALSE; /*COVERAGE_IGNORE*/<\n>        }<endif>
+    }<\n>
+<endif>
 }
 >>
 
 /* CONTAINING with deferred patching: limit stream view, decode directly */
-octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 {
     long acn_saved_count = pBitStrm->count;
-    if (!Acn_BitStream_HasNBytes(pBitStrm, <sDetParamName>->value)) {
+    /*the region is <sDetParamName>->value octets from the current bit (at most <nMaxRegion>, the largest encoding of its contents); off a byte boundary it ends inside one more byte*/
+    if (<sDetParamName>->value > <nMaxRegion> || !Acn_BitStream_HasNBytes(pBitStrm, <sDetParamName>->value) ||
+        (pBitStrm->currentBit != 0 && !Acn_BitStream_HasNBytes(pBitStrm, <sDetParamName>->value + 1))) {
         ret = FALSE; /*COVERAGE_IGNORE*/
         *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
     } else {
         long acn_expected_end = pBitStrm->currentByte + (long)<sDetParamName>->value;
-        pBitStrm->count = acn_expected_end;
+        int acn_end_bit = pBitStrm->currentBit;<if(bDeducedContent)><\n>        int acn_saved_tail_bits = pBitStrm->unusedTailBits;<endif>
+        pBitStrm->count = acn_expected_end + (acn_end_bit != 0);<if(bDeducedContent)><\n>        /*the region ends at bit acn_end_bit of its last byte: 'size deduced' contents must not see the rest of it*/<\n>        pBitStrm->unusedTailBits = (8 - acn_end_bit) % 8;<endif>
         ret = <sFuncName>(<p>, pBitStrm, pErrCode);
-        pBitStrm->count = acn_saved_count;
+        pBitStrm->count = acn_saved_count;<if(bDeducedContent)><\n>        pBitStrm->unusedTailBits = acn_saved_tail_bits;<endif><if(soFixedOctets)><\n>        /*no check that the contents stayed in the region: they always read <soFixedOctets> whole octet(s), and the view ends with the byte where the region ends (a read past it fails)*/<else><\n>        if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_expected_end * 8L + acn_end_bit) {<\n>            /*the contents read past the end of the region (into the rest of its last byte)*/<\n>            ret = FALSE; /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_ON "<soCovExempt>" */<endif><\n>            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_OFF */<endif><\n>        }<endif>
         pBitStrm->currentByte = acn_expected_end;
-        pBitStrm->currentBit = 0;
+        pBitStrm->currentBit = acn_end_bit;
     }
 }
 >>
 
 /* CONTAINING with deferred patching, FIXED_SIZE: just call directly, no temp buffer */
-octet_string_containing_deferred_fixed_func_encode(p, sFuncName) ::= <<
-ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
+/* soFixedOctets: every encoding of the contents takes all nOctets octets, so there is never padding (coverage step 14e, E3) */
+octet_string_containing_deferred_fixed_func_encode(p, sFuncName, nOctets, sErrCode, soFixedOctets, soNoCheckNote) ::= <<
+{<if(soFixedOctets)><\n>    /*no zero padding: every encoding of the contents fills all <nOctets> octet(s) of the OCTET STRING*/<\n>    ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);<else><\n>    AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);<\n>    ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);<if(soNoCheckNote)><\n>    <soNoCheckNote><\n>    /*the OCTET STRING holds <nOctets> whole octets: pad the contained encoding with zeros up to them*/<\n>    long acn_nPad = acn_data_start.currentByte * 8L + acn_data_start.currentBit + <nOctets> * 8L - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);<\n>    if (acn_nPad \> 0) {<\n>        BitStream_AppendNBitZero(pBitStrm, (int)acn_nPad); /*COVERAGE_IGNORE*/<\n>    }<else><\n>    if (ret) {<\n>        /*the OCTET STRING holds <nOctets> whole octets: pad the contained encoding with zeros up to them*/<\n>        long acn_nPad = acn_data_start.currentByte * 8L + acn_data_start.currentBit + <nOctets> * 8L - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);<\n>        if (acn_nPad \> 0) {<\n>            BitStream_AppendNBitZero(pBitStrm, (int)acn_nPad); /*COVERAGE_IGNORE*/<\n>        }<\n>    }<endif><endif>
+}
 >>
 
-octet_string_containing_deferred_fixed_func_decode(p, sFuncName) ::= <<
-ret = <sFuncName>(<p>, pBitStrm, pErrCode);
+octet_string_containing_deferred_fixed_func_decode(p, sFuncName, nOctets, sErrCode, soFixedOctets, soNoCheckNote) ::= <<
+{<if(soFixedOctets)><\n>    /*no padding to skip: every encoding of the contents fills all <nOctets> octet(s) of the OCTET STRING, so after a successful read the stream is at its end (coverage step 14e, E5)*/<\n>    ret = <sFuncName>(<p>, pBitStrm, pErrCode);<else><\n>    AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);<\n>    ret = <sFuncName>(<p>, pBitStrm, pErrCode);<\n>    if (ret) {<\n>        /*skip the padding: the OCTET STRING holds <nOctets> whole octets from its first bit*/<\n>        long acn_end = acn_data_start.currentByte * 8L + acn_data_start.currentBit + <nOctets> * 8L;<\n>        if (acn_end \> pBitStrm->count * 8L) {<\n>            ret = FALSE; /*COVERAGE_IGNORE*/<\n>            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<\n>        } else {<\n>            pBitStrm->currentByte = acn_end / 8;<\n>            pBitStrm->currentBit = (int)(acn_end % 8);<\n>        }<\n>    }<endif>
+}
 >>
 
 /* CONTAINING with deferred patching, LENGTH_EMBEDDED: save_pos + placeholder + direct encode + measure + patch */
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits, soNoCheckNote) ::= <<
 {
     AcnBitStreamPos acn_len_pos = Acn_BitStream_GetPos(pBitStrm);
     BitStream_EncodeConstraintWholeNumber(pBitStrm, <nMinSize>, <nMinSize>, <nMaxSize>);
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
-    if (ret) {
-        /*pad the contained encoding to the next byte boundary (see the
-          ext-field variant above)*/
-        if (pBitStrm->currentBit != 0) {
-            BitStream_AppendNBitZero(pBitStrm, 8 - pBitStrm->currentBit); /*COVERAGE_IGNORE*/
-        }
+<if(soNoCheckNote)>
+    <soNoCheckNote><if(soFixedOctets)><\n>    /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>    /*pad the contained encoding to a whole number of octets from its start<\n>      (see the ext-field variant above)*/<\n>    if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>        BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>    }<endif>
+    AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
+    asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
+    Acn_BitStream_SetPos(pBitStrm, acn_len_pos);
+    BitStream_EncodeConstraintWholeNumber(pBitStrm, acn_nCount, <nMinSize>, <nMaxSize>);
+    Acn_BitStream_SetPos(pBitStrm, acn_data_end);<\n>
+<else>
+    if (ret) {<if(soFixedOctets)><\n>        /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>        /*pad the contained encoding to a whole number of octets from its start<\n>          (see the ext-field variant above)*/<\n>        if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>            BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>        }<endif>
         AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
         asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
         Acn_BitStream_SetPos(pBitStrm, acn_len_pos);
         BitStream_EncodeConstraintWholeNumber(pBitStrm, acn_nCount, <nMinSize>, <nMaxSize>);
         Acn_BitStream_SetPos(pBitStrm, acn_data_end);
-    }
+    }<\n>
+<endif>
 }
 >>
 
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits, soNoCheckNote) ::= <<
 {
     asn1SccSint acn_nCount;
     ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &acn_nCount, <nMinSize>, <nMaxSize>);
     *pErrCode = ret ? 0 : <sErrCode>;
     if (ret) {
-        if (acn_nCount \< 0 || !Acn_BitStream_HasNBytes(pBitStrm, (asn1SccUint)acn_nCount)) {
+        /*the region is acn_nCount octets from the current bit; off a byte boundary it ends inside one more byte*/
+        if (acn_nCount \< 0 || !Acn_BitStream_HasNBytes(pBitStrm, (asn1SccUint)acn_nCount) ||
+            (pBitStrm->currentBit != 0 && !Acn_BitStream_HasNBytes(pBitStrm, (asn1SccUint)acn_nCount + 1))) {
             ret = FALSE; /*COVERAGE_IGNORE*/
             *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
         } else {
             long acn_saved_count = pBitStrm->count;
             long acn_expected_end = pBitStrm->currentByte + (long)acn_nCount;
-            pBitStrm->count = acn_expected_end;
+            int acn_end_bit = pBitStrm->currentBit;<if(bDeducedContent)><\n>            int acn_saved_tail_bits = pBitStrm->unusedTailBits;<endif>
+            pBitStrm->count = acn_expected_end + (acn_end_bit != 0);<if(bDeducedContent)><\n>            /*the region ends at bit acn_end_bit of its last byte: 'size deduced' contents must not see the rest of it*/<\n>            pBitStrm->unusedTailBits = (8 - acn_end_bit) % 8;<endif>
             ret = <sFuncName>(<p>, pBitStrm, pErrCode);
-            pBitStrm->count = acn_saved_count;
+            pBitStrm->count = acn_saved_count;<if(bDeducedContent)><\n>            pBitStrm->unusedTailBits = acn_saved_tail_bits;<endif><if(soFixedOctets)><\n>            /*no check that the contents stayed in the region: they always read <soFixedOctets> whole octet(s), and the view ends with the byte where the region ends (a read past it fails)*/<else><\n>            if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_expected_end * 8L + acn_end_bit) {<\n>                /*the contents read past the end of the region (into the rest of its last byte)*/<\n>                ret = FALSE; /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_ON "<soCovExempt>" */<endif><\n>                *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_OFF */<endif><\n>            }<endif>
             pBitStrm->currentByte = acn_expected_end;
-            pBitStrm->currentBit = 0;
+            pBitStrm->currentBit = acn_end_bit;
         }
     }
 }
@@ -1455,67 +1587,72 @@ octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nM
 
 /* CONTAINING ExternalField wrapper: wraps an inline body with save-pos/measure/PatchDet
    Used when the contained type has ACN parameters (no standalone ACN function). */
-octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 {
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     <sBody>
-    if (ret) {
-        /*pad the contained encoding to the next byte boundary (see the
-          ext-field variant above)*/
-        if (pBitStrm->currentBit != 0) {
-            BitStream_AppendNBitZero(pBitStrm, 8 - pBitStrm->currentBit); /*COVERAGE_IGNORE*/
-        }
+<if(soNoCheckNote)>
+    <soNoCheckNote><if(soFixedOctets)><\n>    /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>    /*pad the contained encoding to a whole number of octets from its start<\n>      (see the ext-field variant above)*/<\n>    if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>        BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>    }<endif>
+    AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
+    asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
+    ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <if(soNBits)><soNBits>, <endif><sDetParamName>, pErrCode);<if(bCannotFail)> /* cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value) */<else><\n>    if (!ret) {<\n>        *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<\n>        return FALSE; /*COVERAGE_IGNORE*/<\n>    }<endif><\n>
+<else>
+    if (ret) {<if(soFixedOctets)><\n>        /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>        /*pad the contained encoding to a whole number of octets from its start<\n>          (see the ext-field variant above)*/<\n>        if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>            BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>        }<endif>
         AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
         asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
-        ret = <sPatchFuncName>((asn1SccUint)<if(soMF)><soMF>_encode(acn_nCount)<else>acn_nCount<endif>, pBitStrm, <sDetParamName>, pErrCode);
-        if (!ret) {
-            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
-            return FALSE; /*COVERAGE_IGNORE*/
-        }
-    }
+        ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <if(soNBits)><soNBits>, <endif><sDetParamName>, pErrCode);<if(bCannotFail)> /* cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value) */<else><\n>        if (!ret) {<\n>            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<\n>            return FALSE; /*COVERAGE_IGNORE*/<\n>        }<endif>
+    }<\n>
+<endif>
 }
 >>
 
-octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 {
     long acn_saved_count = pBitStrm->count;
-    if (!Acn_BitStream_HasNBytes(pBitStrm, <sDetParamName>->value)) {
+    /*the region is <sDetParamName>->value octets from the current bit (at most <nMaxRegion>, the largest encoding of its contents); off a byte boundary it ends inside one more byte*/
+    if (<sDetParamName>->value > <nMaxRegion> || !Acn_BitStream_HasNBytes(pBitStrm, <sDetParamName>->value) ||
+        (pBitStrm->currentBit != 0 && !Acn_BitStream_HasNBytes(pBitStrm, <sDetParamName>->value + 1))) {
         ret = FALSE; /*COVERAGE_IGNORE*/
         *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
     } else {
         long acn_expected_end = pBitStrm->currentByte + (long)<sDetParamName>->value;
-        pBitStrm->count = acn_expected_end;
+        int acn_end_bit = pBitStrm->currentBit;<if(bDeducedContent)><\n>        int acn_saved_tail_bits = pBitStrm->unusedTailBits;<endif>
+        pBitStrm->count = acn_expected_end + (acn_end_bit != 0);<if(bDeducedContent)><\n>        /*the region ends at bit acn_end_bit of its last byte: 'size deduced' contents must not see the rest of it*/<\n>        pBitStrm->unusedTailBits = (8 - acn_end_bit) % 8;<endif>
     <sBody>
-        pBitStrm->count = acn_saved_count;
+        pBitStrm->count = acn_saved_count;<if(bDeducedContent)><\n>        pBitStrm->unusedTailBits = acn_saved_tail_bits;<endif><if(soFixedOctets)><\n>        /*no check that the contents stayed in the region: they always read <soFixedOctets> whole octet(s), and the view ends with the byte where the region ends (a read past it fails)*/<else><\n>        if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_expected_end * 8L + acn_end_bit) {<\n>            /*the contents read past the end of the region (into the rest of its last byte)*/<\n>            ret = FALSE; /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_ON "<soCovExempt>" */<endif><\n>            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_OFF */<endif><\n>        }<endif>
         pBitStrm->currentByte = acn_expected_end;
-        pBitStrm->currentBit = 0;
+        pBitStrm->currentBit = acn_end_bit;
     }
 }
 >>
 
 /* BIT STRING CONTAINING with deferred patching: encode directly, PatchDet with measured bit distance */
-bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
+bit_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 {
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
+<if(soNoCheckNote)>
+    <soNoCheckNote>
+    AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
+    asn1SccUint acn_nCount = Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
+    ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <if(soNBits)><soNBits>, <endif><sDetParamName>, pErrCode);<if(bCannotFail)> /* cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value) */<else><\n>    if (!ret) {<\n>        *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<\n>        return FALSE; /*COVERAGE_IGNORE*/<\n>    }<endif><\n>
+<else>
     if (ret) {
         AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
         asn1SccUint acn_nCount = Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
-        ret = <sPatchFuncName>((asn1SccUint)<if(soMF)><soMF>_encode(acn_nCount)<else>acn_nCount<endif>, pBitStrm, <sDetParamName>, pErrCode);
-        if (!ret) {
-            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
-            return FALSE; /*COVERAGE_IGNORE*/
-        }
-    }
+        ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <if(soNBits)><soNBits>, <endif><sDetParamName>, pErrCode);<if(bCannotFail)> /* cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value) */<else><\n>        if (!ret) {<\n>            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<\n>            return FALSE; /*COVERAGE_IGNORE*/<\n>        }<endif>
+    }<\n>
+<endif>
 }
 >>
 
 /* BIT STRING CONTAINING with deferred patching: limit stream view (bit-granular), decode directly */
-bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
+bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 {
     long acn_saved_count = pBitStrm->count;
     asn1SccUint acn_nBits = <sDetParamName>->value;
-    if (!Acn_BitStream_HasNBits(pBitStrm, acn_nBits)) {
+    /*the region holds at most <nMaxRegion> bits, the largest encoding of its contents*/
+    if (acn_nBits > <nMaxRegion> || !Acn_BitStream_HasNBits(pBitStrm, acn_nBits)) {
         ret = FALSE; /*COVERAGE_IGNORE*/
         *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
     } else {
@@ -1525,6 +1662,11 @@ bit_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFu
         pBitStrm->count = acn_end_byte + (acn_end_bit != 0);
         ret = <sFuncName>(<p>, pBitStrm, pErrCode);
         pBitStrm->count = acn_saved_count;
+        if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_end_byte * 8L + acn_end_bit) {
+            /*the contents read past the end of the region (into the rest of its last byte)*/
+            ret = FALSE; /*COVERAGE_IGNORE*/
+            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
+        }
         pBitStrm->currentByte = acn_end_byte;
         pBitStrm->currentBit = acn_end_bit;
     }
@@ -1541,23 +1683,32 @@ ret = <sFuncName>(<p>, pBitStrm, pErrCode);
 >>
 
 /* BIT STRING CONTAINING with deferred patching, LENGTH_EMBEDDED: save_pos + placeholder + direct encode + measure bits + patch */
-bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
+bit_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, soNoCheckNote) ::= <<
 {
     AcnBitStreamPos acn_len_pos = Acn_BitStream_GetPos(pBitStrm);
     BitStream_EncodeConstraintWholeNumber(pBitStrm, <nMinSize>, <nMinSize>, <nMaxSize>);
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
+<if(soNoCheckNote)>
+    <soNoCheckNote>
+    AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
+    asn1SccUint acn_nCount = Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
+    Acn_BitStream_SetPos(pBitStrm, acn_len_pos);
+    BitStream_EncodeConstraintWholeNumber(pBitStrm, acn_nCount, <nMinSize>, <nMaxSize>);
+    Acn_BitStream_SetPos(pBitStrm, acn_data_end);<\n>
+<else>
     if (ret) {
         AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
         asn1SccUint acn_nCount = Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
         Acn_BitStream_SetPos(pBitStrm, acn_len_pos);
         BitStream_EncodeConstraintWholeNumber(pBitStrm, acn_nCount, <nMinSize>, <nMaxSize>);
         Acn_BitStream_SetPos(pBitStrm, acn_data_end);
-    }
+    }<\n>
+<endif>
 }
 >>
 
-bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode) ::= <<
+bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, soNoCheckNote) ::= <<
 {
     asn1SccSint acn_nCount;
     ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &acn_nCount, <nMinSize>, <nMaxSize>);
@@ -1575,6 +1726,11 @@ bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMax
             pBitStrm->count = acn_end_byte + (acn_end_bit != 0);
             ret = <sFuncName>(<p>, pBitStrm, pErrCode);
             pBitStrm->count = acn_saved_count;
+            if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_end_byte * 8L + acn_end_bit) {
+                /*the contents read past the end of the region (into the rest of its last byte)*/
+                ret = FALSE; /*COVERAGE_IGNORE*/
+                *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
+            }
             pBitStrm->currentByte = acn_end_byte;
             pBitStrm->currentBit = acn_end_bit;
         }
@@ -1583,27 +1739,31 @@ bit_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMax
 >>
 
 /* BIT STRING CONTAINING ExternalField wrapper: wraps inline body with bit-granular measurement/limiting */
-bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
+bit_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 {
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     <sBody>
+<if(soNoCheckNote)>
+    <soNoCheckNote>
+    AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
+    asn1SccUint acn_nCount = Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
+    ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <if(soNBits)><soNBits>, <endif><sDetParamName>, pErrCode);<if(bCannotFail)> /* cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value) */<else><\n>    if (!ret) {<\n>        *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<\n>        return FALSE; /*COVERAGE_IGNORE*/<\n>    }<endif><\n>
+<else>
     if (ret) {
         AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
         asn1SccUint acn_nCount = Acn_BitStream_DistanceInBits(acn_data_start, acn_data_end);
-        ret = <sPatchFuncName>((asn1SccUint)<if(soMF)><soMF>_encode(acn_nCount)<else>acn_nCount<endif>, pBitStrm, <sDetParamName>, pErrCode);
-        if (!ret) {
-            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
-            return FALSE; /*COVERAGE_IGNORE*/
-        }
-    }
+        ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <if(soNBits)><soNBits>, <endif><sDetParamName>, pErrCode);<if(bCannotFail)> /* cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value) */<else><\n>        if (!ret) {<\n>            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<\n>            return FALSE; /*COVERAGE_IGNORE*/<\n>        }<endif>
+    }<\n>
+<endif>
 }
 >>
 
-bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, soMF, soMFM, sErrCode) ::= <<
+bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bCannotFail, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
 {
     long acn_saved_count = pBitStrm->count;
     asn1SccUint acn_nBits = <sDetParamName>->value;
-    if (!Acn_BitStream_HasNBits(pBitStrm, acn_nBits)) {
+    /*the region holds at most <nMaxRegion> bits, the largest encoding of its contents*/
+    if (acn_nBits > <nMaxRegion> || !Acn_BitStream_HasNBits(pBitStrm, acn_nBits)) {
         ret = FALSE; /*COVERAGE_IGNORE*/
         *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
     } else {
@@ -1613,17 +1773,22 @@ bit_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncNa
         pBitStrm->count = acn_end_byte + (acn_end_bit != 0);
     <sBody>
         pBitStrm->count = acn_saved_count;
+        if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_end_byte * 8L + acn_end_bit) {
+            /*the contents read past the end of the region (into the rest of its last byte)*/
+            ret = FALSE; /*COVERAGE_IGNORE*/
+            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
+        }
         pBitStrm->currentByte = acn_end_byte;
         pBitStrm->currentBit = acn_end_bit;
     }
 }
 >>
 
-bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
+bit_string_containing_ext_field_func_encode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nReqBits, sExtField, sErrCode) ::= <<
 BitStream_AppendBits(pBitStrm, arr, (int)<sExtField>);
 >>
 
-bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, sExtField, sErrCode) ::= <<
+bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nReqBits, sExtField, sErrCode) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*decode to a temporary bitstream*/
@@ -1639,6 +1804,11 @@ bit_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEncodi
 		<A(sErrCode)>
 		if (ret) {
 			ret = <sFuncName>(<p>, &bitStrm, pErrCode);
+			if (ret && bitStrm.currentByte * 8L + bitStrm.currentBit > (long)<sExtField>) {
+				/*the contents read past the end of the region (into the rest of its last byte)*/
+				ret = FALSE; /*COVERAGE_IGNORE*/
+				*pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
+			}
 		}
 	}
 }
@@ -1653,7 +1823,7 @@ sparkAnnotations_deducedFixed(sTypeDefName) ::= ""
 
 
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent, soNoCheckNote) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*encode to a temporary bitstream*/
@@ -1662,6 +1832,11 @@ octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAc
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
 
 	ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
+<if(soNoCheckNote)>
+	<soNoCheckNote>
+	int nCount = bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1);<if(bFixedSize)><else><\n>	BitStream_EncodeConstraintWholeNumber(pBitStrm, nCount, <nMinSize>, <nMaxSize>);<endif>
+	ret = BitStream_EncodeOctetString_no_length(pBitStrm, arr, nCount);<\n>
+<else>
 	if (ret) {
 		int nCount = bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1);
 		<if(bFixedSize)>
@@ -1672,11 +1847,12 @@ octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAc
 		ret = BitStream_EncodeOctetString_no_length(pBitStrm, arr, nCount);
 
 		<endif>
-	}
+	}<\n>
+<endif>
 }
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent, soNoCheckNote) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*decode to a temporary bitstream whose view is limited to the actual
@@ -1689,11 +1865,11 @@ octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAc
 	ret = BitStream_DecodeOctetString_no_length(pBitStrm, arr, <nMinSize>);
 
 	<else>
-	asn1SccSint nCount;
-	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nMinSize>, <nMaxSize>);
+	asn1SccSint nRegionLen;
+	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nRegionLen, <nMinSize>, <nMaxSize>);
 	if (ret) {
-		BitStream_Init(&bitStrm, arr, (int)nCount);
-		ret = BitStream_DecodeOctetString_no_length(pBitStrm, arr, (int)nCount);
+		BitStream_Init(&bitStrm, arr, (int)nRegionLen);
+		ret = BitStream_DecodeOctetString_no_length(pBitStrm, arr, (int)nRegionLen);
 	}
 
 	<endif>
@@ -1704,7 +1880,7 @@ octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAc
 }
 >>
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, soNoCheckNote) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*encode to a temporary bitstream*/
@@ -1713,6 +1889,11 @@ bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnE
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
 
 	ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
+<if(soNoCheckNote)>
+	<soNoCheckNote>
+	int nCount = bitStrm.currentByte*8 + bitStrm.currentBit;<if(bFixedSize)><else><\n>	BitStream_EncodeConstraintWholeNumber(pBitStrm, nCount, <nMinSize>, <nMaxSize>);<endif>
+	BitStream_AppendBits(pBitStrm, arr, nCount);<\n>
+<else>
 	if (ret) {
 		int nCount = bitStrm.currentByte*8 + bitStrm.currentBit;
 		<if(bFixedSize)>
@@ -1725,11 +1906,12 @@ bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnE
 		<endif>
 
 
-	}
+	}<\n>
+<endif>
 }
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, soNoCheckNote) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*decode to a temporary bitstream*/
@@ -1747,16 +1929,21 @@ bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnE
 	}
 
 	<else>
-	asn1SccSint nCount;
-	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nCount, <nMinSize>, <nMaxSize>);
+	asn1SccSint nRegionLen;
+	ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &nRegionLen, <nMinSize>, <nMaxSize>);
 	if (ret) {
-		ret = BitStream_ReadBits(pBitStrm, arr, nCount);
+		ret = BitStream_ReadBits(pBitStrm, arr, nRegionLen);
 	}
 	*pErrCode = ret ? 0 : <sErrCode>;
 	if (ret) {
-		/*the contents are decoded from the octets of the nCount bits of this region only*/
-		bitStrm.count = (nCount + 7) / 8;
+		/*the contents are decoded from the octets of the nRegionLen bits of this region only*/
+		bitStrm.count = (nRegionLen + 7) / 8;
 		ret = <sFuncName>(<p>, &bitStrm, pErrCode);
+		if (ret && bitStrm.currentByte * 8L + bitStrm.currentBit > nRegionLen) {
+			/*the contents read past the end of the region (into the rest of its last byte)*/
+			ret = FALSE; /*COVERAGE_IGNORE*/
+			*pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
+		}
 	}
 
 	<endif>
@@ -1792,24 +1979,34 @@ acn_deferred_det_init_ptr_decode(sInitFuncName, sDetName) ::= <<
 /* Patch the value at the saved position (calls Acn_PatchDet_XXX) */
 /* "value" variant: det is a local AcnInsertedFieldRef variable — pass address.
    "ptr" variant: det is an AcnInsertedFieldRef* formal parameter — pass as-is. */
-acn_deferred_det_patch_value_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_encode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
+<if(bCannotFail)>
+/* cannot fail: <if(bSameValue)>every consumer of <sDetName> writes the same value<else>the first patch of <sDetName> since its InitDet (an unset ref takes any value)<endif> */
+(void)<sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, &<sDetName>, pErrCode);
+<else>
 ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, &<sDetName>, pErrCode);
 if (!ret) {
     *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
     return FALSE; /*COVERAGE_IGNORE*/
 }
+<endif>
 >>
-acn_deferred_det_patch_value_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_decode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 /* decode: no patch needed */
 >>
-acn_deferred_det_patch_ptr_encode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_ptr_encode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
+<if(bCannotFail)>
+/* cannot fail: <if(bSameValue)>every consumer of <sDetName> writes the same value<else>the first patch of <sDetName> since its InitDet (an unset ref takes any value)<endif> */
+(void)<sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <sDetName>, pErrCode);
+<else>
 ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <sDetName>, pErrCode);
 if (!ret) {
     *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
     return FALSE; /*COVERAGE_IGNORE*/
 }
+<endif>
 >>
-acn_deferred_det_patch_ptr_decode(sPatchFuncName, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_ptr_decode(sPatchFuncName, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 /* decode: no patch needed */
 >>
 
@@ -1828,47 +2025,67 @@ acn_deferred_det_init_ptr_with_size_decode(sInitFuncName, nBits, sDetName) ::= <
 /* decode: no init needed */
 >>
 
-acn_deferred_det_patch_value_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
+<if(bCannotFail)>
+/* cannot fail: <if(bSameValue)>every consumer of <sDetName> writes the same value<else>the first patch of <sDetName> since its InitDet (an unset ref takes any value)<endif> */
+(void)<sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <nBits>, &<sDetName>, pErrCode);
+<else>
 ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <nBits>, &<sDetName>, pErrCode);
 if (!ret) {
     *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
     return FALSE; /*COVERAGE_IGNORE*/
 }
+<endif>
 >>
-acn_deferred_det_patch_value_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 /* decode: no patch needed */
 >>
 
-acn_deferred_det_patch_ptr_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_ptr_with_size_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
+<if(bCannotFail)>
+/* cannot fail: <if(bSameValue)>every consumer of <sDetName> writes the same value<else>the first patch of <sDetName> since its InitDet (an unset ref takes any value)<endif> */
+(void)<sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <nBits>, <sDetName>, pErrCode);
+<else>
 ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <nBits>, <sDetName>, pErrCode);
 if (!ret) {
     *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
     return FALSE; /*COVERAGE_IGNORE*/
 }
+<endif>
 >>
-acn_deferred_det_patch_ptr_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_ptr_with_size_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 /* decode: no patch needed */
 >>
 
 /* IA5String PatchDet variants: pass string value directly (no asn1SccUint cast) */
-acn_deferred_det_patch_value_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
+<if(bCannotFail)>
+/* cannot fail: <if(bSameValue)>every consumer of <sDetName> writes the same value<else>the first patch of <sDetName> since its InitDet (an unset ref takes any value)<endif> */
+(void)<sPatchFuncName>(<sValue>, pBitStrm, <nBits>, &<sDetName>, pErrCode);
+<else>
 ret = <sPatchFuncName>(<sValue>, pBitStrm, <nBits>, &<sDetName>, pErrCode);
 if (!ret) {
     *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
     return FALSE; /*COVERAGE_IGNORE*/
 }
+<endif>
 >>
-acn_deferred_det_patch_value_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_value_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 /* decode: no patch needed */
 >>
-acn_deferred_det_patch_ptr_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_ptr_str_encode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
+<if(bCannotFail)>
+/* cannot fail: <if(bSameValue)>every consumer of <sDetName> writes the same value<else>the first patch of <sDetName> since its InitDet (an unset ref takes any value)<endif> */
+(void)<sPatchFuncName>(<sValue>, pBitStrm, <nBits>, <sDetName>, pErrCode);
+<else>
 ret = <sPatchFuncName>(<sValue>, pBitStrm, <nBits>, <sDetName>, pErrCode);
 if (!ret) {
     *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/
     return FALSE; /*COVERAGE_IGNORE*/
 }
+<endif>
 >>
-acn_deferred_det_patch_ptr_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode) ::= <<
+acn_deferred_det_patch_ptr_str_decode(sPatchFuncName, nBits, sValue, sDetName, sErrCode, bCannotFail, bSameValue) ::= <<
 /* decode: no patch needed */
 >>
 
@@ -1904,31 +2121,36 @@ acn_deferred_det_value_presence_bool(p, sAcc, sChildName) ::= "(<p><sAcc>exist.<
 acn_deferred_det_switch_case_int(sCaseName, sVarName, sValue) ::= "    case <sCaseName>: <sVarName> = <sValue>; break;"
 
 /* Full switch block for integer presence or choice determinant */
-acn_deferred_det_switch_int(sVarName, sKindAccess, arrsCaseItems) ::= <<
+acn_deferred_det_switch_int(sVarName, sKindAccess, arrsCaseItems, soCovExempt) ::= <<
 asn1SccUint <sVarName>;
 switch(<sKindAccess>) {
 <arrsCaseItems; separator="\n">
-    default: ret = FALSE; break; /*COVERAGE_IGNORE*/
+    default:                                    /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_ON "<soCovExempt>" */<endif>
+        *pErrCode = ERR_INVALID_CHOICE_ALTERNATIVE; /*COVERAGE_IGNORE*/
+        return FALSE;                           /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_OFF */<endif>
 }
-if (!ret) return FALSE;
 >>
 
 /* Switch case item for string presence */
 acn_deferred_det_switch_case_str(sCaseName, sVarName, sValue) ::= <<    case <sCaseName>: <sVarName> = "<sValue>"; break;>>
 
 /* Full switch block for string presence */
-acn_deferred_det_switch_str(sVarName, sKindAccess, arrsCaseItems) ::= <<
+acn_deferred_det_switch_str(sVarName, sKindAccess, arrsCaseItems, soCovExempt) ::= <<
 const char* <sVarName>;
 switch(<sKindAccess>) {
 <arrsCaseItems; separator="\n">
-    default: ret = FALSE; break; /*COVERAGE_IGNORE*/
+    default:                                    /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_ON "<soCovExempt>" */<endif>
+        *pErrCode = ERR_INVALID_CHOICE_ALTERNATIVE; /*COVERAGE_IGNORE*/
+        return FALSE;                           /*COVERAGE_IGNORE*/<if(soCovExempt)> /* GNATCOV_EXEMPT_OFF */<endif>
 }
-if (!ret) return FALSE;
 >>
 
 /* Group B: Fallback PatchDet (encode-only, decode is empty) */
 
 /* Fallback patch without nBits */
+/* coverage step 13c: the fallback is omitted when a consumer patches the field on every path */
+acn_deferred_det_fallback_omitted(sDetName, sConsumer) ::= "/* no fallback PatchDet of <sDetName>: <sConsumer> patches it on every path */"
+
 acn_deferred_det_fallback_value_encode(sPatchFuncName, sDefaultVal, sDetName) ::= <<
 if (!<sDetName>.is_set) {
     <sPatchFuncName>((asn1SccUint)<sDefaultVal>, pBitStrm, &<sDetName>, pErrCode); /*COVERAGE_IGNORE*/
@@ -1958,8 +2180,8 @@ acn_deferred_det_fallback_value_str_decode(sPatchFuncName, sDefaultVal, nBits, s
    Only when the decode succeeded: a failed decode may return without
    writing tmp (BitStream_ReadBit does at end of stream), leaving it
    uninitialized. */
-acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName) ::= <<
+acn_deferred_det_copy_tmp_encode(sDetAccess, sTmpName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_tmp_decode(sDetAccess, sTmpName, bReadCannotFail) ::= <<
 if (ret) {
     <sDetAccess> = (asn1SccUint)<sTmpName>;
 }
@@ -1967,8 +2189,8 @@ if (ret) {
 
 /* Signed integer tmp variant: det.value holds the two's complement bits, so a negative
    size reaches the size checks as a large unsigned value and fails them. */
-acn_deferred_det_copy_signed_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_signed_tmp_decode(sDetAccess, sTmpName) ::= <<
+acn_deferred_det_copy_signed_tmp_encode(sDetAccess, sTmpName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_signed_tmp_decode(sDetAccess, sTmpName, bReadCannotFail) ::= <<
 if (ret) {
     <sDetAccess> = (asn1SccUint)<sTmpName>;
 }
@@ -1976,8 +2198,8 @@ if (ret) {
 
 /* Boolean tmp variant — C cast works as for int.  Kept as a distinct macro so
    strongly-typed backends (Ada) can emit a different conversion. */
-acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName) ::= ""
-acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName) ::= <<
+acn_deferred_det_copy_bool_tmp_encode(sDetAccess, sTmpName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_bool_tmp_decode(sDetAccess, sTmpName, bReadCannotFail) ::= <<
 if (ret) {
     <sDetAccess> = (asn1SccUint)<sTmpName>;
 }
@@ -1985,8 +2207,8 @@ if (ret) {
 
 /* Enum tmp variant — same C output as int (enum→uint is implicit).  The
    sEnumTypeName parameter is unused in C; Ada needs it for 'Enum_Rep. */
-acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName) ::= ""
-acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName) ::= <<
+acn_deferred_det_copy_enum_tmp_encode(sDetAccess, sTmpName, sEnumTypeName, bReadCannotFail) ::= ""
+acn_deferred_det_copy_enum_tmp_decode(sDetAccess, sTmpName, sEnumTypeName, bReadCannotFail) ::= <<
 if (ret) {
     <sDetAccess> = (asn1SccUint)<sTmpName>;
 }
@@ -1996,8 +2218,8 @@ if (ret) {
    indexes, e.g. {a(1), b(5)} with the default encoding): det.value must hold what the
    field writes, so map each item. One case per item, from acn_deferred_det_enum_wire_case. */
 acn_deferred_det_enum_wire_case(sItemName, sDetAccess, sValue) ::= "        case <sItemName>: <sDetAccess> = <sValue>; break;"
-acn_deferred_det_copy_enum_wire_tmp_encode(sDetAccess, sTmpName, arrsCases) ::= ""
-acn_deferred_det_copy_enum_wire_tmp_decode(sDetAccess, sTmpName, arrsCases) ::= <<
+acn_deferred_det_copy_enum_wire_tmp_encode(sDetAccess, sTmpName, arrsCases, bReadCannotFail) ::= ""
+acn_deferred_det_copy_enum_wire_tmp_decode(sDetAccess, sTmpName, arrsCases, bReadCannotFail) ::= <<
 if (ret) {
     switch (<sTmpName>) {
 <arrsCases; separator="\n">
@@ -2032,11 +2254,27 @@ acn_deferred_det_relative_access(sRootId, sFieldPath) ::= "<sRootId>-><sFieldPat
 /* UPER offset subtraction expression */
 acn_deferred_det_uper_offset_sub(sValue, sOffset) ::= "(<sValue> - <sOffset>)"
 
+/* The value of a field mapped by its mapping-function encode (PatchDet writes what the field's encoder would) */
+acn_deferred_det_mapped_value(sValue, sMF, soMFM, sRtlType) ::= "<sMF>_encode(<sValue>)"
+
+/* q/issues.md Issue 65: the value a PatchDet writes for a BOOLEAN with an ACN pattern: the bits of its true- or
+   false-pattern as an integer (Acn_PatchDet_ConstSize writes nBits of it) */
+acn_deferred_det_bool_pattern_value(sValue, sTrueValue, sFalseValue) ::= "((<sValue>) ? <sTrueValue>U : <sFalseValue>U)"
+
+
 /* Wrap a preBlock and patchCall in braces */
 acn_deferred_det_preblock_wrap(sPreBlock, sPatchCall) ::= <<
 {
 <sPreBlock>
 <sPatchCall>
+}
+>>
+
+/* q/issues.md Issue 124: the patch of a consumer inside the elements of a SEQUENCE OF, once per element (every element
+   is encoded with the value of the determinant, so all of them must agree) */
+acn_deferred_det_patch_loop(sIdx, sLength, sBody) ::= <<
+for (<sIdx> = 0; <sIdx> \< (int)<sLength>; <sIdx>++) {
+    <sBody>
 }
 >>
 
@@ -2059,9 +2297,34 @@ acn_deferred_det_type_name() ::= "AcnInsertedFieldRef"
 /* AcnInsertedFieldRef zero initializer */
 acn_deferred_det_init_expr() ::= "{0}"
 
+/* q/issues.md Issue 107: whether the field of an AcnInsertedFieldRef is in the stream (InitDet sets it when encoding,
+   the decoder where it reads the field); a PatchDet of a ref whose field is not in the stream writes nothing */
+acn_deferred_det_in_stream_value(sDetName) ::= "<sDetName>.in_stream"
+
+acn_deferred_det_in_stream_ptr(sDetName) ::= "<sDetName>->in_stream"
+
+acn_deferred_det_mark_in_stream(sInStream, sField) ::= <<
+<sInStream> = TRUE; /* <sField> is in the stream */
+>>
+
+/* Issue 107: a ref declared before a SEQUENCE OF loop starts every element unset (its field's holder may be absent) */
+acn_deferred_det_reset(sDetName, sField, sHolders) ::= <<
+/* <sField> is in <sHolders>: not in the stream unless this element holds it */
+<sDetName>.in_stream = FALSE;
+<sDetName>.is_set = FALSE;
+<sDetName>.value = 0;
+>>
+
 
 /* Coverage step 10b, Ada only (never used here). */
 AcnIntFullRange(p, sKind, sWidth, sSsuffix, noBits) ::= ""
+Real_64_cannotFail(p, sEndianness) ::= ""
+Real_32_cannotFail(p, sEndianness) ::= ""
+Real_ScaledInt_uint_cannotFail(p, sTmpVar, sIntBody, sLow, sScale) ::= ""
+Real_ScaledInt_sint_cannotFail(p, sTmpVar, sIntBody, sLow, sScale, sIntMin) ::= ""
+Acn_String_Ascii_FixSize_cannotFail(p) ::= ""
+EnumeratedEncValues_fullIndex(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, sActualCodecFunc, sFirstItemName, sIntVal, soCovExempt) ::= ""
+Choice_fullIndex(p, sAcc, arrsChildren, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= ""
 
 sequence_presence_optChild_noErrCode(p, sChName, soExistVar) ::= ""
 

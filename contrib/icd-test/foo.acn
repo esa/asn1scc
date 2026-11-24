@@ -1,0 +1,12 @@
+FOO-DATAVIEW DEFINITIONS ::= BEGIN
+
+    --  In this ACN model, you can specify custom binary encoding rules for
+    --  your data types. For example if you require a specific memory layout
+    --  for a record, or need to add padding fields, define endianness, etc.
+    --  you can do that with ACN. Refer to the TASTE wiki for documentation:
+   --   https://taste.tuxfamily.org/wiki/index.php?title=Main_Page
+
+   --  Example of custom encoding:
+   --  My-Integer [encoding pos-int, endianness big, size 16]
+END
+

@@ -256,24 +256,24 @@ Enumerated_decode(p, sTag, nLevel, arrsItems, soCheckExp, sErrCode) ::= <<
 
 
 
-OctetString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+OctetString_encode(p, sAcc, sTag, nLevel, nSizeMin, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 ret = xer::encode_octet_string(p_byte_strm, <sTag>, &<p><sAcc>arr, <if(!bIsFixedSize)><p><sAcc>n_count<else><nSizeMax><endif> as i32, <nLevel>);
 *p_err_code = if ret { 0 } else { <sErrCode> };
 >>
 
-OctetString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+OctetString_decode(p, sAcc, sTag, nLevel, nSizeMin, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 ret = xer::decode_octet_string(p_byte_strm, <sTag>, &mut <p><sAcc>arr, <nSizeMax> as i32, <if(!bIsFixedSize)>&mut <p><sAcc>n_count<else>&mut { let mut dummy = 0i32; &mut dummy }<endif>);
 <if(soCheckExp)>if ret { <soCheckExp> }<endif>
 *p_err_code = if ret { 0 } else { <sErrCode> };
 >>
 
 
-BitString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+BitString_encode(p, sAcc, sTag, nLevel, nSizeMin, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 ret = xer::encode_bit_string(p_byte_strm, <sTag>, &<p><sAcc>arr, <if(!bIsFixedSize)><p><sAcc>n_count<else><nSizeMax><endif> as i32, <nLevel>);
 *p_err_code = if ret { 0 } else { <sErrCode> };
 >>
 
-BitString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+BitString_decode(p, sAcc, sTag, nLevel, nSizeMin, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 ret = xer::decode_bit_string(p_byte_strm, <sTag>, &mut <p><sAcc>arr, <nSizeMax> as i32, <if(!bIsFixedSize)>&mut <p><sAcc>n_count<else>&mut { let mut dummy = 0i32; &mut dummy }<endif>);
 <if(soCheckExp)>if ret { <soCheckExp> }<endif>
 *p_err_code = if ret { 0 } else { <sErrCode> };

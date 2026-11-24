@@ -1,0 +1,11 @@
+ACN-WIRE-SITE-SPEC DEFINITIONS ::= BEGIN
+    T []
+    Fx []
+    Emb [] { f [], z [] }
+    Fix [] { g [], z [] }
+    Bits [] { h [], z [] }
+    T6 []
+    Emb6 [] { f [] { a [size 9, encoding pos-int], b [], c [] }, z [] }
+    T13 [] { a [size 12, encoding pos-int], b [] }
+    Bits13 [] { h [], z [] }
+END

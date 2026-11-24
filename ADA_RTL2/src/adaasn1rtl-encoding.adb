@@ -158,7 +158,9 @@ is
      (Bitstream_Size_In_Bytes : Positive) return Bitstream is
      (Bitstream'
         (Size_In_Bytes => Bitstream_Size_In_Bytes, Current_Bit_Pos => 0,
-         pushDataPrm   => 0, fetchDataPrm => 0, Buffer => (others => 0)));
+         pushDataPrm   => 0, fetchDataPrm => 0,
+         End_Bit_Pos   => Bitstream_Size_In_Bytes * 8,
+         Buffer        => (others => 0)));
 
    procedure BitStream_AppendBit (bs : in out Bitstream; Bit_Value : BIT) is
       Current_Byte : constant Integer :=
@@ -346,7 +348,9 @@ is
             if totalBitsForNextByte > 0 then
                Current_Byte := Current_Byte + 1;
 
-               mask := not MASKSB (8 - totalBitsForNextByte);
+               --  keep the bits after the written ones: an --acn-v2 encoder
+               --  writes a determinant again over data that follows it
+               mask := MASKSB (8 - totalBitsForNextByte);
 
                bs.Buffer (Current_Byte) := bs.Buffer (Current_Byte) and mask;
                bs.Buffer (Current_Byte) :=
@@ -609,7 +613,9 @@ is
          Ret := Ret + Asn1UInt (ByteVal);
 
       end loop;
-      if total_bytes < 8 then
+      --  only below the width of Asn1UInt: on a 32-bit board 256**4 is 0
+      --  (modular), and the assumption was False for total_bytes = 4
+      if total_bytes < Asn1UInt'Size / 8 then
          pragma Assume (Ret < 256**total_bytes);
       end if;
 

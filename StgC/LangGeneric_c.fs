@@ -479,9 +479,16 @@ type LangGeneric_c() =
                 "BitStream_DecodeOctetString"
                 "BitStream_EncodeBitString"
                 "BitStream_DecodeBitString"
+                "BitStream_EncodeGeneralLength"
+                "BitStream_DecodeGeneralLength"
+                "BitStream_EncodeContainingOctets"
+                "BitStream_DecodeContainingOctets"
+                "BitStream_EncodeContainingBits"
+                "BitStream_DecodeContainingBits"
                 "BitStream_checkBitPatternPresent"
                 "BitStream_ReadBits_nullterminated"
                 "Acn_AlignToNextByte"
+                "Acn_Dec_AlignToNextByte"
                 "Acn_AlignToNextWord"
                 "Acn_AlignToNextDWord"
                 "Acn_Enc_Int_PositiveInteger_ConstSize"
@@ -851,13 +858,10 @@ type LangGeneric_c() =
             | Asn1AcnAst.AcnInsertedType.AcnBoolean bln ->
                 match bln.acnProperties.encodingPattern with
                 | None -> Some ("Acn_InitDet_BOOL1", "Acn_PatchDet_BOOL1", None, 0I)
-                | Some (AcnGenericTypes.TrueValueEncoding pattern) when pattern.Value = "1" ->
-                    Some ("Acn_InitDet_BOOL1", "Acn_PatchDet_BOOL1", None, 0I)
-                | Some (AcnGenericTypes.FalseValueEncoding pattern) when pattern.Value = "0" ->
-                    Some ("Acn_InitDet_BOOL1", "Acn_PatchDet_BOOL1", None, 0I)
-                | Some (AcnGenericTypes.TrueFalseValueEncoding (truePattern, falsePattern))
-                    when truePattern.Value = "1" && falsePattern.Value = "0" ->
-                    Some ("Acn_InitDet_BOOL1", "Acn_PatchDet_BOOL1", None, 0I)
+                | Some pattern when pattern.isUperLike -> Some ("Acn_InitDet_BOOL1", "Acn_PatchDet_BOOL1", None, 0I)
+                // q/issues.md Issue 65: the pattern's bits, written as an integer of their length (the PatchDet value is
+                // the true- or false-pattern, DAstACNDeferred.patchDetWireValue); up to 32 bits (Asn1UInt on every board)
+                | Some pattern when pattern.bitValLength <= 32 -> Some ("Acn_InitDet_ConstSize", "Acn_PatchDet_ConstSize", Some (BigInteger pattern.bitValLength), 0I)
                 | Some _ -> None
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
                 match enm.enumerated.acnEncodingClass with
@@ -876,8 +880,12 @@ type LangGeneric_c() =
 
         override this.computeDeferredFallbackValue (acnType: Asn1AcnAst.AcnInsertedType) (uperMinOffset: BigInteger) : string =
             match acnType with
-            | Asn1AcnAst.AcnInsertedType.AcnInteger _ ->
-                if uperMinOffset > 0I then uperMinOffset.ToString() else "0"
+            | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
+                // the wire value of the field's default (Issues 123 / 142): the default less the offset of a uPER-encoded
+                // field (PatchDet writes its argument as is). A range holding no value >= 0 keeps 0 (legacy would write the
+                // bound): not reachable, no ACN size / present-when consumer takes a negative value (i108a review)
+                let wire = Asn1AcnAstUtilFunctions.acnIntegerDefaultValue ai - uperMinOffset
+                if wire >= 0I then wire.ToString() else "0"
             | Asn1AcnAst.AcnInsertedType.AcnBoolean _ -> "0"
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
                 // The wire value of the first item (PatchDet writes its argument as is);
@@ -894,12 +902,79 @@ type LangGeneric_c() =
         override _.atcEmitsInvalidValueTests = true
         // An encoder does not call an IsConstraintValid that cannot fail (coverage step 12a).
         override _.encoderValidationModel = EncodersSkipAlwaysValid
+        // coverage step 14q (Q6 b): the determinant of several sources from one that is always set
+        override _.multiAcnUpdateFromAlwaysSetSource = true
+        // Issue 105: the determinant of several sources takes its default value when no source is set
+        override _.multiAcnUpdateDefaultWhenNoSource = true
+        // What the C encode templates write to ret (coverage step 12b; checked by step12/tools/gate12b.py).
+        override _.encodeTemplateOutcome t =
+            match t with
+            // C: the length check stays for both VarSizeLengthCheck cases (the C typedef does not bound nCount)
+            | EncRtlWritesOnly | EncPresenceBits | EncBitStringFixedSize | EncBitStringVarSize _ | EncStringFixedSize
+            | EncStringVarSize | EncStringVarSizeUper | EncSequenceOfFixedSize | EncSequenceOfVarSize _ | EncFragmentation
+            | EncSequenceOfOtherLoop | EncLoopWithoutInvariant  -> EncodeOutcome.noWrite
+            // the defensive default arm (ret = FALSE) of an unchecked encode of an invalid value (coverage step 12d)
+            | EncEnumerated                                     -> {canFail = true; writes = SometimesWrites; callee = None}
+            // BitStream_EncodeOctetString_no_length returns FALSE only for a stream shorter than the encoder's
+            // REQUIRED_BYTES, which every other C write assumes too (they only assert; BitStream_AppendBits ignores
+            // this result): the fixed-size call is not checked (coverage step 14i, C1)
+            | EncOctetStringFixedSize                           -> EncodeOutcome.noWrite
+            // the variable-size ones keep the check (the length is checked first; left open, step 12 Q6)
+            | EncOctetStringVarSize _
+            | EncOctetStringNoLength                            -> {canFail = true; writes = AlwaysWrites; callee = None}
+            // ret = BitStream_EncodeContainingOctets / Bits(...) (coverage step 14p)
+            | EncContainingUper                                 -> {canFail = true; writes = AlwaysWrites; callee = None}
+            | EncPresentWhenCheck | EncDeferredPatch PatchChecked
+            | EncChoiceAbsentArm                                -> {canFail = true; writes = AlwaysWrites; callee = None}
+            // (void)<PatchDet>(...): the only / first patch of each field (13b / 14d), ret not written
+            | EncDeferredPatch PatchUnchecked                   -> EncodeOutcome.noWrite
+            // if (ret) { ... ret = <PatchDet>(...); ... } after the body of the region (q/issues.md Issue 63)
+            | EncContainingDeferredWrapper PatchChecked         -> {canFail = true; writes = ReadsFirst; callee = None}
+            // ... the same with the only / first patch of the size field, which cannot fail (step 14e, E3)
+            | EncContainingDeferredWrapper PatchUnchecked       -> {canFail = false; writes = ReadsFirst; callee = None}
+            // ret = <PatchDet>(...) after a body that cannot fail, checked or not (coverage step 14q)
+            | EncContainingRegionEnd PatchChecked               -> {canFail = true; writes = AlwaysWrites; callee = None}
+            | EncContainingRegionEnd PatchUnchecked             -> {canFail = false; writes = AlwaysWrites; callee = None}
+            // the defensive default arm (ret = FALSE) of an unchecked encode of an invalid selector (coverage step 12d)
+            | EncChoiceDefaultArm                               -> {canFail = true; writes = SometimesWrites; callee = None}
+            // determinant updates (coverage step 12c): assignments (the C size update has no range check)
+            | EncDeterminantAssign | EncDeterminantRangeCheck   -> EncodeOutcome.noWrite
+            // the switch over the CHOICE selector: the defensive default arm (ret = FALSE, coverage step 12d)
+            | EncDeterminantSwitch                              -> {canFail = true; writes = SometimesWrites; callee = None}
+            // if (ret) { ... ret = (<sources agree>); }
+            | EncDeterminantMulti                               -> {canFail = true; writes = ReadsFirst; callee = None}
+        // a parent calls its children's encoders with bCheckConstraints = FALSE
+        override _.encodeCallValidates = false
+        override _.acnDeterminantFlagModel = FlagMaybeUninitialized
         override _.atcEmitsConstraintViolationTests = true
+        override _.atcEmitsEqualityVariantTests = true
+        override _.atcEmitsValidityTests = true
+        override this.atcEqualityToggle (toggle:EqualityToggle) (path:AccessPath) =
+            let v = this.getValue path
+            let arr = sprintf "%s%sarr" (path.joined this) (this.getAccess path)
+            match toggle with
+            | ToggleInteger     -> Some (sprintf "%s ^= 1;" v)
+            | ToggleReal        -> Some (sprintf "%s = (%s == 0.0) ? 1.0 : 0.0;" v v)
+            | ToggleEnumerated  -> Some (sprintf "%s = (%s == 0) ? 1 : 0;" v v)
+            | ToggleFirstChar   -> Some (sprintf "%s[0] = (%s[0] == 'A') ? 'B' : 'A';" v v)
+            | ToggleByte i      -> Some (sprintf "%s[%A] ^= 0x80;" arr i)
+            | ToggleBit k       -> Some (sprintf "%s[%A] ^= 0x%02X;" arr (k / 8I) (0x80 >>> int (k % 8I)))
         override _.atcEmitsInvalidStreamTests = true
         override _.atcInvalidStreamCodeOutsideItemRange = true
         override _.atcInvalidStreamPackages = ["asn1crt_encoding_acn"]
         // every read primitive of the C RTL checks the view, so a prefix of a valid encoding must be rejected
         override _.atcDecodeSweep _ = TruncationAndCorruptionSweep
+        // coverage step 14c3: no read of a one-value type, no `if (ret)` after a decode part that writes no ret
+        override _.decodeOneValueWithoutRead = true
+        override _.decodeJoinsByWrites = true
+        // cycle i174 round 2: the second operand of a union of validation statements starts from ret = TRUE
+        override _.unionRestartsStatementOperand = true
+        // Issue 106: fail at the dependent when the holder of its determinant field is absent
+        override _.decodeFailsWhenHolderAbsent = true
+        override _.encodeFailsWhenHolderAbsent = true
+        // Issue 107: the AcnInsertedFieldRef of the RTL tracks whether its field is in the stream
+        override _.deferredRefTracksStream = true
+        override _.stringLocalInit _ = "\"\""
 
         override this.getDirInfo (target:Targets option) rootDir =
             {rootDir = rootDir; srcDir=rootDir;asn1rtlDir=rootDir;boardsDir=rootDir}

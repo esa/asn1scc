@@ -5,6 +5,7 @@ Each exemption of Docs/statement-coverage-exemptions.md must accept its own
 generated shape and reject every near miss, because a wrong acceptance would
 count a reachable statement as proven unreachable."""
 from pathlib import Path
+import re
 import sys
 import unittest
 
@@ -100,6 +101,21 @@ ADA_ACN_ENUM = """\
     else
         val := MyPDU_alpha;                             -- COVERAGE_IGNORE
     end if;"""
+
+# Coverage step 14c2a: the value read with a _FullRange twin (no Result, no success branch).
+ADA_ACN_ENUM_FULL = """\
+    result := adaasn1rtl.ASN1_RESULT'(Success => true, ErrorCode => 0);
+    -- cannot fail, no result to check: every bit pattern of the field is a valid value
+    adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_FullRange(bs, intVal_val, 2);
+    case intVal_val is
+        when 0 => val := red;
+        when 1 => val := green;
+        when 2 => val := blue;
+        when 3 => val := black;
+    when others => pragma Annotate (Xcov, Exempt_On, "ASN1SCC-COV-001: x");    -- COVERAGE_IGNORE
+        -- unreachable: the read returns only the values of the field, each of them an item
+        val := red; pragma Annotate (Xcov, Exempt_Off);                       -- COVERAGE_IGNORE
+    end case;"""
 
 CHAR_GUARD = """\
 asn1SccSint charIndex = 0;
@@ -240,6 +256,28 @@ class Cov001Ada(unittest.TestCase):
         self.assertEqual(check(source, self.ARM, language="Ada"), "ASN1SCC-COV-001")
         self.assertEqual(check(source, "result := adaasn1rtl", language="Ada"), "ASN1SCC-COV-001")
 
+    def test_full_range_twin_without_success_branch_is_proven(self):
+        arm = "val := red; pragma"
+        self.assertEqual(check(ADA_ACN_ENUM_FULL, arm, language="Ada"), "ASN1SCC-COV-001")
+        for twin in ("Acn_Dec_Int_PositiveInteger_ConstSize_8_FullRange(bs, intVal_val)",
+                     "Acn_Dec_Int_PositiveInteger_ConstSize_big_endian_16_FullRangeUInt16(bs, intVal_val)",
+                     "UPER_Dec_ConstraintPosWholeNumber_FullRange(bs, intVal_val, 0, 2)"):
+            source = ADA_ACN_ENUM_FULL.replace("Acn_Dec_Int_PositiveInteger_ConstSize_FullRange(bs, intVal_val, 2)", twin)
+            expected = "ASN1SCC-COV-001" if twin.startswith("UPER") else ""   # 8 / 16 bits: 4 choices do not cover them
+            self.assertEqual(check(source, arm, language="Ada"), expected, twin)
+
+    def test_full_range_twin_wider_than_choices_is_not_proven(self):
+        source = ADA_ACN_ENUM_FULL.replace("intVal_val, 2);", "intVal_val, 3);")
+        self.assertEqual(check(source, "val := red; pragma", language="Ada"), "")
+        source = ADA_ACN_ENUM_FULL.replace("UPER", "UPER").replace(
+            "Acn_Dec_Int_PositiveInteger_ConstSize_FullRange(bs, intVal_val, 2)",
+            "UPER_Dec_ConstraintPosWholeNumber_FullRange(bs, intVal_val, 1, 2)")
+        self.assertEqual(check(source, "val := red; pragma", language="Ada"), "")
+
+    def test_full_range_twin_of_another_variable_is_not_proven(self):
+        source = ADA_ACN_ENUM_FULL.replace("ConstSize_FullRange(bs, intVal_val, 2)", "ConstSize_FullRange(bs, other, 2)")
+        self.assertEqual(check(source, "val := red; pragma", language="Ada"), "")
+
     def test_failure_branch_is_not_exempted(self):
         self.assertEqual(check(ADA_ACN_ENUM, "val := MyPDU_alpha;", 3, language="Ada"), "")
 
@@ -288,12 +326,1170 @@ class Cov002(unittest.TestCase):
         self.assertEqual(check(source, "if (ret && (charIndex", src="ret = FALSE;"), "")
 
 
+# Legacy ACN encoder: the update of the determinant switches on the CHOICE selector
+# (failing default), its encoding maps the local, and the CHOICE switch follows.
+LEGACY_CHOICE_DET = """\
+flag Msg_ACN_Encode(const Msg* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
+{
+    flag ret = TRUE;
+
+	Kind Msg_kind;
+	asn1SccUint intVal_Msg_kind;
+    *pErrCode = 0;
+	ret = bCheckConstraints ? Msg_IsConstraintValid(pVal, pErrCode) : TRUE ;
+	if (ret) {
+	    switch (pVal->chr.kind) {
+	        case Ch_a_PRESENT:
+	            Msg_kind = Kind_a;
+	            break;
+	        case Ch_b_PRESENT:
+	            Msg_kind = Kind_b;
+	            break;
+	        default:
+	            ret = FALSE;                            /*COVERAGE_IGNORE*/
+	            *pErrCode = ERR_INVALID_ENUM_VALUE;     /*COVERAGE_IGNORE*/
+	    }
+	    if (ret) {
+	        /*Encode Msg_kind */
+	        switch(Msg_kind) {
+	            case Kind_a:
+	                intVal_Msg_kind = 0UL;
+	                break;
+	            case Kind_b:
+	                intVal_Msg_kind = 1UL;
+	                break;
+	            default:                                    /*COVERAGE_IGNORE*/
+	                ret = FALSE;                            /*COVERAGE_IGNORE*/
+	                *pErrCode = ERR_ACN_ENCODE_MSG_KIND;                 /*COVERAGE_IGNORE*/
+	        }
+	        if (ret) {
+	        	Acn_Enc_Int_PositiveInteger_ConstSize_8(pBitStrm, intVal_Msg_kind);
+	        }
+	    }   /*COVERAGE_IGNORE*/
+	    if (ret) {
+	        /*Encode chr */
+	        switch(pVal->chr.kind)
+	        {
+	            case Ch_a_PRESENT:
+	            	BitStream_EncodeConstraintPosWholeNumber(pBitStrm, pVal->chr.u.a, 0, 10);
+	            	break;
+	            case Ch_b_PRESENT:
+	            	BitStream_AppendBit(pBitStrm,pVal->chr.u.b);
+	            	break;
+	        default:
+	            *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
+	            ret = FALSE;                    /*COVERAGE_IGNORE*/
+	        }
+	    }   /*COVERAGE_IGNORE*/
+    } /*COVERAGE_IGNORE*/
+    return ret;
+}"""
+
+# acn-v2 specialised encoder: the CHOICE switch, then the PatchDet value switch.
+V2_PATCHDET = """\
+flag Msg_chr_ACN_Encode(const Ch* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints, AcnInsertedFieldRef* Msg_chr_kind)
+{
+    flag ret = TRUE;
+
+    switch(pVal->kind)
+    {
+        case Ch_a_PRESENT:
+        	BitStream_EncodeConstraintPosWholeNumber(pBitStrm, pVal->u.a, 0, 10);
+        	break;
+        case Ch_b_PRESENT:
+        	break;
+    default:
+        *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
+        ret = FALSE;                    /*COVERAGE_IGNORE*/
+    }
+    if (ret) {
+        {
+        asn1SccUint patchDetVal;
+        switch(pVal->kind) {
+            case Ch_a_PRESENT: patchDetVal = 0; break;
+            case Ch_b_PRESENT: patchDetVal = 1; break;
+            default:                                    /*COVERAGE_IGNORE*/
+                *pErrCode = ERR_INVALID_CHOICE_ALTERNATIVE; /*COVERAGE_IGNORE*/
+                return FALSE;                           /*COVERAGE_IGNORE*/
+        }
+        ret = Acn_PatchDet_U8((asn1SccUint)patchDetVal, pBitStrm, Msg_chr_kind, pErrCode);
+        }
+    }   /*COVERAGE_IGNORE*/
+    return ret;
+}"""
+
+# Legacy: the CHOICE sits in an alternative; the update is guarded by `if (E == L)`,
+# the CHOICE by `case L:` of `switch (E)`.
+LEGACY_IN_ALTERNATIVE = """\
+flag O3_ACN_Encode(const O3* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
+{
+    flag ret = TRUE;
+	K2 O3_k;
+	flag O3_k_is_initialized=FALSE;
+	asn1SccUint intVal_O3_k;
+	ret = bCheckConstraints ? O3_IsConstraintValid(pVal, pErrCode) : TRUE ;
+	if (ret) {
+	    if (pVal->i3.kind == p_PRESENT) {
+	        switch (pVal->i3.u.p.y.kind) {
+	            case p_y_a_PRESENT:
+	                O3_k = a;
+	                O3_k_is_initialized = TRUE;
+	                break;
+	            case p_y_b_PRESENT:
+	                O3_k = b;
+	                O3_k_is_initialized = TRUE;
+	                break;
+	            default:
+	                ret = FALSE;                            /*COVERAGE_IGNORE*/
+	                *pErrCode = ERR_INVALID_ENUM_VALUE;     /*COVERAGE_IGNORE*/
+	        }
+	    }
+	    if (ret) {
+	        /*Encode O3_k */
+	        if (O3_k_is_initialized) {
+	            ret = TRUE;
+	            switch(O3_k) {
+	                case a:
+	                    intVal_O3_k = 0UL;
+	                    break;
+	                case b:
+	                    intVal_O3_k = 1UL;
+	                    break;
+	                default:                                    /*COVERAGE_IGNORE*/
+	                    ret = FALSE;                            /*COVERAGE_IGNORE*/
+	                    *pErrCode = ERR_ACN_ENCODE_O3_K;                 /*COVERAGE_IGNORE*/
+	            }
+	        } else {
+	            *pErrCode = ERR_ACN_ENCODE_O3_K_UNINITIALIZED;         /*COVERAGE_IGNORE*/
+	            ret = FALSE;                    /*COVERAGE_IGNORE*/
+	        }
+	    }   /*COVERAGE_IGNORE*/
+	    if (ret) {
+	        switch(pVal->i3.kind)
+	        {
+	        case p_PRESENT:
+	        	switch(pVal->i3.u.p.y.kind)
+	        	{
+	        	    case p_y_a_PRESENT:
+	        	    	break;
+	        	    case p_y_b_PRESENT:
+	        	    	break;
+	        	default:
+	        	    *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
+	        	    ret = FALSE;                    /*COVERAGE_IGNORE*/
+	        	}
+	        	break;
+	        case q_PRESENT:
+	        	break;
+	        default: /*COVERAGE_IGNORE*/
+	            *pErrCode = ERR_ACN_ENCODE_O3_I3;         /*COVERAGE_IGNORE*/
+	            ret = FALSE;                    /*COVERAGE_IGNORE*/
+	        } /*COVERAGE_IGNORE*/
+	    }   /*COVERAGE_IGNORE*/
+    } /*COVERAGE_IGNORE*/
+    return ret;
+}"""
+
+# Legacy: one determinant, two CHOICEs (MultiAcnUpdate).
+LEGACY_MULTI = """\
+flag Direct_ACN_Encode(const Direct* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints)
+{
+    flag ret = TRUE;
+
+	SelKind Direct_kind;
+	asn1SccUint intVal_Direct_kind;
+	ret = bCheckConstraints ? Direct_IsConstraintValid(pVal, pErrCode) : TRUE ;
+	if (ret) {
+	    {
+	        SelKind Direct_kind00;
+	        flag Direct_kind00_is_initialized=FALSE;
+	        SelKind Direct_kind01;
+	        flag Direct_kind01_is_initialized=FALSE;
+
+	        switch (pVal->status.kind) {
+	            case status_alpha_PRESENT:
+	                Direct_kind00 = SelKind_alpha;
+	                Direct_kind00_is_initialized = TRUE;
+	                break;
+	            default:
+	                ret = FALSE;                            /*COVERAGE_IGNORE*/
+	                *pErrCode = ERR_INVALID_ENUM_VALUE;     /*COVERAGE_IGNORE*/
+	        }
+	        switch (pVal->mask.kind) {
+	            case mask_alpha_PRESENT:
+	                Direct_kind01 = SelKind_alpha;
+	                Direct_kind01_is_initialized = TRUE;
+	                break;
+	            default:
+	                ret = FALSE;                            /*COVERAGE_IGNORE*/
+	                *pErrCode = ERR_INVALID_ENUM_VALUE;     /*COVERAGE_IGNORE*/
+	        }
+
+	        if (ret) {
+	            if (Direct_kind00_is_initialized) { /*COVERAGE_IGNORE*/
+	                Direct_kind = Direct_kind00; /*COVERAGE_IGNORE*/
+	            } /*COVERAGE_IGNORE*/ else if (Direct_kind01_is_initialized) { /*COVERAGE_IGNORE*/
+	                Direct_kind = Direct_kind01; /*COVERAGE_IGNORE*/
+	            } /*COVERAGE_IGNORE*/ else {
+	                ret = FALSE; /*COVERAGE_IGNORE*/
+	            }
+	            if (ret) {
+	                ret = (((Direct_kind00_is_initialized && Direct_kind == Direct_kind00) || !Direct_kind00_is_initialized));
+	            }
+	            if (!ret) {
+	                *pErrCode = ERR_ACN_ENCODE_UPDATE_DIRECT_KIND; /*COVERAGE_IGNORE*/
+	            }
+	        }
+	    }
+	    if (ret) {
+	        /*Encode Direct_kind */
+	        switch(Direct_kind) {
+	            case SelKind_alpha:
+	                intVal_Direct_kind = 0UL;
+	                break;
+	            default:                                    /*COVERAGE_IGNORE*/
+	                ret = FALSE;                            /*COVERAGE_IGNORE*/
+	                *pErrCode = ERR_ACN_ENCODE_DIRECT_KIND;                 /*COVERAGE_IGNORE*/
+	        }
+	        if (ret) {
+	            switch(pVal->mask.kind)
+	            {
+	                case mask_alpha_PRESENT:
+	                	break;
+	            default:
+	                *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
+	                ret = FALSE;                    /*COVERAGE_IGNORE*/
+	            }
+	        }   /*COVERAGE_IGNORE*/
+	    }   /*COVERAGE_IGNORE*/
+    } /*COVERAGE_IGNORE*/
+    return ret;
+}"""
+
+CHOICE_ARM = "*pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/"
+
+
+class Cov004(unittest.TestCase):
+    def test_choice_switch_after_the_update_is_proven(self):
+        self.assertEqual(check(LEGACY_CHOICE_DET, CHOICE_ARM), "ASN1SCC-COV-004")
+        self.assertEqual(check(LEGACY_CHOICE_DET, "ret = FALSE;                    /*COVERAGE_IGNORE*/"),
+                         "ASN1SCC-COV-004")
+
+    def test_the_update_switch_itself_is_not_exempted(self):
+        self.assertEqual(check(LEGACY_CHOICE_DET, "ret = FALSE;", 1), "")
+
+    def test_patchdet_switch_after_the_choice_is_proven(self):
+        self.assertEqual(check(V2_PATCHDET, "*pErrCode = ERR_INVALID_CHOICE_ALTERNATIVE;"), "ASN1SCC-COV-004")
+        self.assertEqual(check(V2_PATCHDET, "return FALSE;"), "ASN1SCC-COV-004")
+
+    def test_patchdet_under_the_checks_of_the_path_is_proven(self):
+        # q/issues.md Issue 50: the CHOICE sits in an OPTIONAL component inside an alternative; its own switch runs
+        # under `case p_PRESENT` and `if (exist)`, the patch under one `if (kind == p_PRESENT && exist)`
+        source = (V2_PATCHDET
+                  .replace("    switch(pVal->kind)\n    {", "    switch(pVal->kind)\n    {\n    case p_PRESENT:\n    if (pVal->u.p.exist.y) {\n    switch(pVal->u.p.y.kind)\n    {", 1)
+                  .replace("        ret = FALSE;                    /*COVERAGE_IGNORE*/\n    }\n",
+                           "        ret = FALSE;                    /*COVERAGE_IGNORE*/\n    }\n    }\n    break;\n    default:\n        ret = FALSE;\n    }\n", 1)
+                  .replace("        {\n        asn1SccUint patchDetVal;\n        switch(pVal->kind) {",
+                           "        if (pVal->kind == p_PRESENT && pVal->u.p.exist.y) {\n        asn1SccUint patchDetVal;\n        switch(pVal->u.p.y.kind) {", 1))
+        self.assertIn("switch(pVal->u.p.y.kind) {", source)
+        self.assertEqual(check(source, "return FALSE;"), "ASN1SCC-COV-004")
+        # one condition of the CHOICE's own switch is missing from the patch's checks
+        weaker = source.replace("if (pVal->kind == p_PRESENT && pVal->u.p.exist.y) {", "if (pVal->kind == p_PRESENT) {")
+        self.assertEqual(check(weaker, "return FALSE;"), "")
+
+    def test_choice_in_an_alternative_is_proven(self):
+        self.assertEqual(check(LEGACY_IN_ALTERNATIVE, CHOICE_ARM), "ASN1SCC-COV-004")
+
+    def test_multi_determinant_update_is_proven(self):
+        self.assertEqual(check(LEGACY_MULTI, CHOICE_ARM), "ASN1SCC-COV-004")
+
+    def test_earlier_switch_under_another_condition_is_not_proven(self):
+        # acn-v2, OPTIONAL CHOICE: the CHOICE switch runs only when present, the PatchDet switch always
+        source = V2_PATCHDET.replace("    switch(pVal->kind)\n    {", "    if (pVal->exist.y) {\n    switch(pVal->kind)\n    {", 1)
+        source = source.replace("        ret = FALSE;                    /*COVERAGE_IGNORE*/\n    }\n",
+                                "        ret = FALSE;                    /*COVERAGE_IGNORE*/\n    }\n    }\n", 1)
+        self.assertEqual(check(source, "return FALSE;"), "")
+        source = LEGACY_IN_ALTERNATIVE.replace("if (pVal->i3.kind == p_PRESENT) {", "if (pVal->i3.kind == q_PRESENT) {")
+        self.assertEqual(check(source, CHOICE_ARM), "")
+
+    def test_update_under_the_exist_flag_of_an_always_present_choice_is_not_proven(self):
+        # ALWAYS PRESENT: the update checks the exist flag, the CHOICE encoding does not
+        source = LEGACY_CHOICE_DET.replace("\t    switch (pVal->chr.kind) {", "\t    if (pVal->exist.chr) {\n\t    switch (pVal->chr.kind) {", 1)
+        source = source.replace("\t            *pErrCode = ERR_INVALID_ENUM_VALUE;     /*COVERAGE_IGNORE*/\n\t    }\n",
+                                "\t            *pErrCode = ERR_INVALID_ENUM_VALUE;     /*COVERAGE_IGNORE*/\n\t    }\n\t    }\n", 1)
+        self.assertIn("if (pVal->exist.chr) {", source)
+        self.assertEqual(check(source, CHOICE_ARM), "")
+
+    def test_label_missing_in_the_later_switch_is_not_proven(self):
+        source = LEGACY_CHOICE_DET.replace(
+            "\t            case Ch_b_PRESENT:\n\t            \tBitStream_AppendBit(pBitStrm,pVal->chr.u.b);\n\t            \tbreak;\n", "")
+        self.assertEqual(check(source, CHOICE_ARM), "")
+
+    def test_earlier_default_that_does_not_fail_is_not_proven(self):
+        source = LEGACY_CHOICE_DET.replace("ret = FALSE;                            /*COVERAGE_IGNORE*/\n\t            *pErrCode = ERR_INVALID_ENUM_VALUE;",
+                                           "Msg_kind = Kind_a;\n\t            *pErrCode = ERR_INVALID_ENUM_VALUE;", 1)
+        self.assertEqual(check(source, CHOICE_ARM), "")
+
+    def test_ret_set_again_before_the_check_is_not_proven(self):
+        source = LEGACY_CHOICE_DET.replace("\t    if (ret) {\n\t        /*Encode chr */", "\t    ret = TRUE;\n\t    if (ret) {\n\t        /*Encode chr */")
+        self.assertEqual(check(source, CHOICE_ARM), "")
+
+    def test_later_switch_not_under_a_check_is_not_proven(self):
+        source = V2_PATCHDET.replace("    if (ret) {\n        {\n", "    {\n        {\n")
+        self.assertEqual(check(source, "return FALSE;"), "")
+
+    def test_non_const_value_is_not_proven(self):
+        source = LEGACY_CHOICE_DET.replace("(const Msg* pVal", "(Msg* pVal")
+        self.assertEqual(check(source, CHOICE_ARM), "")
+
+
+DET_ARM = "*pErrCode = ERR_ACN_ENCODE_MSG_KIND;"
+
+
+class Cov005(unittest.TestCase):
+    def test_local_set_by_the_update_on_every_path_is_proven(self):
+        self.assertEqual(check(LEGACY_CHOICE_DET, DET_ARM), "ASN1SCC-COV-005")
+
+    def test_local_read_under_its_flag_is_proven(self):
+        self.assertEqual(check(LEGACY_IN_ALTERNATIVE, "*pErrCode = ERR_ACN_ENCODE_O3_K;"), "ASN1SCC-COV-005")
+
+    def test_local_of_a_multi_determinant_update_is_proven(self):
+        self.assertEqual(check(LEGACY_MULTI, "*pErrCode = ERR_ACN_ENCODE_DIRECT_KIND;"), "ASN1SCC-COV-005")
+
+    def test_value_from_the_input_is_not_proven(self):
+        source = LEGACY_CHOICE_DET.replace("Msg_kind = Kind_b;", "Msg_kind = pVal->k;")
+        self.assertEqual(check(source, DET_ARM), "")
+
+    def test_item_without_a_label_is_not_proven(self):
+        source = LEGACY_CHOICE_DET.replace("\t            case Kind_b:\n\t                intVal_Msg_kind = 1UL;\n\t                break;\n", "")
+        self.assertEqual(check(source, DET_ARM), "")
+
+    def test_update_that_may_not_assign_is_not_proven(self):
+        source = LEGACY_CHOICE_DET.replace("\t            Msg_kind = Kind_b;\n", "")
+        self.assertEqual(check(source, DET_ARM), "")
+
+    def test_conditional_assignment_in_the_update_is_not_proven(self):
+        source = LEGACY_CHOICE_DET.replace("\t            Msg_kind = Kind_b;\n",
+                                           "\t            if (pVal->x) {\n\t                Msg_kind = Kind_b;\n\t            }\n")
+        self.assertEqual(check(source, DET_ARM), "")
+
+    def test_flag_set_without_the_value_is_not_proven(self):
+        source = LEGACY_IN_ALTERNATIVE.replace("\t                O3_k = b;\n", "")
+        self.assertEqual(check(source, "*pErrCode = ERR_ACN_ENCODE_O3_K;"), "")
+
+    def test_multi_source_read_after_its_unconditional_update_is_proven(self):
+        # asn1scc 4.9.140.0: a source whose update assigns it on every exit with ret TRUE is read without its flag
+        source = LEGACY_MULTI.replace("else if (Direct_kind01_is_initialized) {", "else if (TRUE) {")
+        self.assertEqual(check(source, "*pErrCode = ERR_ACN_ENCODE_DIRECT_KIND;"), "ASN1SCC-COV-005")
+
+    def test_multi_value_from_an_unconditional_source_is_proven(self):
+        # asn1scc 4.9.140.0: the chain over the sources' flags is a plain assignment from a source whose update is not
+        # under a check of the path, and the equality check follows it in the same block
+        old = ("\t            if (Direct_kind00_is_initialized) { /*COVERAGE_IGNORE*/\n"
+               "\t                Direct_kind = Direct_kind00; /*COVERAGE_IGNORE*/\n"
+               "\t            } /*COVERAGE_IGNORE*/ else if (Direct_kind01_is_initialized) { /*COVERAGE_IGNORE*/\n"
+               "\t                Direct_kind = Direct_kind01; /*COVERAGE_IGNORE*/\n"
+               "\t            } /*COVERAGE_IGNORE*/ else {\n"
+               "\t                ret = FALSE; /*COVERAGE_IGNORE*/\n"
+               "\t            }\n"
+               "\t            if (ret) {\n"
+               "\t                ret = (((Direct_kind00_is_initialized && Direct_kind == Direct_kind00) || !Direct_kind00_is_initialized));\n"
+               "\t            }\n")
+        new = ("\t            Direct_kind = Direct_kind00;\n"
+               "\t            ret = (((Direct_kind00_is_initialized && Direct_kind == Direct_kind00) || !Direct_kind00_is_initialized));\n")
+        self.assertIn(old, LEGACY_MULTI)
+        source = LEGACY_MULTI.replace(old, new)
+        self.assertEqual(check(source, "*pErrCode = ERR_ACN_ENCODE_DIRECT_KIND;"), "ASN1SCC-COV-005")
+
+    def test_multi_value_after_a_failure_in_the_same_block_is_not_proven(self):
+        # the same, but ret may be FALSE before the equality check sets it again
+        old = "\t            if (Direct_kind00_is_initialized) { /*COVERAGE_IGNORE*/\n"
+        self.assertIn(old, LEGACY_MULTI)
+        source = LEGACY_MULTI.replace("\t            if (ret) {\n\t                ret = (((Direct_kind00", "\t            {\n\t                ret = (((Direct_kind00")
+        self.assertEqual(check(source, "*pErrCode = ERR_ACN_ENCODE_DIRECT_KIND;"), "")
+
+    def test_multi_source_read_without_its_flag_is_not_proven(self):
+        # the source is not assigned on every exit of its update, and is read without its flag
+        source = LEGACY_MULTI.replace("else if (Direct_kind01_is_initialized) {", "else if (TRUE) {").replace(
+            "Direct_kind01 = SelKind_alpha;\n", "")
+        self.assertIn("else if (TRUE)", source)
+        self.assertNotIn("Direct_kind01 = SelKind_alpha;", source)
+        self.assertEqual(check(source, "*pErrCode = ERR_ACN_ENCODE_DIRECT_KIND;"), "")
+
+    def test_chain_without_a_failing_else_is_not_proven(self):
+        source = LEGACY_MULTI.replace("\t                ret = FALSE; /*COVERAGE_IGNORE*/\n", "")
+        self.assertEqual(check(source, "*pErrCode = ERR_ACN_ENCODE_DIRECT_KIND;"), "")
+
+    NO_SOURCE_FAILS = "\t                ret = FALSE; /*COVERAGE_IGNORE*/\n"
+
+    def test_chain_whose_else_assigns_the_default_item_is_proven(self):
+        # asn1scc Issue 105: when no source is set the determinant takes its default value (the first item)
+        self.assertIn(self.NO_SOURCE_FAILS, LEGACY_MULTI)
+        source = LEGACY_MULTI.replace(self.NO_SOURCE_FAILS, "\t                Direct_kind = SelKind_alpha; /*COVERAGE_IGNORE*/\n")
+        self.assertEqual(check(source, "*pErrCode = ERR_ACN_ENCODE_DIRECT_KIND;"), "ASN1SCC-COV-005")
+
+    def test_chain_whose_else_assigns_a_value_that_is_not_an_item_is_not_proven(self):
+        source = LEGACY_MULTI.replace(self.NO_SOURCE_FAILS, "\t                Direct_kind = 7; /*COVERAGE_IGNORE*/\n")
+        self.assertEqual(check(source, "*pErrCode = ERR_ACN_ENCODE_DIRECT_KIND;"), "")
+
+    def test_chain_whose_else_assigns_another_local_is_not_proven(self):
+        source = LEGACY_MULTI.replace(self.NO_SOURCE_FAILS, "\t                Direct_kind00 = SelKind_alpha; /*COVERAGE_IGNORE*/\n")
+        self.assertEqual(check(source, "*pErrCode = ERR_ACN_ENCODE_DIRECT_KIND;"), "")
+
+
+# Coverage step 14c3: the decoder of a SEQUENCE decodes the ENUMERATED determinant into a local, then the CHOICE
+# switches on it (legacy PUS-C ErrorCodes shape, two items in 8 bits).
+DECODE_CHOICE_DET = """flag ASN1SCC_Notice_ACN_Decode(ASN1SCC_Notice* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    flag ret = TRUE;
+	*pErrCode = 0;
+
+	ASN1SCC_Code Notice_code;
+	asn1SccUint intVal_Notice_code;
+
+	/*Decode Notice_code */
+	ret = Acn_Dec_Int_PositiveInteger_ConstSize_8(pBitStrm, (&(intVal_Notice_code)));
+	*pErrCode = ret ? 0 : ERR_ACN_DECODE_NOTICE_CODE;
+	if (ret) {
+	    switch (intVal_Notice_code) {
+	        case 0:
+	            Notice_code = Code_a;
+	            break;
+	        case 1:
+	            Notice_code = Code_b;
+	            break;
+	    default:                                    /*COVERAGE_IGNORE*/
+	        ret = FALSE;                            /*COVERAGE_IGNORE*/
+	        *pErrCode = ERR_ACN_DECODE_NOTICE_CODE;                 /*COVERAGE_IGNORE*/
+	    }
+	} /*COVERAGE_IGNORE*/
+	if (ret) {
+	    /*Decode data */
+	    switch(Notice_code)
+	    {
+	        case Code_a:
+	        	pVal->data.kind = Data_a_PRESENT;
+	        	ret = BitStream_ReadBit(pBitStrm, (&(pVal->data.u.a)));
+	        	break;
+	        case Code_b:
+	        	pVal->data.kind = Data_b_PRESENT;
+	        	ret = BitStream_ReadBit(pBitStrm, (&(pVal->data.u.b)));
+	        	break;
+	    default:                                    /*COVERAGE_IGNORE*/
+	        *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
+	        ret = FALSE;                    /*COVERAGE_IGNORE*/
+	    }
+	}   /*COVERAGE_IGNORE*/
+
+    return ret;
+}"""
+
+# One item, uPER-like: nothing on the wire, the item is assigned (no check after it).
+DECODE_ONE_ITEM = """flag ASN1SCC_Notice_ACN_Decode(ASN1SCC_Notice* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    flag ret = TRUE;
+	*pErrCode = 0;
+
+	ASN1SCC_Code Notice_code;
+
+	/*Decode Notice_code */
+	/* one possible value: nothing on the wire */
+	Notice_code = Code_a;
+	/* no check of ret after a part that does not write it */
+	/*Decode data */
+	switch(Notice_code)
+	{
+	    case Code_a:
+	    	pVal->data.kind = Data_a_PRESENT;
+	    	ret = BitStream_ReadBit(pBitStrm, (&(pVal->data.u.a)));
+	    	break;
+	default:                                    /*COVERAGE_IGNORE*/
+	    *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
+	    ret = FALSE;                    /*COVERAGE_IGNORE*/
+	}
+
+    return ret;
+}"""
+
+
+class Cov008(unittest.TestCase):
+    def test_choice_after_the_determinant_switch_is_proven(self):
+        self.assertEqual(check(DECODE_CHOICE_DET, CHOICE_ARM), "ASN1SCC-COV-008")
+
+    def test_choice_after_a_one_item_assignment_is_proven(self):
+        self.assertEqual(check(DECODE_ONE_ITEM, CHOICE_ARM), "ASN1SCC-COV-008")
+
+    def test_the_determinant_switch_itself_is_not_exempted(self):
+        self.assertEqual(check(DECODE_CHOICE_DET, "*pErrCode = ERR_ACN_DECODE_NOTICE_CODE;                 /*COVERAGE_IGNORE*/"), "")
+
+    def test_item_without_a_case_is_not_proven(self):
+        source = DECODE_CHOICE_DET.replace("\t        case Code_b:\n\t        \tpVal->data.kind = Data_b_PRESENT;\n"
+                                           "\t        \tret = BitStream_ReadBit(pBitStrm, (&(pVal->data.u.b)));\n\t        \tbreak;\n", "")
+        self.assertNotEqual(source, DECODE_CHOICE_DET)
+        self.assertEqual(check(source, CHOICE_ARM), "")
+
+    def test_determinant_switch_without_a_failing_default_is_not_proven(self):
+        source = DECODE_CHOICE_DET.replace("\t        ret = FALSE;                            /*COVERAGE_IGNORE*/\n", "")
+        self.assertNotEqual(source, DECODE_CHOICE_DET)
+        self.assertEqual(check(source, CHOICE_ARM), "")
+
+    def test_choice_switch_not_under_ret_is_not_proven(self):
+        source = DECODE_CHOICE_DET.replace("\tif (ret) {\n\t    /*Decode data */", "\t{\n\t    /*Decode data */")
+        self.assertNotEqual(source, DECODE_CHOICE_DET)
+        self.assertEqual(check(source, CHOICE_ARM), "")
+
+    def test_conditional_one_item_assignment_is_not_proven(self):
+        source = DECODE_ONE_ITEM.replace("\tNotice_code = Code_a;\n", "\tif (pVal->x) {\n\t    Notice_code = Code_a;\n\t}\n")
+        self.assertNotEqual(source, DECODE_ONE_ITEM)
+        self.assertEqual(check(source, CHOICE_ARM), "")
+
+    def test_determinant_parameter_is_not_proven(self):
+        source = DECODE_ONE_ITEM.replace("\tASN1SCC_Code Notice_code;\n", "").replace("\tNotice_code = Code_a;\n", "").replace(
+            "int* pErrCode)", "int* pErrCode, ASN1SCC_Code Notice_code)")
+        self.assertEqual(check(source, CHOICE_ARM), "")
+
+    def test_value_that_is_not_a_label_is_not_proven(self):
+        source = DECODE_ONE_ITEM.replace("\tNotice_code = Code_a;\n", "\tNotice_code = Code_c;\n")
+        self.assertEqual(check(source, CHOICE_ARM), "")
+
+    def test_determinant_of_an_inline_sequence_under_ret_is_proven(self):
+        # the field is decoded inside the `if (ret)` of an inline SEQUENCE component (09-CHOICE/007 header): when that
+        # block is not entered, ret stays FALSE and the CHOICE switch does not run either
+        source = DECODE_CHOICE_DET.replace(
+            "\t/*Decode Notice_code */\n",
+            "\tret = BitStream_ReadBit(pBitStrm, (&(pVal->h.a)));\n\tif (ret) {\n\t/*Decode Notice_code */\n").replace(
+            "\t} /*COVERAGE_IGNORE*/\n\tif (ret) {\n\t    /*Decode data */",
+            "\t} /*COVERAGE_IGNORE*/\n\t}   /*COVERAGE_IGNORE*/\n\tif (ret) {\n\t    /*Decode data */")
+        self.assertEqual(source.count("if (ret) {"), 3)
+        self.assertIn("\t}   /*COVERAGE_IGNORE*/\n\tif (ret) {\n\t    /*Decode data */", source)
+        self.assertEqual(check(source, CHOICE_ARM), "ASN1SCC-COV-008")
+
+    def test_encoder_is_not_proven(self):
+        source = DECODE_ONE_ITEM.replace("_ACN_Decode(", "_ACN_Encode(")
+        self.assertEqual(check(source, CHOICE_ARM), "")
+
+
+SPEC_CHOICE = """flag ASN1SCC_P_data_ACN_Decode(ASN1SCC_Data* pVal, BitStream* pBitStrm, int* pErrCode, AcnInsertedFieldRef* P_data_code)
+{
+    flag ret = TRUE;
+	*pErrCode = 0;
+
+	(void)P_data_code;
+
+	switch(P_data_code->value)
+	{
+	    case 0:
+	    	pVal->kind = Data_a_PRESENT;
+	    	ret = BitStream_ReadBit(pBitStrm, (&(pVal->u.a)));
+	    	break;
+	    case 1:
+	    	pVal->kind = Data_b_PRESENT;
+	    	ret = BitStream_ReadBit(pBitStrm, (&(pVal->u.b)));
+	    	break;
+	default:                                    /*COVERAGE_IGNORE*/
+	    *pErrCode = ERR_INVALID_ENUM_VALUE;         /*COVERAGE_IGNORE*/
+	    ret = FALSE;                    /*COVERAGE_IGNORE*/
+	}
+
+    return ret;
+}
+"""
+
+CALLER_CAST = """flag ASN1SCC_P_ACN_Decode(ASN1SCC_P* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    flag ret = TRUE;
+	*pErrCode = 0;
+
+	ASN1SCC_Code P_code_tmp;
+	AcnInsertedFieldRef code = {0};
+	asn1SccUint intVal_P_code_tmp;
+
+	/*Decode P_code */
+	ret = Acn_Dec_Int_PositiveInteger_ConstSize_8(pBitStrm, (&(intVal_P_code_tmp)));
+	*pErrCode = ret ? 0 : ERR_ACN_DECODE_P_CODE;
+	if (ret) {
+	    switch (intVal_P_code_tmp) {
+	        case 0:
+	            P_code_tmp = Code_a;
+	            break;
+	        case 1:
+	            P_code_tmp = Code_b;
+	            break;
+	    default:                                    /*COVERAGE_IGNORE*/
+	        ret = FALSE;                            /*COVERAGE_IGNORE*/
+	        *pErrCode = ERR_ACN_DECODE_P_CODE;                 /*COVERAGE_IGNORE*/
+	    }
+	} /*COVERAGE_IGNORE*/
+	if (ret) {
+	    code.value = (asn1SccUint)P_code_tmp;
+	}
+	if (ret) {
+	    /*Decode data */
+	    ret = ASN1SCC_P_data_ACN_Decode((&(pVal->data)), pBitStrm, pErrCode, &code);
+	}   /*COVERAGE_IGNORE*/
+
+    return ret && ASN1SCC_P_IsConstraintValid(pVal, pErrCode);
+}
+"""
+
+CALLER_ONE_ITEM = """flag ASN1SCC_P_ACN_Decode(ASN1SCC_P* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    flag ret = TRUE;
+	*pErrCode = 0;
+
+	ASN1SCC_Code P_code_tmp;
+	AcnInsertedFieldRef code = {0};
+
+	/*Decode P_code */
+	/* one possible value: nothing on the wire */
+	P_code_tmp = Code_a;
+	if (ret) {
+	    switch (P_code_tmp) {
+	        case Code_a: code.value = 0; break;
+	    }
+	}
+	/* no check of ret after a part that does not write it */
+	/*Decode data */
+	ret = ASN1SCC_P_data_ACN_Decode((&(pVal->data)), pBitStrm, pErrCode, &code);
+
+    return ret && ASN1SCC_P_IsConstraintValid(pVal, pErrCode);
+}
+"""
+
+PASS_THROUGH = """flag ASN1SCC_P_w_ACN_Decode(ASN1SCC_W* pVal, BitStream* pBitStrm, int* pErrCode, AcnInsertedFieldRef* P_w_code)
+{
+    flag ret = TRUE;
+	*pErrCode = 0;
+
+	(void)P_w_code;
+
+	/*Decode data */
+	ret = ASN1SCC_P_data_ACN_Decode((&(pVal->data)), pBitStrm, pErrCode, P_w_code);
+
+    return ret;
+}
+"""
+
+CODE_ENUM = ["typedef enum {", "    Code_a = 0,", "    Code_b = 1", "} ASN1SCC_Code;"]
+
+
+def check009(source, headers=(CODE_ENUM,)):
+    lines = source.splitlines()
+    return proven_unreachable("c", lines, line_of(lines, CHOICE_ARM), CHOICE_ARM, list(headers))
+
+
+class Cov009(unittest.TestCase):
+    def test_caller_stores_the_decoded_item(self):
+        self.assertEqual(check009(SPEC_CHOICE + CALLER_CAST), "ASN1SCC-COV-009")
+
+    def test_one_item_determinant(self):
+        self.assertEqual(check009(SPEC_CHOICE + CALLER_ONE_ITEM), "ASN1SCC-COV-009")
+
+    def test_ref_passed_through_a_parameter(self):
+        source = SPEC_CHOICE + PASS_THROUGH + CALLER_CAST.replace("ASN1SCC_P_data_ACN_Decode((&(pVal->data))",
+                                                                  "ASN1SCC_P_w_ACN_Decode((&(pVal->w))")
+        self.assertEqual(check009(source), "ASN1SCC-COV-009")
+
+    def test_one_item_inside_an_outer_check(self):
+        source = CALLER_ONE_ITEM.replace("""	/*Decode P_code */""", """	ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, (&(pVal->id)), 0, 255);
+	if (ret) {
+	/*Decode P_code */""").replace("""	ret = ASN1SCC_P_data_ACN_Decode((&(pVal->data)), pBitStrm, pErrCode, &code);
+""", """	ret = ASN1SCC_P_data_ACN_Decode((&(pVal->data)), pBitStrm, pErrCode, &code);
+	}
+""")
+        self.assertEqual(check009(SPEC_CHOICE + source), "ASN1SCC-COV-009")
+
+    def test_one_item_after_a_write_of_ret(self):
+        source = CALLER_ONE_ITEM.replace("""	/*Decode P_code */""", """	ret = BitStream_DecodeConstraintPosWholeNumber(pBitStrm, (&(pVal->id)), 0, 255);
+	/*Decode P_code */""")
+        self.assertEqual(check009(SPEC_CHOICE + source), "")
+
+    def test_enum_values_unknown(self):
+        self.assertEqual(check009(SPEC_CHOICE + CALLER_CAST, headers=()), "")
+
+    def test_item_value_without_case(self):
+        header = ["typedef enum {", "    Code_a = 0,", "    Code_b = 5", "} ASN1SCC_Code;"]
+        self.assertEqual(check009(SPEC_CHOICE + CALLER_CAST, headers=(header,)), "")
+
+    def test_call_may_run_after_a_failed_decode(self):
+        source = CALLER_CAST.replace("""	if (ret) {
+	    /*Decode data */
+	    ret = ASN1SCC_P_data_ACN_Decode((&(pVal->data)), pBitStrm, pErrCode, &code);
+	}   /*COVERAGE_IGNORE*/""", """	/*Decode data */
+	ret = ASN1SCC_P_data_ACN_Decode((&(pVal->data)), pBitStrm, pErrCode, &code);""")
+        self.assertEqual(check009(SPEC_CHOICE + source), "")
+
+    def test_store_under_a_presence_condition(self):
+        source = CALLER_CAST.replace("""	if (ret) {
+	    code.value = (asn1SccUint)P_code_tmp;
+	}""", """	if (pVal->exist.x) {
+	    code.value = (asn1SccUint)P_code_tmp;
+	}""")
+        self.assertEqual(check009(SPEC_CHOICE + source), "")
+
+    def test_other_caller_stores_a_wire_value(self):
+        other = CALLER_CAST.replace("ASN1SCC_P_ACN_Decode(", "ASN1SCC_Q_ACN_Decode(").replace(
+            "code.value = (asn1SccUint)P_code_tmp;", "code.value = intVal_P_code_tmp;")
+        self.assertEqual(check009(SPEC_CHOICE + CALLER_CAST + other), "")
+
+    def test_no_caller(self):
+        self.assertEqual(check009(SPEC_CHOICE), "")
+
+
+# ASN1SCC-COV-010 (coverage step 14e, E5 B): the region check after 'size deduced' contents
+REGION_C = """flag ASN1SCC_P_ACN_Decode(ASN1SCC_P* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    {
+        long acn_saved_count = pBitStrm->count;
+        long acn_expected_end = pBitStrm->currentByte + (long)acn_nCount;
+        int acn_end_bit = pBitStrm->currentBit;
+        int acn_saved_tail_bits = pBitStrm->unusedTailBits;
+        pBitStrm->count = acn_expected_end + (acn_end_bit != 0);
+        /*the region ends at bit acn_end_bit of its last byte: 'size deduced' contents must not see the rest of it*/
+        pBitStrm->unusedTailBits = (8 - acn_end_bit) % 8;
+        ret = ASN1SCC_List_ACN_Decode((&(pVal->payload)), pBitStrm, pErrCode);
+        pBitStrm->count = acn_saved_count;
+        pBitStrm->unusedTailBits = acn_saved_tail_bits;
+        if (ret && pBitStrm->currentByte * 8L + pBitStrm->currentBit > acn_expected_end * 8L + acn_end_bit) {
+            /*the contents read past the end of the region (into the rest of its last byte)*/
+            ret = FALSE; /*COVERAGE_IGNORE*/
+            *pErrCode = ERR_ACN_DECODE_P_PAYLOAD_2; /*COVERAGE_IGNORE*/
+        }
+        pBitStrm->currentByte = acn_expected_end;
+    }
+    return ret;
+}
+"""
+DEDUCED_C = """flag ASN1SCC_List_ACN_Decode(ASN1SCC_List* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    {
+        long ded_avail_bits = (pBitStrm->count * 8L - pBitStrm->unusedTailBits - 0) - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);
+        ret = ASN1SCC_Item_ACN_Decode((&(pVal->arr[0])), pBitStrm, pErrCode);
+    }
+    return ret;
+}
+"""
+PLAIN_C = """flag ASN1SCC_List_ACN_Decode(ASN1SCC_List* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    ret = Acn_Dec_Int_PositiveInteger_ConstSize_8(pBitStrm, (&(pVal->a)));
+    return ret;
+}
+"""
+NESTED_C = """flag ASN1SCC_List_ACN_Decode(ASN1SCC_List* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    {
+        pBitStrm->count = acn_end_byte + (acn_end_bit != 0);
+        ret = ASN1SCC_Inner_ACN_Decode((&(pVal->b)), pBitStrm, pErrCode);
+        pBitStrm->count = acn_saved_count;
+    }
+    return ret;
+}
+flag ASN1SCC_Inner_ACN_Decode(ASN1SCC_Inner* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    long ded_avail_bits = (pBitStrm->count * 8L - pBitStrm->unusedTailBits - 0) - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);
+    return ret;
+}
+"""
+REGION_ADA = """procedure ASN1SCC_P_ACN_Decode_aux(val: in out ASN1SCC_P; bs : in out adaasn1rtl.encoding.Bitstream; result : OUT adaasn1rtl.ASN1_RESULT)
+is
+begin
+    declare --COVERAGE_IGNORE
+        acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(acn_nCount) * 8;
+        acn_saved_end : constant Natural := bs.End_Bit_Pos;
+    begin
+        --  'size deduced' contents end with the region
+        bs.End_Bit_Pos := acn_expected_end;
+        ASN1SCC_List_ACN_Decode_aux(val.payload, bs, result);
+        bs.End_Bit_Pos := acn_saved_end;
+        if result.Success and then bs.Current_Bit_Pos > acn_expected_end then
+            result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => ERR_ACN_DECODE_P_PAYLOAD_2);  --COVERAGE_IGNORE (corrupted input only)
+        end if;
+        bs.Current_Bit_Pos := acn_expected_end;
+    end;
+end ASN1SCC_P_ACN_Decode_aux;
+"""
+DEDUCED_ADA = """procedure ASN1SCC_List_ACN_Decode_aux(val: in out ASN1SCC_List; bs : in out adaasn1rtl.encoding.Bitstream; result : OUT adaasn1rtl.ASN1_RESULT)
+is
+begin
+    declare
+        Ded_Avail_Bits : constant Integer := (bs.End_Bit_Pos - 0) - bs.Current_Bit_Pos;
+    begin
+        null;
+    end;
+end ASN1SCC_List_ACN_Decode_aux;
+"""
+
+
+def check010(language, source, others=()):
+    lines = source.splitlines()
+    check = next(i for i, line in enumerate(lines, 1)
+                 if "8L + acn_end_bit) {" in line or "Current_Bit_Pos > acn_expected_end then" in line)
+    first = next(i for i, line in enumerate(lines, 1) if i > check and
+                 ("ret = FALSE;" in line or "result := adaasn1rtl.ASN1_RESULT'(Success => False" in line))
+    return proven_unreachable(language, lines, first, lines[first - 1],
+                              sources=[o.splitlines() for o in others])
+
+
+class Cov010(unittest.TestCase):
+    def test_deduced_contents_in_the_same_file(self):
+        self.assertEqual(check010("c", REGION_C + DEDUCED_C), "ASN1SCC-COV-010")
+
+    def test_deduced_contents_in_another_source(self):
+        self.assertEqual(check010("c", REGION_C, [DEDUCED_C]), "ASN1SCC-COV-010")
+
+    def test_inline_deduced_contents(self):
+        inline = REGION_C.replace(
+            "ret = ASN1SCC_List_ACN_Decode((&(pVal->payload)), pBitStrm, pErrCode);",
+            "long ded_avail_bits = (pBitStrm->count * 8L - pBitStrm->unusedTailBits - 8) - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);")
+        self.assertEqual(check010("c", inline), "ASN1SCC-COV-010")
+
+    def test_contents_without_deduced_part(self):
+        self.assertEqual(check010("c", REGION_C + PLAIN_C), "")
+
+    def test_deduced_part_only_inside_a_nested_region(self):
+        self.assertEqual(check010("c", REGION_C + NESTED_C), "")
+
+    def test_region_without_deduced_end(self):
+        source = REGION_C.replace("        pBitStrm->unusedTailBits = (8 - acn_end_bit) % 8;\n", "")
+        self.assertEqual(check010("c", source + DEDUCED_C), "")
+
+    def test_other_check_is_not_proven(self):
+        source = REGION_C.replace("acn_expected_end * 8L + acn_end_bit) {", "acn_end_byte * 8L + acn_end_bit) {")
+        self.assertEqual(check010("c", source + DEDUCED_C), "")
+
+    def test_ada_deduced_contents(self):
+        self.assertEqual(check010("Ada", REGION_ADA + DEDUCED_ADA), "ASN1SCC-COV-010")
+
+    def test_ada_marked_shape(self):
+        marked = REGION_ADA.replace(
+            "then\n            result :=",
+            "then\n            pragma Annotate (Xcov, Exempt_On, \"ASN1SCC-COV-010: x\");\n            result :=")
+        self.assertEqual(check010("Ada", marked + DEDUCED_ADA), "ASN1SCC-COV-010")
+
+    def test_ada_contents_without_deduced_part(self):
+        self.assertEqual(check010("Ada", REGION_ADA), "")
+
+    def _choice_region(self, second):
+        chain = """    if ((P_kind->value == 1)) {
+        pVal->kind = P_a_PRESENT;
+        ret = ASN1SCC_List_ACN_Decode((&(pVal->u.a)), pBitStrm, pErrCode);
+    }
+    else if ((P_kind->value == 2)) {
+        pVal->kind = P_b_PRESENT;
+        ret = %s((&(pVal->u.b)), pBitStrm, pErrCode);
+    }
+    else {
+        *pErrCode = ERR_ACN_DECODE_P_PAYLOAD;         /*COVERAGE_IGNORE*/
+        ret = FALSE;                    /*COVERAGE_IGNORE*/
+    }
+""" % second
+        return REGION_C.replace("        ret = ASN1SCC_List_ACN_Decode((&(pVal->payload)), pBitStrm, pErrCode);\n", chain)
+
+    def test_choice_region_every_alternative_deduced(self):
+        source = self._choice_region("ASN1SCC_List2_ACN_Decode")
+        self.assertEqual(check010("c", source + DEDUCED_C + DEDUCED_C.replace("ASN1SCC_List_", "ASN1SCC_List2_")),
+                         "ASN1SCC-COV-010")
+
+    def test_choice_region_one_alternative_not_deduced(self):
+        source = self._choice_region("ASN1SCC_Value_ACN_Decode")
+        self.assertEqual(check010("c", source + DEDUCED_C + PLAIN_C.replace("ASN1SCC_List_", "ASN1SCC_Value_")), "")
+
+    def test_ada_choice_region_one_alternative_not_deduced(self):
+        chain = """        if ((P_kind.Value = 1)) then
+          ASN1SCC_List_ACN_Decode_aux(val.a, bs, result);
+        elsif ((P_kind.Value = 4)) then
+          ASN1SCC_Value_ACN_Decode_aux(val.b, bs, result);
+        else
+            result := adaasn1rtl.ASN1_RESULT'(Success => false, ErrorCode => ERR_ACN_DECODE_P_PAYLOAD);		-- COVERAGE_IGNORE
+        end if;
+"""
+        source = REGION_ADA.replace("        ASN1SCC_List_ACN_Decode_aux(val.payload, bs, result);\n", chain)
+        value = DEDUCED_ADA.replace("ASN1SCC_List_", "ASN1SCC_Value_").replace(
+            "Ded_Avail_Bits : constant Integer := (bs.End_Bit_Pos - 0) - bs.Current_Bit_Pos;", "X : Integer := 0;")
+        self.assertEqual(check010("Ada", source + DEDUCED_ADA + value), "")
+        self.assertEqual(check010("Ada", source + DEDUCED_ADA + DEDUCED_ADA.replace("ASN1SCC_List_", "ASN1SCC_Value_")),
+                         "ASN1SCC-COV-010")
+
+
 class FunctionKind(unittest.TestCase):
     def test_ber_needs_the_encoding_suffix(self):
         self.assertEqual(function_kind("ASN1SCC_TC_number_of_cycles_Decode"), "uper-decode")
         self.assertEqual(function_kind("T_BER_Decode"), "ber-decode")
         self.assertEqual(function_kind("T_XER_Encode"), "xer-encode")
 
+
+
+# ASN1SCC-COV-011 (coverage step 14e, E5 D, Ada): the "region does not fit the stream" arm after an embedded length
+EMBEDDED_ADA = """procedure ASN1SCC_P_ACN_Decode_aux(val: in out ASN1SCC_P; bs : in out adaasn1rtl.encoding.Bitstream; result : OUT adaasn1rtl.ASN1_RESULT)
+is
+begin
+    declare
+        acn_nCount : Integer;
+    begin
+        result.ErrorCode := ERR_ACN_DECODE_P_2;
+        adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, acn_nCount, 1, 3, 2, result.Success);
+        if result.Success then
+            if bs.Current_Bit_Pos <= bs.Size_In_Bytes * 8 and then
+               acn_nCount >= 0 and then acn_nCount <= (bs.Size_In_Bytes * 8 - bs.Current_Bit_Pos) / 8
+            then
+                declare --COVERAGE_IGNORE
+                    acn_expected_end : constant Natural := bs.Current_Bit_Pos + Natural(acn_nCount) * 8;
+                begin
+                    ASN1SCC_Inner_ACN_Decode_aux(val, bs, result);
+                    bs.Current_Bit_Pos := acn_expected_end;
+                end;
+            else
+                result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => adaasn1rtl.ERR_INSUFFICIENT_DATA); --COVERAGE_IGNORE
+            end if;
+        end if;
+    end;
+end ASN1SCC_P_ACN_Decode_aux;
+"""
+
+
+def check011(source):
+    lines = source.splitlines()
+    first = next(i for i, line in enumerate(lines, 1) if "ERR_INSUFFICIENT_DATA" in line)
+    return proven_unreachable("Ada", lines, first, lines[first - 1])
+
+
+class Cov011(unittest.TestCase):
+    def test_embedded_length(self):
+        self.assertEqual(check011(EMBEDDED_ADA), "ASN1SCC-COV-011")
+
+    def test_marked_shape(self):
+        marked = EMBEDDED_ADA.replace(
+            "else\n                result :=",
+            "else\n                pragma Annotate (Xcov, Exempt_On, \"ASN1SCC-COV-011: x\");\n                result :=")
+        self.assertEqual(check011(marked), "ASN1SCC-COV-011")
+
+    def test_length_from_a_field_is_not_proven(self):
+        # an external size field (ext field / AcnInsertedFieldRef) may hold any value of its encoding
+        source = EMBEDDED_ADA.replace(
+            "        adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, acn_nCount, 1, 3, 2, result.Success);\n",
+            "        adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_8(bs, acn_nCount, result.Success);\n")
+        self.assertEqual(check011(source), "")
+
+    def test_assignment_between_read_and_check_is_not_proven(self):
+        source = EMBEDDED_ADA.replace("        if result.Success then\n            if bs.",
+                                      "        acn_nCount := acn_nCount * 2;\n        if result.Success then\n            if bs.")
+        self.assertEqual(check011(source), "")
+
+    def test_other_condition_is_not_proven(self):
+        source = EMBEDDED_ADA.replace("acn_nCount <= (bs.Size_In_Bytes * 8 - bs.Current_Bit_Pos) / 8",
+                                      "acn_nCount <= (bs.Size_In_Bytes * 8 - bs.Current_Bit_Pos) / 16")
+        self.assertEqual(check011(source), "")
+
+
+class Cov010AdaBitString(unittest.TestCase):
+    def test_bit_string_region_with_deduced_contents(self):
+        bits = REGION_ADA.replace("Natural(acn_nCount) * 8;", "Natural(P_len.Value);")
+        self.assertEqual(check010("Ada", bits + DEDUCED_ADA), "ASN1SCC-COV-010")
+
+    def test_bit_string_region_without_deduced_contents(self):
+        bits = REGION_ADA.replace("Natural(acn_nCount) * 8;", "Natural(P_len.Value);")
+        self.assertEqual(check010("Ada", bits), "")
+
+
+# ASN1SCC-COV-009 in Ada (coverage step 14g)
+SPEC_CHOICE_ADA = """procedure ASN1SCC_P_data_ACN_Decode_aux(val: in out ASN1SCC_Data; bs : in out adaasn1rtl.encoding.Bitstream; result : OUT adaasn1rtl.ASN1_RESULT; P_data_code : in out adaasn1rtl.encoding.acn.AcnInsertedFieldRef)
+is
+begin
+    result := adaasn1rtl.ASN1_RESULT'(Success => true, ErrorCode => 0);
+    case P_data_code.Value is
+        when 1 =>
+          val := ASN1SCC_Data'(kind => Data_a_PRESENT, a => 0);
+        when 5 =>
+          val := ASN1SCC_Data'(kind => Data_b_PRESENT, b => False);
+
+    when others => -- COVERAGE_IGNORE
+            result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => ERR_ACN_DECODE_P_DATA); -- COVERAGE_IGNORE
+    end case;
+end ASN1SCC_P_data_ACN_Decode_aux;
+"""
+
+ADA_ARM = "result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => ERR_ACN_DECODE_P_DATA); -- COVERAGE_IGNORE"
+
+CALLER_ADA = """procedure ASN1SCC_P_ACN_Decode_aux(val: in out ASN1SCC_P; bs : in out adaasn1rtl.encoding.Bitstream; result : OUT adaasn1rtl.ASN1_RESULT)
+is
+    P_code_tmp : ASN1SCC_Code;
+    code : adaasn1rtl.encoding.acn.AcnInsertedFieldRef := (others => <>);
+    intVal_P_code_tmp : adaasn1rtl.Asn1UInt;
+begin
+    adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_8(bs, intVal_P_code_tmp, 1, 5, result);
+    result.ErrorCode := ERR_ACN_DECODE_P_CODE;
+    if result.Success then
+        case intVal_P_code_tmp is
+            when 1 => P_code_tmp := Code_a;
+            when 5 => P_code_tmp := Code_b;
+        when others =>
+            P_code_tmp := Code_a;
+            result := adaasn1rtl.ASN1_RESULT'(Success => False, ErrorCode => ERR_ACN_DECODE_P_CODE);
+        end case;
+    else
+        P_code_tmp := Code_a;
+        result.ErrorCode := ERR_ACN_DECODE_P_CODE;
+    end if;
+    if result.Success then
+        code.Value := adaasn1rtl.Asn1UInt(ASN1SCC_Code'Enum_Rep(P_code_tmp));
+    end if;
+    if result.Success then
+        -- Decode data
+        ASN1SCC_P_data_ACN_Decode_aux(val.data, bs, result, code);
+    end if;
+end ASN1SCC_P_ACN_Decode_aux;
+"""
+
+CODE_SPEC_ADA = ["type ASN1SCC_Code is (Code_a, Code_b) with Size => adaasn1rtl.Enumerated_Size;",
+                 "for ASN1SCC_Code use", "    (Code_a => 1, Code_b => 5);"]
+
+
+def check009ada(source, specs=(CODE_SPEC_ADA,), others=()):
+    lines = source.splitlines()
+    return proven_unreachable("Ada", lines, line_of(lines, ADA_ARM), ADA_ARM, list(specs),
+                              [o.splitlines() for o in others])
+
+
+class Cov009Ada(unittest.TestCase):
+    def test_enum_rep_store(self):
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + CALLER_ADA), "ASN1SCC-COV-009")
+
+    def test_caller_in_another_body(self):
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA, others=(CALLER_ADA.replace(
+            "        ASN1SCC_P_data_ACN_Decode_aux(", "        Other.ASN1SCC_P_data_ACN_Decode_aux("),)), "ASN1SCC-COV-009")
+
+    def test_case_expression_store(self):
+        source = CALLER_ADA.replace("code.Value := adaasn1rtl.Asn1UInt(ASN1SCC_Code'Enum_Rep(P_code_tmp));",
+                                    "code.Value := (case P_code_tmp is\n            when Code_a => adaasn1rtl.Asn1UInt(1),\n"
+                                    "            when Code_b => adaasn1rtl.Asn1UInt(5));")
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + source, specs=()), "ASN1SCC-COV-009")
+
+    def test_case_expression_value_not_a_label(self):
+        source = CALLER_ADA.replace("code.Value := adaasn1rtl.Asn1UInt(ASN1SCC_Code'Enum_Rep(P_code_tmp));",
+                                    "code.Value := (case P_code_tmp is\n            when Code_a => adaasn1rtl.Asn1UInt(1),\n"
+                                    "            when Code_b => adaasn1rtl.Asn1UInt(7));")
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + source, specs=()), "")
+
+    def test_unguarded_store_after_full_range_read(self):
+        source = CALLER_ADA.replace("""    if result.Success then
+        code.Value := adaasn1rtl.Asn1UInt(ASN1SCC_Code'Enum_Rep(P_code_tmp));
+    end if;
+    if result.Success then
+        -- Decode data
+        ASN1SCC_P_data_ACN_Decode_aux(val.data, bs, result, code);
+    end if;""", """    code.Value := adaasn1rtl.Asn1UInt(ASN1SCC_Code'Enum_Rep(P_code_tmp));
+    -- Decode data
+    ASN1SCC_P_data_ACN_Decode_aux(val.data, bs, result, code);""")
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + source), "ASN1SCC-COV-009")
+
+    def test_pass_through_parameter(self):
+        middle = """procedure ASN1SCC_P_w_ACN_Decode_aux(val: in out ASN1SCC_W; bs : in out adaasn1rtl.encoding.Bitstream; result : OUT adaasn1rtl.ASN1_RESULT; P_w_code : in out adaasn1rtl.encoding.acn.AcnInsertedFieldRef)
+is
+begin
+    ASN1SCC_P_data_ACN_Decode_aux(val.data, bs, result, P_w_code);
+end ASN1SCC_P_w_ACN_Decode_aux;
+"""
+        caller = CALLER_ADA.replace("ASN1SCC_P_data_ACN_Decode_aux(val.data, bs, result, code);",
+                                    "ASN1SCC_P_w_ACN_Decode_aux(val.w, bs, result, code);")
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + middle + caller), "ASN1SCC-COV-009")
+
+    def test_label_missing_in_representation(self):
+        spec = ["type ASN1SCC_Code is (Code_a, Code_b);", "for ASN1SCC_Code use", "    (Code_a => 1, Code_b => 6);"]
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + CALLER_ADA, specs=(spec,)), "")
+
+    def test_no_representation_clause_uses_positions(self):
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + CALLER_ADA, specs=(["type ASN1SCC_Code is (Code_a, Code_b);"],)), "")
+
+    def test_local_not_assigned_on_every_path(self):
+        source = CALLER_ADA.replace("""    else
+        P_code_tmp := Code_a;
+        result.ErrorCode := ERR_ACN_DECODE_P_CODE;
+    end if;""", """    else
+        result.ErrorCode := ERR_ACN_DECODE_P_CODE;
+    end if;""")
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + source), "")
+
+    def test_local_with_initializer(self):
+        source = CALLER_ADA.replace("P_code_tmp : ASN1SCC_Code;", "P_code_tmp : ASN1SCC_Code := Code_a;")
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + source), "")
+
+    def test_call_not_after_the_store(self):
+        source = CALLER_ADA.replace("""    if result.Success then
+        -- Decode data
+        ASN1SCC_P_data_ACN_Decode_aux(val.data, bs, result, code);
+    end if;""", """    result := adaasn1rtl.ASN1_RESULT'(Success => true, ErrorCode => 0);
+    if result.Success then
+        -- Decode data
+        ASN1SCC_P_data_ACN_Decode_aux(val.data, bs, result, code);
+    end if;""")
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + source), "")
+
+    def test_ref_written_by_another_callee(self):
+        writer = """procedure ASN1SCC_P_hdr_ACN_Decode_aux(val: in out ASN1SCC_H; bs : in out adaasn1rtl.encoding.Bitstream; result : OUT adaasn1rtl.ASN1_RESULT; P_hdr_code : in out adaasn1rtl.encoding.acn.AcnInsertedFieldRef)
+is
+begin
+    adaasn1rtl.encoding.acn.Acn_Dec_Int_PositiveInteger_ConstSize_8_FullRange(bs, P_hdr_code.Value);
+end ASN1SCC_P_hdr_ACN_Decode_aux;
+"""
+        caller = CALLER_ADA.replace("""    if result.Success then
+        -- Decode data""", """    ASN1SCC_P_hdr_ACN_Decode_aux(val.hdr, bs, result, code);
+    if result.Success then
+        -- Decode data""")
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA + writer + caller), "")
+
+    def test_no_call(self):
+        self.assertEqual(check009ada(SPEC_CHOICE_ADA), "")
+
+    def test_selector_not_a_parameter(self):
+        source = SPEC_CHOICE_ADA.replace("case P_data_code.Value is", "case other.Value is")
+        self.assertEqual(check009ada(source + CALLER_ADA), "")
+
+
+# ASN1SCC-COV-001 in Ada, ALWAYS ABSENT alternatives (coverage step 14g, K2)
+ABSENT_ADA = """procedure ASN1SCC_T_SubThing_ACN_Decode_aux(val: in out ASN1SCC_T_SubThing; bs : in out adaasn1rtl.encoding.Bitstream; result : OUT adaasn1rtl.ASN1_RESULT)
+is
+    TEST_CASE_T_SubThing_index_tmp:adaasn1rtl.Asn1Int;
+begin
+    result.ErrorCode := ERR_ACN_DECODE_T_SUBTHING;
+    adaasn1rtl.encoding.Dec_ConstraintWholeNumber(bs, TEST_CASE_T_SubThing_index_tmp, 0, 1, 1, result.Success);
+    if result.Success AND TEST_CASE_T_SubThing_index_tmp >= 0 AND  TEST_CASE_T_SubThing_index_tmp <= 1 then
+        case ASN1SCC_T_SubThing_index_range(TEST_CASE_T_SubThing_index_tmp) is
+            when 0 =>
+              val := ASN1SCC_T_SubThing'(kind => T_Thing_field2_PRESENT, field2 => 0);
+              ASN1SCC_T_UInt8_ACN_Decode_aux(val.field2, bs, result);
+            when 1 =>
+              val := ASN1SCC_T_SubThing'(kind => T_Thing_field3_PRESENT, field3 => 0);
+              ASN1SCC_T_UInt8_ACN_Decode_aux(val.field3, bs, result);
+            when 2 =>
+                result := adaasn1rtl.ASN1_RESULT'(Success => false, ErrorCode => ERR_ACN_DECODE_T_SUBTHING);		-- COVERAGE_IGNORE
+        end case;
+    end if;
+end ASN1SCC_T_SubThing_ACN_Decode_aux;
+"""
+ABSENT_ARM = "result := adaasn1rtl.ASN1_RESULT'(Success => false, ErrorCode => ERR_ACN_DECODE_T_SUBTHING);"
+
+
+def check001absent(source):
+    lines = source.splitlines()
+    return proven_unreachable("Ada", lines, line_of(lines, ABSENT_ARM), ABSENT_ARM)
+
+
+class Cov001AdaAbsent(unittest.TestCase):
+    def test_arm_above_the_checked_range(self):
+        self.assertEqual(check001absent(ABSENT_ADA), "ASN1SCC-COV-001")
+
+    def test_arm_inside_the_checked_range(self):
+        self.assertEqual(check001absent(ABSENT_ADA.replace("<= 1 then", "<= 2 then")), "")
+
+    def test_no_range_check_above_the_case(self):
+        source = ABSENT_ADA.replace("""    if result.Success AND TEST_CASE_T_SubThing_index_tmp >= 0 AND  TEST_CASE_T_SubThing_index_tmp <= 1 then
+""", """    if result.Success then
+""")
+        self.assertEqual(check001absent(source), "")
+
+    def test_check_of_another_variable(self):
+        self.assertEqual(check001absent(ABSENT_ADA.replace("case ASN1SCC_T_SubThing_index_range(TEST_CASE_T_SubThing_index_tmp) is",
+                                                           "case ASN1SCC_T_SubThing_index_range(other_tmp) is")), "")
 
 if __name__ == "__main__":
     unittest.main()

@@ -1,0 +1,27 @@
+-- C_ADA_ONLY: byte-exact C check of Issue 23 (the automatic tests run for C and Ada)
+-- Issue 23: an acn-v2 OCTET STRING (CONTAINING X) whose region does not start at a byte boundary is n whole
+-- octets from its first bit (the contained encoding padded with zeros), as legacy writes it. Before the fix
+-- the acn-v2 encoder measured the stream bytes the region touches: one more octet than legacy for Msg1 (3 bits
+-- of flag before it), and a different length for Msg2. scripts/runWireTests.sh checks the exact bytes in both
+-- modes (030_wire_test.c).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+Inner ::= SEQUENCE {
+    a INTEGER (0..255),
+    b INTEGER (0..3)
+}
+
+Msg1 ::= SEQUENCE {
+    flag    INTEGER (0..7),
+    payload OCTET STRING (CONTAINING Inner)
+}
+
+Msg2 ::= SEQUENCE {
+    flag    INTEGER (0..7),
+    payload OCTET STRING (CONTAINING Inner),
+    tail    INTEGER (0..15)
+}
+
+END
+
+--TCFS   030.acn

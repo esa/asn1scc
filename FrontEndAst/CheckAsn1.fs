@@ -294,8 +294,11 @@ let rec CheckIfVariableViolatesTypeConstraints (t:Asn1Type) (v:Asn1Value) ast =
         let baseType = Asn1Ast.GetBaseTypeConsIncluded t ast
         CheckIfVariableViolatesTypeConstraints baseType v ast
     |RefValue(modName,vasName), Enumerated(items)   ->
-        let bIsEnumItem = items |> Seq.exists(fun x -> x.Name.Value = vasName.Value)
-        t.Constraints |> Seq.forall(fun c -> IsValueAllowed c v bIsEnumItem None ast )
+        match items |> Seq.exists(fun x -> x.Name.Value = vasName.Value) with
+        | true  -> t.Constraints |> Seq.forall(fun c -> IsValueAllowed c v true None ast )
+        // q/issues.md Issue 66: not an item but a reference to another value assignment (colorA Color ::= blue):
+        // check the value it refers to (before, colorA was compared with the items and reported as not conforming)
+        | false -> CheckIfVariableViolatesTypeConstraints t (Asn1Ast.GetBaseValue modName vasName ast) ast
     | _                         ->
         let bitOrOctSrt =
             match (Asn1Ast.GetActualType t  ast).Kind with

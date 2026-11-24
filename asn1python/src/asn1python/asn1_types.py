@@ -276,8 +276,8 @@ class Asn1ObjectIdentifier(Asn1Base):
             self.values += [0] * (OBJECT_IDENTIFIER_MAX_LENGTH - len(self.values))
 
     def is_structurally_valid(self) -> bool:
-        """Basic OID structural rules: at least 2 arcs, first ≤ 2, second ≤ 39."""
-        return (self.n_count >= 2) and (self.values[0] <= 2) and (self.values[1] <= 39)
+        """Basic OID structural rules (X.660): at least 2 arcs, first ≤ 2, second ≤ 39 below the first arc 2."""
+        return (self.n_count >= 2) and (self.values[0] <= 2) and (self.values[0] == 2 or self.values[1] <= 39)
 
     def is_roid_structurally_valid(self) -> bool:
         """RELATIVE-OID structural rule: at least one arc."""

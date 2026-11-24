@@ -18,7 +18,7 @@ EmitTypeAssignment_def_err_code(sErrCode, nErrValue, sFieldPath) ::= <<
 <sErrCode>:constant Integer := <nErrValue>;
 >>
 
-EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero, bValInOut) ::= <<
+EmitTypeAssignment_def_encode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero, bValInOut, bValInitUnused) ::= <<
 <arrsErrcodes; separator="\n">
 <sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING:constant Integer := <nMaxBytesInPER>;
 <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING:constant Integer := <nMaxBitsInPER>;
@@ -31,12 +31,12 @@ procedure <sFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleNam
 ;
 >>
 
-EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero, bValInOut) ::= <<
+EmitTypeAssignment_def_decode(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, bEmptyEncodingSpace, nMaxBytesInPER, nMaxBitsInPER, soSparkAnnotations, bReqBytesForEncodingIsZero, bValInOut, bValInitUnused) ::= <<
 <arrsErrcodes; separator="\n">
 procedure <sFuncName>(<sVarName>: out <sTypeDefName>; Stream : in out <sTypeDefName>_uPER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT);
-procedure <sFuncName>_aux(<sVarName>: <if(bValInOut)>in out<else>out<endif> <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+<if(bValInitUnused)>-- val is in out (a CHOICE is a variant record: the discriminant of an out parameter is read at the call), and every path assigns all of it<\n>pragma Warnings (Off, "unused initial value of ""<sVarName>""");<\n><endif>procedure <sFuncName>_aux(<sVarName>: <if(bValInOut)>in out<else>out<endif> <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 <soSparkAnnotations>
-;
+;<if(bValInitUnused)><\n>pragma Warnings (On, "unused initial value of ""<sVarName>""");<endif>
 >>
 
 
@@ -46,7 +46,7 @@ with
       and then bs.Size_In_Bytes \< Positive'Last / 8
       and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING \<= bs.Size_In_Bytes * 8,
        Post =>
-         bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
+         bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Old and bs.Current_Bit_Pos \<= bs.Current_Bit_Pos'Old + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
 >>
 
 sparkAnnotations_decode(sTypeDefName) ::= <<
@@ -55,14 +55,14 @@ with
       and then bs.Size_In_Bytes \< Positive'Last / 8
       and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING \<= bs.Size_In_Bytes * 8,
        Post =>
-         bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
+         bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Old and bs.Current_Bit_Pos \<= bs.Current_Bit_Pos'Old + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
 >>
 
 TasEncodeMain(sVarName, sFuncName, sTypeDefName, bReqBytesForEncodingIsZero) ::= /*nogen*/<<
 procedure <sFuncName>(<sVarName> : <sTypeDefName>; Stream : out <sTypeDefName>_uPER_Stream; result : OUT <rtlModuleName()>.ASN1_RESULT)
 is
 begin
-    Stream := <sTypeDefName>_uPER_Stream'(Size_In_Bytes => <if(bReqBytesForEncodingIsZero)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING<endif>, Current_Bit_Pos  => 0, pushDataPrm  => 0, fetchDataPrm => 0, Buffer => (others => 0));
+    Stream := <sTypeDefName>_uPER_Stream'(Size_In_Bytes => <if(bReqBytesForEncodingIsZero)>1<else><sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING<endif>, Current_Bit_Pos  => 0, pushDataPrm  => 0, fetchDataPrm => 0, End_Bit_Pos => <if(bReqBytesForEncodingIsZero)>8<else><sTypeDefName>_REQUIRED_BYTES_FOR_ENCODING * 8<endif>, Buffer => (others => 0));
     <sFuncName>_aux(<sVarName>, Stream, result);
 end <sFuncName>;
 >>
@@ -84,7 +84,6 @@ begin
     <if(soIValidFuncName)>
     <if(bValidityCannotFail)>
     -- no validity check: <soIValidFuncName> cannot fail for any value of this type
-    result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
     <sContent>
 
     <else>
@@ -95,7 +94,6 @@ begin
 
     <endif>
     <else>
-    result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
     <sContent>
 
     <endif>
@@ -201,8 +199,8 @@ adaasn1rtl.encoding.uper.UPER_Dec_UnConstraintWholeNumber(bs, <p>, result.Succes
 >>
 
 /*case: A :: = INTEGER(MIN..5) */
-IntUnconstrainedMax_encode(p, nMax, soCheckExp, sErrCode) ::= "adaasn1rtl.encoding.uper.UPER_Enc_UnConstraintWholeNumber(bs, <p>);"
-IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode) ::= <<
+IntUnconstrainedMax_encode(p, nMax, soCheckExp, sErrCode, soType) ::= "adaasn1rtl.encoding.uper.UPER_Enc_UnConstraintWholeNumber(bs, <p>);"
+IntUnconstrainedMax_decode(p, nMax, soCheckExp, sErrCode, soType) ::= <<
 result.ErrorCode := <sErrCode>;
 adaasn1rtl.encoding.uper.UPER_Dec_UnConstraintWholeNumberMax(bs, <p>, <nMax>, result.Success);
 --result.Success := result.Success and then (<soCheckExp>);
@@ -232,19 +230,19 @@ end if;
 >>
 
 
+/* 15g-b2: both branches write result and <p> (every root body writes both; IntNoneRequired_decode for a singleton
+   root), so nothing is initialised before the extension bit (else gnatprove flow: unused assignment) */
 IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
-result.ErrorCode := <sErrCode>;
-<p> := <nMin>;
 declare
     extBit:<rtlModuleName()>.BIT;
 begin
     <rtlModuleName()>.encoding.BitStream_ReadBit(bs, extBit, result.Success); -- read extension bit
-    if result.Success then
-        if extBit=0 then --extBit is zero ==> value is expected within root range
-            <sIntBody>
-        else
-            <IntUnconstrained_decode(p=p, sErrCode=sErrCode, bCoverageIgnore="true")>
-        end if;
+    -- no check: reading one bit inside REQUIRED_BITS cannot fail (the decoder's precondition)
+    pragma Assert (result.Success);
+    if extBit=0 then --extBit is zero ==> value is expected within root range
+        <sIntBody>
+    else
+        <IntUnconstrained_decode(p=p, sErrCode=sErrCode, bCoverageIgnore="true")>
     end if;
 end;
 >>
@@ -477,9 +475,9 @@ end if;
 
 
 
-loopFixedItem_enc (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize)::= /*nogen*/<<
-while <i>\<= <fixedSize> loop
-    pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
+loopFixedItem_enc (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize, bItemCannotFail, bItemWritesResult)::= /*nogen*/<<
+while <i>\<= <fixedSize><if(!bItemCannotFail)><if(bItemWritesResult)> and result.Success<endif><endif> loop
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);<if(bItemCannotFail)><if(bItemWritesResult)><\n>    pragma Loop_Invariant (result.Success);  -- the element's encoding cannot fail<endif><endif>
     pragma Loop_Invariant (bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Loop_Entry);
     pragma Loop_Invariant (bs.Current_Bit_Pos\<=bs.Current_Bit_Pos'Loop_Entry + <nIntItemMaxSize>*(<i>-1));
     <sInternalItem>
@@ -488,9 +486,9 @@ end loop;
 >>
 
 
-loopFixedItem_dec (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize)::= /*nogen*/<<
-while <i>\<= <fixedSize> AND result.Success loop
-    pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
+loopFixedItem_dec (i, fixedSize, nfixedSizeUperLimit, sInternalItem, nCurOffset, nAlignSize, nIntItemMinSize, nIntItemMaxSize, bItemCannotFail, bItemWritesResult)::= /*nogen*/<<
+while <i>\<= <fixedSize><if(!bItemCannotFail)> AND result.Success<endif> loop
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);<if(bItemCannotFail)><if(bItemWritesResult)><\n>    pragma Loop_Invariant (result.Success);  -- the element's decoding cannot fail<else><\n>    --  no check of result: the element's decoding cannot fail and does not write it<endif><endif>
     pragma Loop_Invariant (bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Loop_Entry);
     pragma Loop_Invariant (bs.Current_Bit_Pos \<= bs.Current_Bit_Pos'Loop_Entry + <nIntItemMaxSize>*(<i>-1));
     <sInternalItem>
@@ -551,20 +549,20 @@ result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);
 <p>(<nFixedSize> + 1) := adaasn1rtl.NUL;
 >>
 
-str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
+str_VarSize_encode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode, noNarrowedMax) ::= <<
 nStringLength := <rtlModuleName()>.getStringSize(<p>);
-result.Success := nStringLength >= <nSizeMin> AND nStringLength \<= <nSizeMax>;
+-- no check: the validation at the entry of the encoder accepted the value (its IsConstraintValid checks SIZE (<nSizeMin> .. <nSizeMax>))
+pragma Assume (nStringLength >= <nSizeMin> AND nStringLength \<= <nSizeMax>);
 <i> := 1;
-if result.Success then
-    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(nStringLength), <nSizeMin>, <nSizeInBits>);
-    <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength", nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
-end if;
+adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(nStringLength), <nSizeMin>, <nSizeInBits>);
+<loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength", nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
 >>
 
-str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode) ::= <<
-result.ErrorCode := <rtlModuleName()>.ERR_INSUFFICIENT_DATA;
-adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);
-<i> := 1;
+str_VarSize_decode(p, sPIden, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, soInitExpr, soCallAux, sType, sErrCode, noNarrowedMax) ::= <<
+<if(noNarrowedMax)>-- a WITH COMPONENTS constraint narrows the SIZE: a length above <noNarrowedMax> is rejected before the characters
+result.ErrorCode := <sErrCode>;
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <noNarrowedMax>, <nSizeInBits>, result.Success);<\n><else>result.ErrorCode := <rtlModuleName()>.ERR_INSUFFICIENT_DATA;
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);<\n><endif><i> := 1;
 <loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize="nStringLength", nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
 
 --add nulls until the end
@@ -589,6 +587,9 @@ InternalItem_bit_str_encode(p, i, sErrCode) ::=<<
 <endif>
 >>
 
+/* Used only as the item of the uPER fragmentation templates (DAstUPer.createBitStringFunction_funcBody, SIZE max >= 64K):
+   one BitStream_ReadBit inside REQUIRED_BITS, which cannot fail (15g-b2, DecodeOutcome.fragmentItemCannotFail RtlBit),
+   so no error code is written after it (every path stored the type's code before the header preceding the item) */
 InternalItem_bit_str_decode(p, i, sErrCode) ::=<<
 <if(bitStringAlignment)>
 declare
@@ -597,9 +598,7 @@ begin
     <rtlModuleName()>.encoding.BitStream_ReadBit(bs, bitVal, result.Success);
     <rtlModuleName()>.BitString_Set_Bit(<p>.Data, <i> - 1, bitVal);
 end; -- COVERAGE_IGNORE (GNAT 2021 gcov: exit of a declare block)<\n><else>
-<rtlModuleName()>.encoding.BitStream_ReadBit(bs, <p>.Data(<i>), result.Success);<\n><endif>if not result.Success then
-    result.errorcode := <sErrCode>;		-- COVERAGE_IGNORE
-end if;
+<rtlModuleName()>.encoding.BitStream_ReadBit(bs, <p>.Data(<i>), result.Success);<\n><endif>
 >>
 
 InternalItem_oct_str_encode(p, sAcc, i, sErrCode) ::=<<
@@ -622,16 +621,21 @@ if not result.Success then
 end if;
 >>
 
-octet_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
-result.Success := <p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>;
-result.errorCode := <sErrCode>;
-if result.Success then
-    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
-    adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<p><sAcc>Length));
-end if;
+octet_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode, bLengthEnforced) ::= <<
+<if(bLengthEnforced)>
+-- no run-time check: the Ada type of Length enforces SIZE (<nSizeMin> .. <nSizeMax>) (proved below)
+pragma Assert (<p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>);
+adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
+adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<p><sAcc>Length));
+<else>
+-- no check: the validation at the entry of the encoder accepted the value (its IsConstraintValid checks SIZE (<nSizeMin> .. <nSizeMax>))
+pragma Assume (<p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>);
+adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
+adaasn1rtl.encoding.uper.BitStream_EncodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<p><sAcc>Length));
+<endif>
 >>
 
-octet_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode) ::= <<
+octet_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, nSizeInBits, sErrCode, bLengthEnforced) ::= <<
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);
 result.errorCode := <sErrCode>;
 <p>.Length := nStringLength;
@@ -640,28 +644,34 @@ if result.Success then
 end if;
 >>
 
-seqOf_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, soCallAux) ::= <<
+seqOf_FixedSize_encode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, soCallAux, bItemCannotFail, bItemWritesResult) ::= <<
 <i> := 1;
-<loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize, nfixedSizeUperLimit = nFixedSize, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
+<loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize, nfixedSizeUperLimit = nFixedSize, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize, bItemCannotFail=bItemCannotFail, bItemWritesResult=bItemWritesResult)>
 >>
 
-seqOf_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, soCallAux) ::= <<
+seqOf_FixedSize_decode(p, sTasName, i, sInternalItem, nFixedSize, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, soCallAux, bItemCannotFail, bItemWritesResult) ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);
 <i> := 1;
-<loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize, nfixedSizeUperLimit = nFixedSize, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
+<loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=nFixedSize, nfixedSizeUperLimit = nFixedSize, nCurOffset="0", nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize, bItemCannotFail=bItemCannotFail, bItemWritesResult=bItemWritesResult)>
 >>
 
-seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
-result.Success := <p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>;
-result.errorCode := <sErrCode>;
+seqOf_VarSize_encode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, bItemCannotFail, bItemWritesResult, bLengthEnforced) ::= <<
+<if(bLengthEnforced)>
+-- no run-time check: the Ada type of Length enforces SIZE (<nSizeMin> .. <nSizeMax>) (proved below)
+pragma Assert (<p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>);
 <i> := 1;
-if result.Success then
-    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
-    <loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize)>
-end if;
+adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
+<loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize, bItemCannotFail=bItemCannotFail, bItemWritesResult=bItemWritesResult)>
+<else>
+-- no check: the validation at the entry of the encoder accepted the value (its IsConstraintValid checks SIZE (<nSizeMin> .. <nSizeMax>))
+pragma Assume (<p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>);
+<i> := 1;
+adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
+<loopFixedItem_enc(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize=nAlignSize, nIntItemMinSize=nIntItemMinSize, nIntItemMaxSize=nIntItemMaxSize, bItemCannotFail=bItemCannotFail, bItemWritesResult=bItemWritesResult)>
+<endif>
 >>
 
-seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux) ::= <<
+seqOf_VarSize_decode(p, sAcc, sTasName, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMinSize, nIntItemMaxSize, nAlignSize, sChildInitExpr, sErrCode, nAbsOffset, nRemainingMinBits, nLevel, nIx, nOffset, bIntroSnap, soCallAux, bItemCannotFail, bItemWritesResult, bLengthEnforced) ::= <<
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);
 result.errorCode := <sErrCode>;
 <i> := 1;
@@ -677,7 +687,7 @@ result.errorCode := <sErrCode>;
 
 
 
-FixedSize_Fragmentation_sqf_64K_encode(p, sAcc,sCurOffset, sCurBlockSize, sBlockIndex, nBlocks64K, sInternalItem, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
+FixedSize_Fragmentation_sqf_64K_encode(p, sAcc,sCurOffset, sCurBlockSize, sBlockIndex, nBlocks64K, sInternalItem, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName, bItemCannotFail) ::=<<
 --encode <nBlocks64K> x 64K Blocks
 <sCurBlockSize> := 16#10000#;
 <sCurOffset> := 1;
@@ -690,7 +700,7 @@ for <sBlockIndex> in 1 .. <nBlocks64K> loop
 end loop;
 >>
 
-FixedSize_Fragmentation_sqf_small_block_encode(p, sAcc,sInternalItem, nBlockSize, sBlockId, sCurOffset, sCurBlockSize, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
+FixedSize_Fragmentation_sqf_small_block_encode(p, sAcc,sInternalItem, nBlockSize, sBlockId, sCurOffset, sCurBlockSize, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName, bItemCannotFail) ::=<<
 --encode <nBlockSize> Block
 <sCurBlockSize> := <nBlockSize>;
 adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <sBlockId>, 0, 8);
@@ -701,7 +711,7 @@ end loop;
 >>
 
 
-FixedSize_Fragmentation_sqf_remaining_encode(p, sAcc,sInternalItem, bRemainingItemsWithinByte, nRemainingItemsVar, sCurOffset, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::= <<
+FixedSize_Fragmentation_sqf_remaining_encode(p, sAcc,sInternalItem, bRemainingItemsWithinByte, nRemainingItemsVar, sCurOffset, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName, bItemCannotFail) ::= <<
 --encoding remaining <nRemainingItemsVar> items
 <if(bRemainingItemsWithinByte)>
 adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<nRemainingItemsVar>), 0, 8);
@@ -716,12 +726,18 @@ for <sBLI> in <sCurOffset> .. <sCurOffset> + <nRemainingItemsVar> -1 loop
 end loop;
 >>
 
+FixedSize_Fragmentation_sqf_final_zero_encode(sCurOffset, nFixedSize, sRemainingItemsVar, sErrCodeName) ::= <<
+--the final length of a fragmented length whose last fragment holds a multiple of 16K items is a single zero octet (X.691 10.9.3.8.3 NOTE)
+pragma Assert (<sCurOffset> = <nFixedSize> + 1);
+adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, 0, 0, 8);
+>>
+
 FixedSize_Fragmentation_sqf_encode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBitStringType) ::= <<
 <arrsEncodingParts; separator="\n">
 >>
 
 
-Fragmentation_sqf_encode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSizeMax, nRequiredBitsForUPerEncoding, bIsVariableSize, sErrCodeName, sRemainingItemsVar, sCurBlockSize, sBlockIndex, sCurOffset, sBLJ, sBLI, sLengthTmp, bIsBitStringType, bIsAsciiString) ::= <<
+Fragmentation_sqf_encode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSizeMax, nRequiredBitsForUPerEncoding, bIsVariableSize, sErrCodeName, sRemainingItemsVar, sCurBlockSize, sBlockIndex, sCurOffset, sBLJ, sBLI, sLengthTmp, bIsBitStringType, bIsAsciiString, bItemCannotFail) ::= <<
 <sCurOffset> := 1;
 <sRemainingItemsVar> := <if(bIsAsciiString)><rtlModuleName()>.getStringSize(<p>)<else><if(bIsVariableSize)><p><sAcc>Length<else><nSizeMax><endif><endif>;
 <sBlockIndex>:=1;
@@ -780,6 +796,13 @@ end loop;
 
 
 
+FixedSize_Fragmentation_sqf_final_zero_decode(sCurOffset, nFixedSize, sRemainingItemsVar, sErrCodeName) ::= <<
+--the final length of a fragmented length whose last fragment holds a multiple of 16K items is a single zero octet (X.691 10.9.3.8.3 NOTE)
+result.ErrorCode := <sErrCodeName>;
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
+result.Success := result.Success AND (<sRemainingItemsVar> = 0);
+>>
+
 FixedSize_Fragmentation_sqf_decode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBitStringType) ::= <<
 <arrsEncodingParts; separator="\n">
 <if(bIsBitStringType)>
@@ -788,44 +811,63 @@ FixedSize_Fragmentation_sqf_decode(p, sAcc, arrsEncodingParts, nFixedSize, bIsBi
 <endif>
 >>
 
-FixedSize_Fragmentation_sqf_64K_decode(p, sAcc,sCurOffset, sCurBlockSize, sBlockIndex, nBlocks64K, sInternalItem, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
+FixedSize_Fragmentation_sqf_64K_decode(p, sAcc,sCurOffset, sCurBlockSize, sBlockIndex, nBlocks64K, sInternalItem, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName, bItemCannotFail) ::=<<
 --we expect to decode <nBlocks64K> Blocks and each block must contain 64K elements. Each block must begin with the byte 0xC4
 <sCurBlockSize> := 16#10000#;
 <sCurOffset> := 1;
-result.ErrorCode := <sErrCodeName>;
 for <sBlockIndex> in 1 .. <nBlocks64K>  loop
+    --the type's error code: an element with its own decoder sets result.ErrorCode to 0 when it succeeds
+    result.ErrorCode := <sErrCodeName>;
     adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
     result.Success := result.Success AND (<sRemainingItemsVar> = 16#C4#);
     exit when not Result.Success;
 
+<if(bItemCannotFail)>
+    for <sBLI> in <sCurOffset> .. <sCurOffset> + <sCurBlockSize> -1 loop
+        pragma Loop_Invariant (result.Success);  -- no check of result: the items cannot fail (one RTL read each, inside REQUIRED_BITS by the decoder's precondition)
+        <sInternalItem>
+    end loop;
+
+    <sCurOffset> := <sCurOffset> + <sCurBlockSize>;<\n>
+<else>
 	for <sBLI> in <sCurOffset> .. <sCurOffset> + <sCurBlockSize> -1 loop
 		<sInternalItem>
         exit when not Result.Success;
 	end loop;
 
     <sCurOffset> := <sCurOffset> + <sCurBlockSize>;
-     exit when not Result.Success;
+     exit when not Result.Success;<\n>
+<endif>
 end loop;
 >>
 
 
-FixedSize_Fragmentation_sqf_small_block_decode(p, sAcc,sInternalItem, nBlockSize, sBlockId, sCurOffset, sCurBlockSize, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::=<<
+FixedSize_Fragmentation_sqf_small_block_decode(p, sAcc,sInternalItem, nBlockSize, sBlockId, sCurOffset, sCurBlockSize, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName, bItemCannotFail) ::=<<
 --decode a single Block with <nBlockSize> items
 <sCurBlockSize> := <nBlockSize>;
+result.ErrorCode := <sErrCodeName>;
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
 result.Success  := result.Success AND (<sRemainingItemsVar> = <sBlockId>);
 if result.Success then
+<if(bItemCannotFail)>
+    for <sBLI> in <sCurOffset> .. <sCurOffset> + <sCurBlockSize> -1 loop
+        pragma Loop_Invariant (result.Success);  -- no check of result: the items cannot fail (one RTL read each, inside REQUIRED_BITS by the decoder's precondition)
+        <sInternalItem>
+    end loop;<\n>
+<else>
     for <sBLI> in <sCurOffset> .. <sCurOffset> + <sCurBlockSize> -1 loop
 	    <sInternalItem>
         exit when not Result.Success;
-    end loop;
+    end loop;<\n>
+<endif>
 
     <sCurOffset> := <sCurOffset> + <sCurBlockSize>;
 end if;
 >>
 
-FixedSize_Fragmentation_sqf_remaining_decode(p, sAcc,sInternalItem, bRemainingItemsWithinByte, nRemainingItemsVar, sCurOffset, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName) ::= <<
+FixedSize_Fragmentation_sqf_remaining_decode(p, sAcc,sInternalItem, bRemainingItemsWithinByte, nRemainingItemsVar, sCurOffset, sBLI, sRemainingItemsVar, bIsBitStringType, sErrCodeName, bItemCannotFail) ::= <<
 --decode remaining <nRemainingItemsVar> items
+result.ErrorCode := <sErrCodeName>;
 <if(bRemainingItemsWithinByte)>
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
 result.Success  := result.Success AND (<sRemainingItemsVar> = <nRemainingItemsVar>);
@@ -836,16 +878,23 @@ result.Success := result.Success AND ((adaasn1rtl.Asn1UInt(16#8000#) AND adaasn1
 
 <endif>
 if result.Success then
+<if(bItemCannotFail)>
+    for <sBLI> in <sCurOffset> .. <sCurOffset> + <nRemainingItemsVar> -1 loop
+        pragma Loop_Invariant (result.Success);  -- no check of result: the items cannot fail (one RTL read each, inside REQUIRED_BITS by the decoder's precondition)
+        <sInternalItem>
+    end loop;<\n>
+<else>
     for <sBLI> in <sCurOffset> .. <sCurOffset> + <nRemainingItemsVar> -1 loop
 	    <sInternalItem>
         exit when not Result.Success;
-    end loop;
+    end loop;<\n>
+<endif>
 end if;
 >>
 
 
 
-Fragmentation_sqf_decode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSizeMax, nRequiredBitsForUPerEncoding, bIsVariableSize, sErrCodeName, sRemainingItemsVar, sCurBlockSize, sBlockIndex, sCurOffset, sBLJ, sBLI, sLengthTmp, bIsBitStringType, bIsAsciiString) ::= <<
+Fragmentation_sqf_decode(p, sAcc, sInternalItem, nIntItemMaxSize, nSizeMin, nSizeMax, nRequiredBitsForUPerEncoding, bIsVariableSize, sErrCodeName, sRemainingItemsVar, sCurBlockSize, sBlockIndex, sCurOffset, sBLJ, sBLI, sLengthTmp, bIsBitStringType, bIsAsciiString, bItemCannotFail) ::= <<
 <if(bIsVariableSize)><sLengthTmp> := 0;<endif>
 <sCurBlockSize> := 0;
 result.ErrorCode := <sErrCodeName>;
@@ -853,8 +902,8 @@ result.ErrorCode := <sErrCodeName>;
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
 <sCurOffset> := 1;
 
-while result.Success AND (<sRemainingItemsVar> = 16#C4# OR <sRemainingItemsVar> = 16#C3# OR <sRemainingItemsVar> = 16#C2# OR <sRemainingItemsVar> = 16#C1#)  loop
-    --# assert <sBLI> >=<sCurOffset> and <sBLI>\<=<sCurOffset> + <sRemainingItemsVar> ;
+-- a fragment of fewer than 64K items is the last one: only the final length may follow it (X.691 10.9.3.8.1)
+while result.Success AND (<sRemainingItemsVar> = 16#C4# OR <sRemainingItemsVar> = 16#C3# OR <sRemainingItemsVar> = 16#C2# OR <sRemainingItemsVar> = 16#C1#) AND <sCurBlockSize> mod 16#10000# = 0 loop
     if <sRemainingItemsVar> = 16#C4# then
         <sCurBlockSize> := 16#10000#;
     elsif <sRemainingItemsVar> = 16#C3# then
@@ -865,61 +914,85 @@ while result.Success AND (<sRemainingItemsVar> = 16#C4# OR <sRemainingItemsVar> 
         <sCurBlockSize> := 16#4000#;
     end if;
 
-    <sBLI> := <sCurOffset>;
-    while <sBLI>\<= <sCurOffset> + <sCurBlockSize> - 1 AND result.Success loop
-    --# assert  <sBLI> >=<sCurOffset> and <sBLI>\<=<sCurOffset> + <sRemainingItemsVar>  and
-    --#        K.K>=K~.K and K.K\<=K~.K+8+ <nIntItemMaxSize>*(<sBLI>-1);
-        <sInternalItem>
-        <sBLI> := <sBLI> + 1;
-    end loop;
-    <if(bIsVariableSize)><sLengthTmp> := <sLengthTmp> + <sCurBlockSize>;<endif>
-    <sCurOffset> := <sCurOffset> + <sCurBlockSize>;
-    adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
+    if <sCurOffset> + <sCurBlockSize> - 1 > <nSizeMax> then
+        -- the items of the fragment do not fit the maximum size
+        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCodeName>); -- COVERAGE_IGNORE
+    else
+        <sBLI> := <sCurOffset>;
+        while <sBLI>\<= <sCurOffset> + <sCurBlockSize> - 1 AND result.Success loop
+            <sInternalItem>
+            <sBLI> := <sBLI> + 1;
+        end loop;
+<if(bItemCannotFail)>
+        -- no check of result: the items cannot fail (one RTL read each, inside REQUIRED_BITS by the decoder's precondition)
+        pragma Assert (result.Success);
+        <if(bIsVariableSize)><sLengthTmp> := <sLengthTmp> + <sCurBlockSize>;<endif>
+        <sCurOffset> := <sCurOffset> + <sCurBlockSize>;
+        result.ErrorCode := <sErrCodeName>;
+        adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);<\n>
+<else>
+        if result.Success then
+            <if(bIsVariableSize)><sLengthTmp> := <sLengthTmp> + <sCurBlockSize>;<endif>
+            <sCurOffset> := <sCurOffset> + <sCurBlockSize>;
+            result.ErrorCode := <sErrCodeName>;
+            adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, <sRemainingItemsVar>, 0, 255, 8, result.Success);
+        end if;<\n>
+<endif>
+    end if;
 end loop;
 
-if <sRemainingItemsVar> >= 16#80# then
-    declare
-        len2:Integer;
-    begin
-        <sRemainingItemsVar> := (<sRemainingItemsVar> - 16#80#) * 16#100#;
-        adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, len2, 0, 255, 8, result.Success);
-        if result.Success then
-             <sRemainingItemsVar> := <sRemainingItemsVar> + len2;
-        end if;
-    end;
+if result.Success then
+    if <sRemainingItemsVar> >= 16#C0# then
+        -- a fragment header where none may follow: other than C1 .. C4, or after a fragment of fewer than 64K items
+        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCodeName>);
+    elsif <sRemainingItemsVar> >= 16#80# then
+        declare
+            len2:Integer;
+        begin
+            adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, len2, 0, 255, 8, result.Success);
+            <sRemainingItemsVar> := (<sRemainingItemsVar> - 16#80#) * 16#100# + len2;
+            -- a length below 128 takes one octet (X.691 10.9.3.6); result.ErrorCode holds <sErrCodeName> here
+            result.Success := result.Success AND <sRemainingItemsVar> >= 16#80#;
+        end;
+    end if;
 end if;
 
-if <sCurOffset> + <sRemainingItemsVar> -1 \<= <nSizeMax> then
-    <sBLI> := <sCurOffset>;
-    while <sBLI>\<= <sCurOffset> + <sRemainingItemsVar> -1 loop
-    --# assert  <sBLI> >=<sCurOffset> and <sBLI>\<=<sCurOffset> + <sRemainingItemsVar>  and
-    --#        K.K>=K~.K and K.K\<=K~.K+8+ <nIntItemMaxSize>*(<sBLI>-1);
-        <sInternalItem>
-        <sBLI> := <sBLI> + 1;
-    end loop;
-    <if(bIsVariableSize)><sLengthTmp> := <sLengthTmp> + <sRemainingItemsVar>;<endif>
+if result.Success then
+    if <sCurOffset> + <sRemainingItemsVar> - 1 \<= <nSizeMax> then
+        <sBLI> := <sCurOffset>;
+        while <sBLI>\<= <sCurOffset> + <sRemainingItemsVar> - 1 AND result.Success loop
+            <sInternalItem>
+            <sBLI> := <sBLI> + 1;
+        end loop;
+        <if(bIsVariableSize)><sLengthTmp> := <sLengthTmp> + <sRemainingItemsVar>;<endif>
+    else
+        -- the last part does not fit the maximum size
+        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCodeName>); -- COVERAGE_IGNORE
+    end if;
 end if;
 
 <if(bIsVariableSize)>
 
-if <sLengthTmp> >= <nSizeMin> and <sLengthTmp> \<= <nSizeMax> then
-    <if(!bIsAsciiString)>
-    <p><sAcc>Length := <sLengthTmp>;
+if result.Success then
+    if <sLengthTmp> >= <nSizeMin> and <sLengthTmp> \<= <nSizeMax> then
+        <if(!bIsAsciiString)>
+        <p><sAcc>Length := <sLengthTmp>;
 
-    <else>
-    <p>(<sLengthTmp> + 1) := adaasn1rtl.NUL;
+        <else>
+        <p>(<sLengthTmp> + 1) := adaasn1rtl.NUL;
 
-    --add nulls until the end
-    while <sBLI>\<= <nSizeMax> + 1  loop
-        pragma Loop_Invariant (<sBLI> >=1 and <sBLI>\<=<nSizeMax> + 1);
-        <p>(<sBLI>) := adaasn1rtl.NUL;
-        <sBLI> := <sBLI> + 1;
-    end loop;
+        --add nulls until the end
+        while <sBLI>\<= <nSizeMax> + 1  loop
+            pragma Loop_Invariant (<sBLI> >=1 and <sBLI>\<=<nSizeMax> + 1);
+            <p>(<sBLI>) := adaasn1rtl.NUL;
+            <sBLI> := <sBLI> + 1;
+        end loop;
 
 
-    <endif>
-else
-    result.Success := false;	--COVERAGE_IGNORE
+        <endif>
+    else
+        result := <rtlModuleName()>.ASN1_RESULT'(Success => False, ErrorCode => <sErrCodeName>); --COVERAGE_IGNORE
+    end if;
 end if;
 
 <else>
@@ -933,31 +1006,41 @@ end if;
 
 
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode, bCallCannotFail) ::= <<
 --open new scope to declare some variables
 declare
-    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
-	data_length : Integer;
+    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sBufferBytes>);
 begin
 	--encode value to a temporary bit stream
 	<sFuncName>_aux(<p>, tmpBs, result);
+<if(bCallCannotFail)>
+	-- no check: <sFuncName> cannot fail (Post => result.Success)
+	pragma Assert (result.Success);
+	--X.691: general length in octets, contents padded to whole octets (an empty encoding is one zero octet)
+	adaasn1rtl.encoding.uper.BitStream_EncodeContainingOctets(bs, tmpBs.Buffer, tmpBs.Current_Bit_Pos, <nMaxOctets>);<\n>
+<else>
 	if result.success then
-		data_length := adaasn1rtl.encoding.BitStream_current_length_in_bytes(tmpBs);
-		adaasn1rtl.encoding.uper.BitStream_EncodeOctetString(bs, tmpBs.Buffer, data_length, <nBits>, <nMinSize>, <nMaxSize>);
-	end if;
+		--X.691: general length in octets, contents padded to whole octets (an empty encoding is one zero octet)
+		adaasn1rtl.encoding.uper.BitStream_EncodeContainingOctets(bs, tmpBs.Buffer, tmpBs.Current_Bit_Pos, <nMaxOctets>);
+	end if;<\n>
+<endif>
 end;
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxOctets, sErrCode, bCallCannotFail) ::= <<
 --open new scope to declare some variables
 declare
-    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
-	data_length : Integer;
+    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sBufferBytes>);
+	data_length : Natural;
 begin
 	--decode to a temporary bitstream
-	adaasn1rtl.encoding.uper.BitStream_DecodeOctetString(bs, tmpBs.Buffer, data_length, <nBits>, <nMinSize>, <nMaxSize>, result.success);
+	adaasn1rtl.encoding.uper.BitStream_DecodeContainingOctets(bs, tmpBs.Buffer, data_length, <nMaxOctets>, result.success);
 	if result.success then
 		<sFuncName>_aux(<p>, tmpBs, result);
+		--the contents must lie in the data_length octets of this region (the rest of tmpBs holds zeros)
+		if result.success and then tmpBs.Current_Bit_Pos > 8 * data_length then
+			result := (Success => False, ErrorCode => <sErrCode>);
+		end if;
 	else
 		result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
 	end if;
@@ -965,31 +1048,41 @@ end;
 >>
 
 
-bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+bit_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode, bCallCannotFail) ::= <<
 --open new scope to declare some variables
 declare
-    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
-	data_length : Integer;
+    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sBufferBytes>);
 begin
 	--encode value to a temporary bit stream
 	<sFuncName>_aux(<p>, tmpBs, result);
+<if(bCallCannotFail)>
+	-- no check: <sFuncName> cannot fail (Post => result.Success)
+	pragma Assert (result.Success);
+	--X.691: general length in bits, contents padded to whole octets (an empty encoding is one zero octet)
+	adaasn1rtl.encoding.uper.BitStream_EncodeContainingBits(bs, tmpBs.Buffer, tmpBs.Current_Bit_Pos, <nMaxBits>);<\n>
+<else>
 	if result.success then
-		data_length := tmpBs.Current_Bit_Pos;
-		adaasn1rtl.encoding.uper.BitStream_EncodeBitString(bs, tmpBs.Buffer, data_length, <nBits>, <nMinSize>, <nMaxSize>);
-	end if;
+		--X.691: general length in bits, contents padded to whole octets (an empty encoding is one zero octet)
+		adaasn1rtl.encoding.uper.BitStream_EncodeContainingBits(bs, tmpBs.Buffer, tmpBs.Current_Bit_Pos, <nMaxBits>);
+	end if;<\n>
+<endif>
 end;
 >>
 
-bit_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForUperEncoding, sReqBitsForUperEncoding, nBits, nMinSize, nMaxSize, sErrCode) ::= <<
+bit_string_containing_func_decode(p, sFuncName, sContainedType, sBufferBytes, nMaxBits, sErrCode, bCallCannotFail) ::= <<
 --open new scope to declare some variables
 declare
-    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sReqBytesForUperEncoding>);
-	data_length : Integer;
+    tmpBs : adaasn1rtl.encoding.Bitstream := adaasn1rtl.encoding.BitStream_init(<sBufferBytes>);
+	data_length : Natural;
 begin
 	--decode to a temporary bitstream
-	adaasn1rtl.encoding.uper.BitStream_DecodeBitString(bs, tmpBs.Buffer, data_length, <nBits>, <nMinSize>, <nMaxSize>, result.success);
+	adaasn1rtl.encoding.uper.BitStream_DecodeContainingBits(bs, tmpBs.Buffer, data_length, <nMaxBits>, result.success);
 	if result.success then
 		<sFuncName>_aux(<p>, tmpBs, result);
+		--the contents must lie in the octets of the data_length bits of this region (the rest of tmpBs holds zeros)
+		if result.success and then tmpBs.Current_Bit_Pos > 8 * ((data_length + 7) / 8) then
+			result := (Success => False, ErrorCode => <sErrCode>);
+		end if;
 	else
 		result.ErrorCode := <sErrCode>;  --COVERAGE_IGNORE (corrupted input only)
 	end if;
@@ -1031,22 +1124,30 @@ adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<nFixedSiz
 end if;
 >>
 
-bitString_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
-result.Success := <p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>;
-result.errorCode := <sErrCode>;
-if result.Success then
-    adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
-    <bitString_FixSize_encode(sTypeDefName=sTypeDefName, p=p, sAcc=sAcc, nFixedSize=[p, sAcc,"Length"], sErrCode=sErrCode)>
-end if;
+bitString_VarSize_encode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits, bLengthEnforced) ::= <<
+<if(bLengthEnforced)>
+-- no run-time check: the Ada type of Length enforces SIZE (<nSizeMin> .. <nSizeMax>) (proved below)
+pragma Assert (<p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>);
+adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
+<bitString_FixSize_encode(sTypeDefName=sTypeDefName, p=p, sAcc=sAcc, nFixedSize=[p, sAcc,"Length"], sErrCode=sErrCode)>
+<else>
+-- no check: the validation at the entry of the encoder accepted the value (its IsConstraintValid checks SIZE (<nSizeMin> .. <nSizeMax>))
+pragma Assume (<p><sAcc>Length >= <nSizeMin> AND <p><sAcc>Length \<= <nSizeMax>);
+adaasn1rtl.encoding.uper.UPER_Enc_ConstraintWholeNumber(bs, <rtlModuleName()>.Asn1Int(<p><sAcc>Length), <nSizeMin>, <nSizeInBits>);
+<bitString_FixSize_encode(sTypeDefName=sTypeDefName, p=p, sAcc=sAcc, nFixedSize=[p, sAcc,"Length"], sErrCode=sErrCode)>
+<endif>
 >>
 
-bitString_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits) ::= <<
+bitString_VarSize_decode(sTypeDefName, p, sAcc, nSizeMin, nSizeMax, sErrCode, nSizeInBits, bLengthEnforced) ::= <<
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt(bs, nStringLength, <nSizeMin>, <nSizeMax>, <nSizeInBits>, result.Success);
 result.errorCode := <sErrCode>;
 if result.Success then
 	<p><sAcc>Length := nStringLength;
-	<bitString_FixSize_decode(sTypeDefName=sTypeDefName, p=p, sAcc=sAcc, nFixedSize=[p,sAcc, "Length"], sErrCode=sErrCode)>
-end if;
+<if(bitStringAlignment)>
+	<bitString_FixSize_decode(sTypeDefName=sTypeDefName, p=p, sAcc=sAcc, nFixedSize=[p,sAcc, "Length"], sErrCode=sErrCode)><\n><else>
+	adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<p><sAcc>Length), result.success);
+	-- no check: BitStream_ReadBitArray cannot fail (the stream holds the full size); proved by this Assert
+	pragma Assert (result.Success);<\n><endif>end if;
 >>
 
 
@@ -1062,6 +1163,98 @@ IntFullyConstraint_fullRange(p, nMin, nBits, sSsuffix) ::= <<
 adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumber_FullRange<sSsuffix>(bs, <p>, <nMin>, <nBits>);
 >>
 
+/* Coverage step 14c2a: decode of an ENUMERATED / CHOICE whose index fills its field (2^nBits items / alternatives):
+   the _FullRange twin cannot fail and its Post bounds the index, so the case needs no guard (DecodeOutcome.fullIndexBits). */
+Enumerated_fullIndex(p, td/*:FE_EnumeratedTypeDefinition*/, arrsItem, nBits) ::= <<
+declare
+    intVal:Asn1Int;
+begin
+    -- cannot fail, no result to check: every index of the field is an item
+    adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumber_FullRange(bs, intVal, 0, <nBits>);
+    case <td.index_range>(intVal) is
+        <arrsItem; separator="\n">
+    end case;
+end;
+>>
+
+choice_fullIndex(p, sAcc, arrsChildren, sChoiceIndexName, td/*:FE_ChoiceTypeDefinition*/, nIndexSizeInBits) ::= <<
+-- cannot fail, no result to check: every index of the field is an alternative
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumber_FullRange(bs, <sChoiceIndexName>, 0, <nIndexSizeInBits>);
+case <td.index_range>(<sChoiceIndexName>) is
+    <arrsChildren; separator="\n">
+end case;
+>>
+
+/* Coverage step 14c2b (B2): decode of a string / OCTET STRING / BIT STRING whose length (and character index) fills its
+   field: UPER_Dec_ConstraintWholeNumberInt_FullRange cannot fail and its Post bounds the value, so no check follows
+   (DecodeOutcome.lengthFullRange / charIndexFullRange / stringCannotFail). */
+InternalItem_string_no_alpha_fullRange(p, i) ::=<<
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt_FullRange(bs, charIndex, 0, 7);
+<p>(<i>) := Character'Val(charIndex);
+>>
+
+InternalItem_string_with_alpha_fullRange(p, td/*:FE_StringTypeDefinition*/, i, nCharIndexSize) ::=<<
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt_FullRange(bs, charIndex, 0, <nCharIndexSize>);
+<p>(<i>) := <td.alpha_set>(charIndex+1);
+>>
+
+loopFixedItem_dec_fullRange(i, fixedSize, sInternalItem, nIntItemMaxSize)::= /*nogen*/<<
+while <i>\<= <fixedSize> loop
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<fixedSize>);
+    pragma Loop_Invariant (bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Loop_Entry);
+    pragma Loop_Invariant (bs.Current_Bit_Pos \<= bs.Current_Bit_Pos'Loop_Entry + <nIntItemMaxSize>*(<i>-1));
+    <sInternalItem>
+    <i> := <i> + 1;
+end loop;
+>>
+
+str_FixedSize_fullRange(p, i, sInternalItem, nFixedSize, nIntItemMaxSize) ::= <<
+-- cannot fail, no result to check: every character index of the field is a character
+<i> := 1;
+<loopFixedItem_dec_fullRange(i=i, fixedSize=nFixedSize, sInternalItem=sInternalItem, nIntItemMaxSize=nIntItemMaxSize)>
+<p>(<nFixedSize> + 1) := adaasn1rtl.NUL;
+>>
+
+str_VarSize_fullRange(p, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMaxSize) ::= <<
+-- cannot fail, no result to check: every length and character index of the fields is valid
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt_FullRange(bs, nStringLength, <nSizeMin>, <nSizeInBits>);
+<i> := 1;
+<loopFixedItem_dec_fullRange(i=i, fixedSize="nStringLength", sInternalItem=sInternalItem, nIntItemMaxSize=nIntItemMaxSize)>
+
+--add nulls until the end
+while <i>\<= <nSizeMax> + 1  loop
+    pragma Loop_Invariant (<i> >=1 and <i>\<=<nSizeMax> + 1);
+    <p>(<i>) := adaasn1rtl.NUL;
+    <i> := <i> + 1;
+end loop;
+>>
+
+/* Coverage step 14k (G1b): decode of a variable-size SEQUENCE OF whose length fills its field and whose element cannot
+   fail (DecodeOutcome.uperSeqOfVarFullRangeElement / acnSeqOfVarFullRangeElement; also the ACN embedded length). The
+   _FullRange Post bounds the length to the SIZE range before it is stored in Length (Issue 84). */
+seqOf_VarSize_fullRange(p, sAcc, i, sInternalItem, nSizeMin, nSizeMax, nSizeInBits, nIntItemMaxSize, bItemWritesResult) ::= <<
+-- cannot fail: every bit pattern of the length field is a valid length and the element's decoding cannot fail
+result := <rtlModuleName()>.ASN1_RESULT'(Success => True, ErrorCode => 0);
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt_FullRange(bs, nStringLength, <nSizeMin>, <nSizeInBits>);
+<p>.Length := nStringLength;
+<i> := 1;
+<loopFixedItem_dec(i=i, sInternalItem=sInternalItem, fixedSize=[p, sAcc, "Length"], nfixedSizeUperLimit = nSizeMax, nCurOffset=nSizeInBits, nAlignSize="0", nIntItemMinSize="0", nIntItemMaxSize=nIntItemMaxSize, bItemCannotFail="true", bItemWritesResult=bItemWritesResult)>
+>>
+
+octet_VarSize_fullRange(p, sAcc, nSizeMin, nSizeInBits) ::= <<
+-- no check of the length: every bit pattern of its field is a valid length
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt_FullRange(bs, nStringLength, <nSizeMin>, <nSizeInBits>);
+<p>.Length := nStringLength;
+adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length(bs, <p><sAcc>Data, Integer(<p><sAcc>Length), result.success);
+>>
+
+bitString_VarSize_fullRange(p, sAcc, nSizeMin, nSizeInBits) ::= <<
+-- no check of the length: every bit pattern of its field is a valid length
+adaasn1rtl.encoding.uper.UPER_Dec_ConstraintWholeNumberInt_FullRange(bs, nStringLength, <nSizeMin>, <nSizeInBits>);
+<p><sAcc>Length := nStringLength;
+adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<p><sAcc>Length), result.success);
+>>
+
 /* Coverage step 10b: start of a decoder none of whose mandatory parts assigns result.ErrorCode. */
 decode_result_init() ::= <<
 result := <rtlModuleName()>.ASN1_RESULT'(Success => true, ErrorCode => 0);
@@ -1074,7 +1267,7 @@ with
       and then bs.Size_In_Bytes \< Positive'Last / 8
       and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING \<= bs.Size_In_Bytes * 8,
        Post =>
-         result.Success and bs.Current_Bit_Pos \>= bs'Old.Current_Bit_Pos and bs.Current_Bit_Pos \<= bs'Old.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
+         result.Success and bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Old and bs.Current_Bit_Pos \<= bs.Current_Bit_Pos'Old + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
 >>
 
 
@@ -1086,4 +1279,37 @@ adaasn1rtl.encoding.uper.BitStream_DecodeOctetString_no_length(bs, <p><sAcc>Data
 
 bitString_FixSize_noCheck(p, sAcc, nFixedSize) ::= <<
 adaasn1rtl.encoding.BitStream_ReadBitArray(bs, <p><sAcc>Data, Integer(<nFixedSize>), result.success);
+>>
+
+/* Coverage step 14c3, C only (ILangGeneric.decodeOneValueWithoutRead; never used here). */
+one_value_assign(p, sValue) ::= ""
+choice_one_alternative(p, sAcc, sChildID, sChildContent) ::= ""
+
+/* Coverage step 14q (Q3 b): the body of a type assignment's encoder, without the entry validation: <X>_aux validates the
+   value and calls it; the encoders of the same package call it after their own validation, which checked the value at the
+   call (DAstUtilFunctions.encodeCallTarget). Declared in the package body (not in the spec), before its body: a body
+   without a declaration gets "mode could be in" warnings. bFragmentation: the last block of a fixed-size fragmentation
+   updates the offset for nothing (GNAT -gnatwm; before, inside the validation's if, it gave no warning). */
+EmitEncodeBodyProcedure(sVarName, sBodyFuncName, sTypeDefName, arrsLocalVariables, sContent, soSparkAnnotations, bBsIsUnreferenced, bVarNameIsUnreferenced, bFragmentation) ::= <<
+-- the encoding of a valid value: the callers have validated it (no check of its constraints here)
+procedure <sBodyFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+<soSparkAnnotations>
+;
+<if(bFragmentation)>
+pragma Warnings (Off, "possibly useless assignment to ""nCurOffset*");
+<endif>
+procedure <sBodyFuncName>_aux(<sVarName> : <sTypeDefName>; bs : in out <rtlModuleName()>.encoding.Bitstream; result : OUT <rtlModuleName()>.ASN1_RESULT)
+is
+<if(bBsIsUnreferenced)>
+    pragma Unreferenced (bs);
+
+<endif>
+<if(bVarNameIsUnreferenced)>
+    pragma Unreferenced (<sVarName>);
+
+<endif>
+    <arrsLocalVariables; separator="\n">
+begin
+    <sContent>
+end <sBodyFuncName>_aux;<if(bFragmentation)><\n>pragma Warnings (On, "possibly useless assignment to ""nCurOffset*");<endif>
 >>

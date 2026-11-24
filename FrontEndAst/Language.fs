@@ -336,6 +336,14 @@ type ILangGeneric () =
     /// Default: "0" (Ada/Scala don't yet implement --acn-v2).
     abstract member computeDeferredFallbackValue : Asn1AcnAst.AcnInsertedType -> BigInteger -> string
 
+    /// The generated code calls a mapping-function through its module (Ada: <Package>.<f>_encode), so a mapping-function
+    /// needs one, from the ACN or from -mfm (q/issues.md Issue 58). Default false: the module is not used (C, Python, ...).
+    abstract member mappingFunctionsNeedModule : bool
+    /// An ACN integer with a mapping-function is decoded into a temporary of the RTL integer type, which the decode
+    /// mapping-function maps; the field takes the result after a check of its range (Ada, Issue 58). Default false: the
+    /// field itself is decoded and mapped in place (C).
+    abstract member acnMappedIntDecodeViaTemporary : bool
+
     /// Wrap the body of a closure-converted (--acn-v2) specialized function
     /// with language-specific suppression of "dead code / unused symbol"
     /// diagnostics.  The public TAS-style wrapper that some backends emit
@@ -503,7 +511,13 @@ type ILangGeneric () =
     /// file calls it. Ada test files USE every package, so a name that two packages define
     /// (a type in two modules) is ambiguous unless qualified with its package.
     abstract member atcQualifiedFuncName: programUnit:string -> funcName:string -> string
+    /// Constructs the prefix for a cross-module function call (e.g. "pu." for Ada,
+    /// "pu::" for Rust). The moduleName is the raw (ToC'd) program unit name.
+    abstract member constructCrossModuleFuncPrefix: moduleName:string -> string
+    abstract member constructCrossModuleTypeDefPrefix: moduleName:string -> string
     default _.atcQualifiedFuncName _programUnit funcName = funcName
+    default _.constructCrossModuleFuncPrefix (moduleName: string) = moduleName + "."
+    default _.constructCrossModuleTypeDefPrefix (moduleName: string) = moduleName + "."
     default _.qualifyNameWithModule _targetMod _curMod name = name
     abstract member wrapIA5StringValue: typeRef:TypeDefinitionOrReference -> modName:string -> literal:string -> string
     default _.wrapIA5StringValue _typeRef _modName literal = literal
@@ -770,6 +784,21 @@ type ILangGeneric () =
     abstract member atcEmitsConstraintViolationTests : bool
     default _.atcEmitsConstraintViolationTests = false
 
+    /// Automatic tests that call T_Equal with two different values (coverage step 14a, DastTestCaseCreation
+    /// equalityVariantTestCases, AutomaticTestCase.variants): C and Ada.
+    abstract member atcEmitsEqualityVariantTests : bool
+    default _.atcEmitsEqualityVariantTests = false
+
+    /// Automatic tests for a type assignment that has no test of its own (coverage step 14j task 0,
+    /// DastTestCaseCreation validityTestCases): IsConstraintValid must accept every automatic test value. C and Ada.
+    abstract member atcEmitsValidityTests : bool
+    default _.atcEmitsValidityTests = false
+
+    /// The statement that changes the value at the path for the Equal tests (coverage step 14a), when the language
+    /// can hold the changed value: C (its typedefs are base types); None elsewhere.
+    abstract member atcEqualityToggle : EqualityToggle -> AccessPath -> string option
+    default _.atcEqualityToggle _ _ = None
+
     /// True when the automatic tests also decode an ACN stream that holds an
     /// ENUMERATED code no item uses (a gap between the item values); the decoder must
     /// fail (C, Ada). See AcnEnum.createInvalidCodeStream.
@@ -799,21 +828,106 @@ type ILangGeneric () =
     abstract member decodeReadFailureModel : ReadFailureModel
     default _.decodeReadFailureModel = ReadsCanFail
 
+    /// Coverage step 14c3: a decoder reads nothing for a type with one possible value (ENUMERATED with one item, CHOICE
+    /// with one alternative, uPER and ACN uPER-like encodings): it assigns the value, as IntNoneRequired does for
+    /// INTEGER (5..5); the RTL read of 0 bits and its check could never fail. C only; the others keep the read.
+    abstract member decodeOneValueWithoutRead : bool
+    default _.decodeOneValueWithoutRead = false
+
+    /// q/issues.md Issue 106: the decoder of a dependent fails (error code of the dependent) when the component holding
+    /// its determinant field is absent in the stream (BackendAst/AbsentHolder.fs, macros acn_dec_absent_holder_guard /
+    /// _fail), and the decode local of such a field starts with its initial value. C and Ada; the other backends keep
+    /// their output (Scala / Python / Rust: the macros are stubs).
+    abstract member decodeFailsWhenHolderAbsent : bool
+    default _.decodeFailsWhenHolderAbsent = false
+
+    /// q/issues.md Issue 108 (rule R4): the encoder of a dependent fails (error code of the dependent) when the value
+    /// holds the dependent while the component holding its determinant field is absent (BackendAst/AbsentHolder.fs
+    /// encodeGuard / presenceEncodeGuard, macros acn_enc_absent_holder_guard / _fail), and such a value is not valid for
+    /// the automatic tests (AbsentHolder.holderAbsentChecks). C and Ada; the other backends keep their output (stubs).
+    abstract member encodeFailsWhenHolderAbsent : bool
+    default _.encodeFailsWhenHolderAbsent = false
+
+    /// q/issues.md Issue 107 (--acn-v2): the RTL AcnInsertedFieldRef carries `in_stream` (set by InitDet; a PatchDet of a
+    /// ref whose field is not in the stream writes nothing), the decoder sets it where it reads a field that a consumer
+    /// reads through a ref while the component holding the field may be absent, and the refs of such fields are reset
+    /// at the start of every SEQUENCE OF element (BackendAst/AbsentHolder.fs, macros acn_deferred_det_in_stream_* /
+    /// _mark_in_stream / _reset). C and Ada; the other backends keep their output (stubs).
+    abstract member deferredRefTracksStream : bool
+    default _.deferredRefTracksStream = false
+
+    /// Issue 106: the initial value of the decode local of an IA5String ACN field, an array of `stringSize` + 1
+    /// characters (C: a string literal, the range initialiser of initializeString is a GNU extension).
+    abstract member stringLocalInit : int -> string
+    default this.stringLocalInit stringSize = this.initializeString None stringSize
+
+    /// Coverage step 14c3: a decoder SEQUENCE joins its parts by what they write, as the encoders do
+    /// (DAstUtilFunctions.nestEncodeParts): after a part that writes no ret (an ALWAYS ABSENT child, a one-value part)
+    /// the rest follows without `if (ret)`. C only (Ada joins its decode parts by DecodeOutcome).
+    abstract member decodeJoinsByWrites : bool
+    default _.decodeJoinsByWrites = false
+
     /// Whether the IsConstraintValid of an inline child type is still emitted when its parent no longer calls it
     /// (coverage step 11b: the child cannot be invalid). Scala: the ACN encoders of OPTIONAL children call it too.
     /// Elsewhere only the parent called it, and an uncalled function would be dead code (C line-coverage gate).
     abstract member keepsUncalledChildValidators : bool
     default _.keepsUncalledChildValidators = false
 
+    /// Cycle i174 round 2: whether the second operand of a union of validation statements is preceded by a reset of the
+    /// result to "valid". A statement starts from a valid result (a loop runs while it holds, an OPTIONAL / CHOICE child
+    /// check that does not apply leaves it), but the union runs its second operand only after the first one failed, so
+    /// without the reset `(WITH COMPONENT A) | (WITH COMPONENT B)` or a union of WITH COMPONENTS with an OPTIONAL child
+    /// rejected values valid by the second operand. C and Ada (the other backends keep their output).
+    abstract member unionRestartsStatementOperand : bool
+    default _.unionRestartsStatementOperand = false
+
     /// Whether an encoder calls its type's IsConstraintValid when that function is AlwaysValid (see
     /// EncoderValidationModel; coverage step 12a).
     abstract member encoderValidationModel : EncoderValidationModel
     default _.encoderValidationModel = EncodersCallEveryValidation
 
+    /// What an encode template writes to ret / result and whether it can fail (coverage step 12b, EncodeTemplate).
+    /// Unknown everywhere by default: the parts keep their checks (Scala, Python, Rust output unchanged).
+    abstract member encodeTemplateOutcome : EncodeTemplate -> EncodeOutcome
+    default _.encodeTemplateOutcome _ = EncodeOutcome.unknown
+
+    /// Whether the call of a child's encoder validates the child again (Ada: T_Encode_aux calls IsConstraintValid
+    /// unless 12a skipped it; C passes bCheckConstraints = FALSE), so that the call can fail on its validity check.
+    /// Coverage step 14q (Q3 b): a type assignment's encoder that validates its value is split into the validation (the
+    /// _aux, unchanged for its callers outside the package) and a body without it, which the encoders of the same
+    /// package call after their own validation has checked the value (Ada).
+    /// Coverage step 14q (Q6 b): MultiAcnUpdate takes the determinant's value from a source whose update sets it on every
+    /// path (no chain over the sources' flags with a failing else); C and Ada (Scala / Python: usesWrappedOptional).
+    abstract member multiAcnUpdateFromAlwaysSetSource : bool
+    default _.multiAcnUpdateFromAlwaysSetSource = false
+    /// Issue 105 (legacy ACN): when no source of a MultiAcnUpdate is set (every consumer of the determinant is absent
+    /// from the value) the determinant takes its default value instead of failing the encoding; the automatic test
+    /// values agree (AcnDependencies.agreedTestCaseValue). C and Ada; ACN fields of type INTEGER, BOOLEAN or ENUMERATED.
+    /// Issue 123: the same for a single update whose consumer is absent (the else of checkAccessPath) and for an ACN
+    /// parameter's MultiAcnUpdate that is the field's only update; one that is a source of the caller's MultiAcnUpdate
+    /// leaves its value unset (its flag FALSE: the caller ignores it).
+    abstract member multiAcnUpdateDefaultWhenNoSource : bool
+    default _.multiAcnUpdateDefaultWhenNoSource = false
+    abstract member encoderBodySplit : bool
+    default _.encoderBodySplit = false
+    abstract member encodeCallValidates : bool
+    default _.encodeCallValidates = true
+
+    /// Where the encoders keep the _is_initialized flag of an ACN determinant (coverage step 12c, DeterminantFlagModel).
+    abstract member acnDeterminantFlagModel : DeterminantFlagModel
+    default _.acnDeterminantFlagModel = FlagEveryDeterminant
+
     /// Whether the typedefs enforce the range constraints of their type (see TypedefConstraintModel). With
     /// TypedefsEnforceRanges IsConstraintValid replaces such a check by a pragma Assert (coverage step 11b).
     abstract member typedefConstraintModel : TypedefConstraintModel
     default _.typedefConstraintModel = TypedefsAreBaseTypes
+
+    /// True when the selector of a CHOICE value can only name one of its alternatives (Ada: the discriminant is an
+    /// enumeration of the alternatives, no `when others`), so a CHOICE without constraints of its own whose every
+    /// alternative cannot be invalid has a validator that cannot fail (coverage step 14i). C keeps the check: its
+    /// `kind` can hold NONE or any other integer.
+    abstract member choiceSelectorHoldsOnlyAlternatives : bool
+    default _.choiceSelectorHoldsOnlyAlternatives = false
 
     /// True when an OPTIONAL child whose encoder produces no statements must still be
     /// emitted through sequence_optional_child (Rust: the presence flag is assigned there).
@@ -865,6 +979,8 @@ type ILangGeneric () =
         sourceCode
     default _.getDeferredDetFunctions _ = None
     default _.computeDeferredFallbackValue _ _ = "0"
+    default _.mappingFunctionsNeedModule = false
+    default _.acnMappedIntDecodeViaTemporary = false
     default _.wrapDeferredSpecBody body = body
     default _.acnDeferredTempVarName baseName = baseName
     default this.real_annotations = []

@@ -252,12 +252,19 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
                 match o.baseInfo.encodingOptions with
                 | None      -> raise(BugErrorException "")
                 | Some eo   ->
+                    // Issue 94: general length, contents padded to whole octets (at least one)
+                    let nOctets = uPER.containingOctets o.resolvedType.uperMaxSizeInBits
                     match eo.octOrBitStr with
-                    | ContainedInOctString  -> "OCTET", "", "8", "8", eo.minSize, eo.maxSize
-                    | ContainedInBitString  -> "BIT", "", "1","1", eo.minSize, eo.maxSize
+                    | ContainedInOctString  -> "OCTET", "", "8", "8", {eo.minSize with uper = 1I}, {eo.maxSize with uper = nOctets}
+                    | ContainedInBitString  -> "BIT", "", "1","1", {eo.minSize with uper = 8I}, {eo.maxSize with uper = nOctets * 8I}
 
             | _                            -> raise(BugErrorException "")
         let sizeUperRange =  CommonTypes.Concrete(nMinLength, nMaxLength)
+        // Issue 94: OCTET / BIT STRING (CONTAINING X) has a general length (X.691 10.9), whatever its range
+        let isContaining =
+            match t.Kind with
+            | ReferenceType o -> o.baseInfo.encodingOptions.IsSome
+            | _               -> false
         let ChildRow (lineFrom:BigInteger) (i:BigInteger) =
             let sClass = if i % 2I = 0I then (icd_uper.EvenRow stgFileName ()) else (icd_uper.OddRow stgFileName ())
             let nIndex = lineFrom + i
@@ -268,6 +275,7 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
         let LengthRow =
             let nMin, nLengthSize =
                 match sizeUperRange with
+                | CommonTypes.Concrete(_,b)  when isContaining         -> uPER.generalLengthMinBits 0I, uPER.generalLengthMaxBits b.uper
                 | CommonTypes.Concrete(a,b)  when a.uper=b.uper       -> 0I, 0I
                 | CommonTypes.Concrete(a,b)                 -> (GetNumberOfBitsForNonNegativeInteger(b.uper - a.uper)), (GetNumberOfBitsForNonNegativeInteger(b.uper - a.uper))
                 | CommonTypes.NegInf(_)                     -> raise(BugErrorException "")
@@ -287,6 +295,7 @@ let rec printType (stgFileName:string) (m:Asn1Module) (tas:IcdTypeAssignment) (t
 
         let arRows, sExtraComment =
             match sizeUperRange with
+            | CommonTypes.Concrete(_,b)  when isContaining                   -> LengthRow::(ChildRow 1I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 1I b.uper)::[], "X.691: a general length (one octet below 128, two below 16K, fragments above), then the encoding of the contents padded to whole octets (one zero octet when it is empty)."
             | CommonTypes.Concrete(a,b)  when a.uper=b.uper && b.uper<2I     -> [ChildRow 0I 1I], "The array contains a single element."
             | CommonTypes.Concrete(a,b)  when a.uper=b.uper && b.uper=2I     -> (ChildRow 0I 1I)::(ChildRow 0I 2I)::[], (sFixedLengthComment b.uper)
             | CommonTypes.Concrete(a,b)  when a.uper=b.uper && b.uper>2I     -> (ChildRow 0I 1I)::(icd_uper.EmitRowWith3Dots stgFileName ())::(ChildRow 0I b.uper)::[], (sFixedLengthComment b.uper)

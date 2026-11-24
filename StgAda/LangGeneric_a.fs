@@ -102,6 +102,9 @@ type LangGeneric_a() =
         override this.TrueLiteral = "True"
         override this.FalseLiteral = "False"
         override this.hasModules = true
+        // mapping functions: <Package>.<f>_encode / _decode, decoded through a temporary (q/issues.md Issue 58)
+        override _.mappingFunctionsNeedModule = true
+        override _.acnMappedIntDecodeViaTemporary = true
         // Standard.: the test object "dummy" hides a package named Dummy (22-modules/005)
         override this.atcQualifiedFuncName programUnit funcName = "Standard." + programUnit + "." + funcName
         override this.allowsSrcFilesWithNoFunctions = false
@@ -424,13 +427,10 @@ type LangGeneric_a() =
             | Asn1AcnAst.AcnInsertedType.AcnBoolean bln ->
                 match bln.acnProperties.encodingPattern with
                 | None -> Some (q "Acn_InitDet_BOOL1", q "Acn_PatchDet_BOOL1", None, 0I)
-                | Some (AcnGenericTypes.TrueValueEncoding pattern) when pattern.Value = "1" ->
-                    Some (q "Acn_InitDet_BOOL1", q "Acn_PatchDet_BOOL1", None, 0I)
-                | Some (AcnGenericTypes.FalseValueEncoding pattern) when pattern.Value = "0" ->
-                    Some (q "Acn_InitDet_BOOL1", q "Acn_PatchDet_BOOL1", None, 0I)
-                | Some (AcnGenericTypes.TrueFalseValueEncoding (truePattern, falsePattern))
-                    when truePattern.Value = "1" && falsePattern.Value = "0" ->
-                    Some (q "Acn_InitDet_BOOL1", q "Acn_PatchDet_BOOL1", None, 0I)
+                | Some pattern when pattern.isUperLike -> Some (q "Acn_InitDet_BOOL1", q "Acn_PatchDet_BOOL1", None, 0I)
+                // q/issues.md Issue 65: the pattern's bits, written as an integer of their length (the PatchDet value is
+                // the true- or false-pattern, DAstACNDeferred.patchDetWireValue); up to 32 bits (Asn1UInt on every board)
+                | Some pattern when pattern.bitValLength <= 32 -> Some (q "Acn_InitDet_ConstSize", q "Acn_PatchDet_ConstSize", Some (BigInteger pattern.bitValLength), 0I)
                 | Some _ -> None
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
                 match enm.enumerated.acnEncodingClass with
@@ -449,8 +449,12 @@ type LangGeneric_a() =
 
         override this.computeDeferredFallbackValue (acnType: Asn1AcnAst.AcnInsertedType) (uperMinOffset: BigInteger) : string =
             match acnType with
-            | Asn1AcnAst.AcnInsertedType.AcnInteger _ ->
-                if uperMinOffset > 0I then uperMinOffset.ToString() else "0"
+            | Asn1AcnAst.AcnInsertedType.AcnInteger ai ->
+                // the wire value of the field's default (Issues 123 / 142): the default less the offset of a uPER-encoded
+                // field (PatchDet writes its argument as is). A range holding no value >= 0 keeps 0 (legacy would write the
+                // bound): not reachable, no ACN size / present-when consumer takes a negative value (i108a review)
+                let wire = Asn1AcnAstUtilFunctions.acnIntegerDefaultValue ai - uperMinOffset
+                if wire >= 0I then wire.ToString() else "0"
             | Asn1AcnAst.AcnInsertedType.AcnBoolean _ -> "0"
             | Asn1AcnAst.AcnInsertedType.AcnReferenceToEnumerated enm ->
                 // Ada is strictly typed: Asn1UInt(<enum_literal>) is illegal.
@@ -466,9 +470,9 @@ type LangGeneric_a() =
         override _.wrapDeferredSpecBody body =
             // Suppress benign diagnostics around closure-converted spec
             // functions that surface only on this branch:
-            //   * "is not referenced": the public TAS wrapper (e.g.
-            //     PDU_hdr_ACN_Encode) is dead code in the deferred path —
-            //     callers invoke `_aux` directly.
+            //   * "is not referenced": a spec function nobody calls (its
+            //     public wrapper, e.g. PDU_hdr_ACN_Encode, is no longer
+            //     emitted since coverage step 13a: callers invoke `_aux`).
             //   * "not assigned a value": `val` is `out` for Headers whose
             //     only Asn1 child is a NULL-pattern, never written.
             //   * "redundant" / "previous choices cover all values": the
@@ -492,19 +496,88 @@ type LangGeneric_a() =
         override _.atcInvalidStreamPackages = ["adaasn1rtl.encoding.uper"; "adaasn1rtl.encoding.acn"]
         // No truncation: a short stream violates the precondition of every Ada decoder
         // (Current_Bit_Pos + <T>_REQUIRED_BITS_FOR_..._ENCODING <= Size_In_Bytes * 8), it is not a test.
-        // A live 'size deduced' PDU is decoded from a second, exact-length stream inside
-        // Codec_Decode_exact_length: no sweep (C covers it).
-        override _.atcDecodeSweep isLiveDeduced =
-            match isLiveDeduced with
-            | true  -> NoDecodeSweep
-            | false -> CorruptionSweep
+        // A live 'size deduced' PDU is decoded with the view ending at the encoded length (End_Bit_Pos, buffer of
+        // the size the precondition requires); its sweep also shortens the view by 1 .. 8 bits (coverage step 14i).
+        override _.atcDecodeSweep _ = CorruptionSweep
         // The precondition of every Ada decoder guarantees a full-size stream: reads cannot fail.
         override _.decodeReadFailureModel = ReadsCannotFail
+        // Issue 106: fail at the dependent when the holder of its determinant field is absent
+        override _.decodeFailsWhenHolderAbsent = true
+        override _.encodeFailsWhenHolderAbsent = true
+        // Issue 107: the AcnInsertedFieldRef of the RTL tracks whether its field is in the stream
+        override _.deferredRefTracksStream = true
         // Ranged subtypes (INTEGER, SIZE lengths) and enumerations: a value cannot violate those constraints.
         override _.typedefConstraintModel = TypedefsEnforceRanges
+        // The discriminant of a CHOICE is an enumeration of its alternatives (coverage step 14i).
+        override _.choiceSelectorHoldsOnlyAlternatives = true
+        // cycle i174 round 2: the second operand of a union of validation statements starts from ret.Success = True
+        override _.unionRestartsStatementOperand = true
+        override _.acnDeterminantFlagModel = FlagMaybeUninitialized
         // An encoder does not call an IsConstraintValid that cannot fail (coverage step 12a).
         override _.encoderValidationModel = EncodersSkipAlwaysValidPrimitives
+        // coverage step 14q (Q6 b): the determinant of several sources from one that is always set
+        override _.multiAcnUpdateFromAlwaysSetSource = true
+        // Issue 105: the determinant of several sources takes its default value when no source is set
+        override _.multiAcnUpdateDefaultWhenNoSource = true
+        // coverage step 14q (Q3 b): <X>_Encode_Body_aux, called by the encoders of the same package after their validation
+        override _.encoderBodySplit = true
+        // What the Ada encode templates write to result (coverage step 12b; gnatprove checks the assertions).
+        override _.encodeTemplateOutcome t =
+            match t with
+            | EncRtlWritesOnly | EncPresenceBits | EncEnumerated | EncOctetStringFixedSize | EncOctetStringNoLength | EncBitStringFixedSize
+            | EncStringFixedSize | EncSequenceOfFixedSize                           -> EncodeOutcome.noWrite
+            // BitStream_EncodeContainingOctets / Bits: procedures without result (coverage step 14p)
+            | EncContainingUper                                                     -> EncodeOutcome.noWrite
+            // the fragmentation writes no result; since coverage step 14p its fixed-size blocks are joined by what an element
+            // does (DAstUPer.handleFixedSizeFragmentation), so no check reads result before anything writes it
+            | EncFragmentation                                                      -> EncodeOutcome.noWrite
+            // since coverage step 14i the ACN external-field / null-terminated / deduced loops state
+            // pragma Loop_Invariant (result.Success) after an element that cannot fail, as the uPER loops do
+            | EncSequenceOfOtherLoop | EncLoopWithoutInvariant                      -> EncodeOutcome.noWrite
+            // coverage step 14q (Q3 a): pragma Assume (Length >= min AND Length <= max), the string's size likewise: the
+            // validation at the entry of the encoder checked it (every Ada _aux validates its value unless that cannot fail)
+            | EncOctetStringVarSize LengthChecked | EncBitStringVarSize LengthChecked | EncStringVarSize
+            | EncSequenceOfVarSize LengthChecked                                    -> EncodeOutcome.noWrite
+            // the Length subtype of the typedef holds that range: a pragma Assert instead of the check (coverage step 14b2)
+            | EncOctetStringVarSize LengthEnforcedByTypedef | EncBitStringVarSize LengthEnforcedByTypedef
+            | EncSequenceOfVarSize LengthEnforcedByTypedef                          -> EncodeOutcome.noWrite
+            | EncPresentWhenCheck | EncDeferredPatch PatchChecked | EncChoiceAbsentArm -> {canFail = true; writes = AlwaysWrites; callee = None}
+            // <PatchDet>(..., result); pragma Assume (result.Success): the only / first patch of each field (13b / 14d)
+            | EncDeferredPatch PatchUnchecked                                       -> {canFail = false; writes = AlwaysWrites; callee = None}
+            // if result.Success then ... <PatchDet>(..., result) after the body of the region (q/issues.md Issue 63)
+            | EncContainingDeferredWrapper PatchChecked                             -> {canFail = true; writes = ReadsFirst; callee = None}
+            // ... the same with the only / first patch of the size field and pragma Assume (step 14e, E3)
+            | EncContainingDeferredWrapper PatchUnchecked                           -> {canFail = false; writes = ReadsFirst; callee = None}
+            // <PatchDet>(..., result) after a body that cannot fail, checked or with pragma Assume (coverage step 14q)
+            | EncContainingRegionEnd PatchChecked                                   -> {canFail = true; writes = AlwaysWrites; callee = None}
+            | EncContainingRegionEnd PatchUnchecked                                 -> {canFail = false; writes = AlwaysWrites; callee = None}
+            // pragma Assume (nStringLength >= min AND ...): checked at the entry of the encoder (coverage step 14q, Q3 a)
+            | EncStringVarSizeUper                                                  -> EncodeOutcome.noWrite
+            // an exhaustive case over the selector: no default arm
+            | EncChoiceDefaultArm                                                   -> EncodeOutcome.noWrite
+            // determinant updates (coverage step 12c): assignments; an exhaustive case over the CHOICE selector
+            | EncDeterminantAssign | EncDeterminantSwitch                           -> EncodeOutcome.noWrite
+            // pragma Assume (<v> <= max): the string's SIZE, checked at the entry of the encoder (coverage step 14q, Q3 a)
+            | EncDeterminantRangeCheck                                              -> EncodeOutcome.noWrite
+            // result := (Success => result.Success and <sources agree>, ...)
+            | EncDeterminantMulti                                                   -> {canFail = true; writes = ReadsFirst; callee = None}
         override _.atcEmitsConstraintViolationTests = true
+        override _.atcEmitsEqualityVariantTests = true
+        override _.atcEmitsValidityTests = true
+        // Coverage step 14i: the toggles of 14a where the Ada type holds the changed value. The content of a fixed-size
+        // OCTET / BIT STRING (Asn1Byte, BIT: modular, `not` gives another element) and of an IA5String (Character) can
+        // change; a scalar with one automatic test value is a one-value subtype / enumeration here (its Equal cannot
+        // return False). A BIT STRING has a byte toggle when it has at least 8 bits, else its last-bit toggle flips the
+        // first element too.
+        override this.atcEqualityToggle (toggle:EqualityToggle) (path:AccessPath) =
+            let v = path.joined this
+            let firstElement = sprintf "%s.Data(%s.Data'First) := not %s.Data(%s.Data'First);" v v v v
+            match toggle with
+            | ToggleInteger | ToggleReal | ToggleEnumerated -> None
+            | ToggleFirstChar   -> Some (sprintf "%s(%s'First) := (if %s(%s'First) = 'A' then 'B' else 'A');" v v v v)
+            | ToggleByte _      -> Some firstElement
+            | ToggleBit k when k < 8I -> Some firstElement
+            | ToggleBit _       -> None
 
         override this.getChChildIsPresent   (arg:AccessPath) (chParent:string)  (pre_name:string) =
             sprintf "%s%skind %s %s_PRESENT" (arg.joined this) (this.getAccess arg) this.eqOp pre_name

@@ -1,0 +1,22 @@
+-- A size field passed as an ACN argument must hold the sizes of the dependent, like a size field of the same SEQUENCE
+-- (Issue 78 follow-up): the 8-bit len cannot hold the 300 elements of p, also through two levels of parameters.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+Lst ::= SEQUENCE (SIZE(1..300)) OF INTEGER (0..255)
+
+Inner ::= SEQUENCE {
+    p Lst
+}
+
+Mid ::= SEQUENCE {
+    i Inner
+}
+
+Pdu ::= SEQUENCE {
+    w Mid
+}
+
+END
+
+--TCLS  Inner <INTEGER:len> [] { p [size len] } Mid <INTEGER:n> [] { i <n> [] } Pdu [] { len INTEGER [encoding pos-int, size 16], w <len> [] }
+--TCLFC Inner <INTEGER:len> [] { p [size len] } Mid <INTEGER:n> [] { i <n> [] } Pdu [] { len INTEGER [encoding pos-int, size 8], w <len> [] }  $$$ sample1.acn:4:86: error: The applied ACN encoding does not allow values larger than 255 to be encoded, while the corresponding ASN.1 type allows values up to 300

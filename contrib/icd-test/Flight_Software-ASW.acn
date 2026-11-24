@@ -1,0 +1,2051 @@
+ASW-PACKET DEFINITIONS ::=
+BEGIN
+ASW-ENABLE-THE-PERIODIC-GENERATION-OF-A-HOUSEKEEPING-PARAMETER-REPORT-COUNT [encoding pos-int, size 8]
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-ID-ENUM [size 32, encoding pos-int, encode-values, endianness big]
+
+ASW-ENABLE-THE-PERIODIC-GENERATION-OF-A-HOUSEKEEPING-PARAMETER-REPORT-INSTRUCTION-GENERIC [] {
+	housekeeping-parameter-report-structure-id []
+}
+
+ASW-ENABLE-THE-PERIODIC-GENERATION-OF-A-HOUSEKEEPING-PARAMETER-REPORT-INSTRUCTION []
+
+ASW-ENABLE-THE-PERIODIC-GENERATION-OF-HOUSEKEEPING-PARAMETER-REPORTS-GENERIC [] {
+	padding NULL [pattern '00000'B],
+	instructions []
+}
+
+ASW-ENABLE-THE-PERIODIC-GENERATION-OF-HOUSEKEEPING-PARAMETER-REPORTS []
+
+ASW-DISABLE-THE-PERIODIC-GENERATION-OF-A-HOUSEKEEPING-PARAMETER-REPORT-COUNT [encoding pos-int, size 8]
+
+ASW-DISABLE-THE-PERIODIC-GENERATION-OF-A-HOUSEKEEPING-PARAMETER-REPORT-INSTRUCTION-GENERIC [] {
+	housekeeping-parameter-report-structure-id []
+}
+
+ASW-DISABLE-THE-PERIODIC-GENERATION-OF-A-HOUSEKEEPING-PARAMETER-REPORT-INSTRUCTION []
+
+ASW-DISABLE-THE-PERIODIC-GENERATION-OF-HOUSEKEEPING-PARAMETER-REPORTS-GENERIC [] {
+	padding NULL [pattern '00000'B],
+	instructions []
+}
+
+ASW-DISABLE-THE-PERIODIC-GENERATION-OF-HOUSEKEEPING-PARAMETER-REPORTS []
+
+ASW-COLLECTION-INTERVAL [encoding pos-int, size 8]
+
+ASW-PARAMETER-IDENTIFIER [size 32, encoding pos-int, encode-values, endianness big]
+
+ASW-PARAMETER-IDS [] {
+	padding NULL [pattern '000'B],
+	field-data [] 
+}
+
+ASW-COUNT [encoding pos-int, size 8]
+
+ASW-SUPER-COMMUTED-SAMPLE-REPETITION-NUMBER [encoding pos-int, size 8]
+
+ASW-SUPER-COMMUTED-PARAMETER-SET-GENERIC [] {
+	super-commuted-sample-repetition-number [],
+	parameter-id []
+}
+
+ASW-SUPER-COMMUTED-PARAMETER-SET []
+
+ASW-SUPER-COMMUTED-PARAMETER-SETS []
+
+ASW-SUPER-COMMUTED-PARAMETER-SETS-STRUCT-GENERIC [] {
+	nfa ASW-COUNT [],
+	super-commuted-parameter-sets [size nfa]
+}
+
+ASW-SUPER-COMMUTED-PARAMETER-SETS-STRUCT []
+
+ASW-CREATE-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC [] {
+	housekeeping-parameter-report-structure-id [],
+	collection-interval [],
+	parameter-id [],
+	super-commuted-parameter-sets []
+}
+
+ASW-CREATE-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION []
+
+ASW-CREATE-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-GENERIC [] {
+	instruction []
+}
+
+ASW-CREATE-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE []
+
+ASW-DELETE-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-COUNT [encoding pos-int, size 8]
+
+ASW-DELETE-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC [] {
+	housekeeping-parameter-report-structure-id []
+}
+
+ASW-DELETE-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION []
+
+ASW-DELETE-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES-GENERIC [] {
+	padding NULL [pattern '00000'B],
+	instructions []
+}
+
+ASW-DELETE-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES []
+
+ASW-REPORT-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-COUNT [encoding pos-int, size 8]
+
+ASW-REPORT-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC [] {
+	housekeeping-parameter-report-structure-id []
+}
+
+ASW-REPORT-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION []
+
+ASW-REPORT-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES-GENERIC [] {
+	padding NULL [pattern '00000'B],
+	instructions []
+}
+
+ASW-REPORT-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES []
+
+ASW-GENERATE-A-ONE-SHOT-REPORT-FOR-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-COUNT [encoding pos-int, size 8]
+
+ASW-GENERATE-A-ONE-SHOT-REPORT-FOR-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC [] {
+	housekeeping-parameter-report-structure-id []
+}
+
+ASW-GENERATE-A-ONE-SHOT-REPORT-FOR-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION []
+
+ASW-GENERATE-A-ONE-SHOT-REPORT-FOR-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES-GENERIC [] {
+	padding NULL [pattern '00000'B],
+	instructions []
+}
+
+ASW-GENERATE-A-ONE-SHOT-REPORT-FOR-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES []
+
+ASW-APPEND-PARAMETERS-TO-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC [] {
+	housekeeping-parameter-report-structure-id [],
+	parameter-id [],
+	super-commutated-parameters []
+}
+
+ASW-APPEND-PARAMETERS-TO-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION []
+
+ASW-APPEND-PARAMETERS-TO-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-GENERIC [] {
+	instruction []
+}
+
+ASW-APPEND-PARAMETERS-TO-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE []
+
+ASW-MODIFY-THE-COLLECTION-INTERVAL-OF-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-COUNT [encoding pos-int, size 8]
+
+ASW-MODIFY-THE-COLLECTION-INTERVAL-OF-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC [] {
+	housekeeping-parameter-report-structure-id [],
+	collection-interval []
+}
+
+ASW-MODIFY-THE-COLLECTION-INTERVAL-OF-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION []
+
+ASW-MODIFY-THE-COLLECTION-INTERVAL-OF-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES-GENERIC [] {
+	padding NULL [pattern '00000'B],
+	instructions []
+}
+
+ASW-MODIFY-THE-COLLECTION-INTERVAL-OF-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES []
+
+ASW-REPORT-THE-PERIODIC-GENERATION-PROPERTIES-OF-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-COUNT [encoding pos-int, size 8]
+
+ASW-REPORT-THE-PERIODIC-GENERATION-PROPERTIES-OF-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION-GENERIC [] {
+	housekeeping-parameter-report-structure-id []
+}
+
+ASW-REPORT-THE-PERIODIC-GENERATION-PROPERTIES-OF-A-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-INSTRUCTION []
+
+ASW-REPORT-THE-PERIODIC-GENERATION-PROPERTIES-OF-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES-GENERIC [] {
+	padding NULL [pattern '00000'B],
+	instructions []
+}
+
+ASW-REPORT-THE-PERIODIC-GENERATION-PROPERTIES-OF-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURES []
+
+ASW-CONFIGURATION-EXECUTION-FLAG [size 32, encoding pos-int, encode-values, endianness big]
+
+ASW-APPLY-A-PARAMETER-FUNCTIONAL-REPORTING-CONFIGURATION-COUNT [encoding pos-int, size 8]
+
+ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-ID [size 32, encoding pos-int, encode-values, endianness big]
+
+ASW-APPLY-A-PARAMETER-FUNCTIONAL-REPORTING-CONFIGURATION-INSTRUCTION-GENERIC [] {
+	parameter-functional-reporting-definition-id []
+}
+
+ASW-APPLY-A-PARAMETER-FUNCTIONAL-REPORTING-CONFIGURATION-INSTRUCTION []
+
+ASW-APPLY-PARAMETER-FUNCTIONAL-REPORTING-CONFIGURATIONS-GENERIC [] {
+	configuration-execution-flag [],
+	padding NULL [pattern '00000'B],
+	instructions []
+}
+
+ASW-APPLY-PARAMETER-FUNCTIONAL-REPORTING-CONFIGURATIONS []
+
+ASW-APPLICATION-PROCESS-IDENTIFIER [size 32, encoding pos-int, encode-values, endianness big]
+
+ASW-PARAMETER-REPORT-STRUCTURE-TYPE [size 32, encoding pos-int, encode-values, endianness big]
+
+ASW-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURE-ID-ENUM [size 8, encoding pos-int, encode-values]
+
+ASW-PARAMETER-REPORT-STRUCTURE-ID-CHOICE []
+
+ASW-PERIODIC-GENERATION-ACTION-STATUS [size 32, encoding pos-int, encode-values, endianness big]
+
+ASW-PARAMETER-REPORT-STRUCTURE-SPECIFICATION-GENERIC [] {
+	parameter-report-structure-type ASW-PARAMETER-REPORT-STRUCTURE-TYPE [],
+	parameter-report-structure-id [determinant parameter-report-structure-type],
+	periodic-generation-action-status [],
+	collection-interval []
+}
+
+ASW-PARAMETER-REPORT-STRUCTURE-SPECIFICATION []
+
+ASW-PARAMETER-REPORT-STRUCTURE-SPECIFICATIONS [] {
+	padding NULL [pattern '0000'B],
+	field-data [] 
+}
+
+ASW-PARAMETER-REPORTING-ENTRY-GENERIC [] {
+	application-process-id [],
+	parameter-report-structure-identifiers []
+}
+
+ASW-PARAMETER-REPORTING-ENTRY []
+
+ASW-PARAMETER-REPORTING-ENTRIES [] {
+	padding NULL [pattern '0000'B],
+	field-data [] 
+}
+
+ASW-CREATE-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION-GENERIC [] {
+	parameter-functional-reporting-definition-id [],
+	parameter-reporting-entries []
+}
+
+ASW-CREATE-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION []
+
+ASW-CREATE-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-GENERIC [] {
+	instruction []
+}
+
+ASW-CREATE-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION []
+
+ASW-DELETE-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-DELETE-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION-GENERIC [] {
+	parameter-functional-reporting-definition-id []
+}
+
+ASW-DELETE-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION []
+
+ASW-DELETE-PARAMETER-FUNCTIONAL-REPORTING-DEFINITIONS-GENERIC [] {
+	padding NULL [pattern '00000'B],
+	instructions []
+}
+
+ASW-DELETE-PARAMETER-FUNCTIONAL-REPORTING-DEFINITIONS []
+
+ASW-REPORT-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-REPORT-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION-GENERIC [] {
+	parameter-functional-reporting-definition-id []
+}
+
+ASW-REPORT-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION []
+
+ASW-REPORT-PARAMETER-FUNCTIONAL-REPORTING-DEFINITIONS-GENERIC [] {
+	padding NULL [pattern '00000'B],
+	instructions []
+}
+
+ASW-REPORT-PARAMETER-FUNCTIONAL-REPORTING-DEFINITIONS []
+
+ASW-ADD-A-PARAMETER-REPORT-DEFINITION-TO-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-ADD-A-PARAMETER-REPORT-DEFINITION-TO-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION-GENERIC [] {
+	parameter-reporting-entry []
+}
+
+ASW-ADD-A-PARAMETER-REPORT-DEFINITION-TO-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION []
+
+ASW-ADD-PARAMETER-REPORT-DEFINITIONS-TO-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-GENERIC [] {
+	parameter-functional-reporting-definition-id [],
+	padding NULL [pattern '00000'B],
+	instructions []
+}
+
+ASW-ADD-PARAMETER-REPORT-DEFINITIONS-TO-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION []
+
+ASW-REMOVE-A-PARAMETER-REPORT-DEFINITION-FROM-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-PARAMETER-REPORT-STRUCTURE-ID-GENERIC [] {
+	parameter-report-structure-type ASW-PARAMETER-REPORT-STRUCTURE-TYPE [],
+	parameter-report-structure-id [determinant parameter-report-structure-type]
+}
+
+ASW-PARAMETER-REPORT-STRUCTURE-ID []
+
+ASW-PARAMETER-REPORT-STRUCTURE-IDS [] {
+	padding NULL [pattern '0000'B],
+	field-data [] 
+}
+
+ASW-PARAMETER-REPORTING-ENTRY-TO-REMOVE-GENERIC [] {
+	application-process-id [],
+	parameter-report-structure-id []
+}
+
+ASW-PARAMETER-REPORTING-ENTRY-TO-REMOVE []
+
+ASW-REMOVE-A-PARAMETER-REPORT-DEFINITION-FROM-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION-GENERIC [] {
+	parameter-reporting-definition-to-remove []
+}
+
+ASW-REMOVE-A-PARAMETER-REPORT-DEFINITION-FROM-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION []
+
+ASW-REMOVE-PARAMETER-REPORT-DEFINITIONS-FROM-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-GENERIC [] {
+	parameter-functional-reporting-definition-id [],
+	padding NULL [pattern '00000'B],
+	instructions []
+}
+
+ASW-REMOVE-PARAMETER-REPORT-DEFINITIONS-FROM-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION []
+
+ASW-MODIFY-THE-PERIODIC-GENERATION-PROPERTIES-OF-A-PARAMETER-REPORT-DEFINITION-OF-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-MODIFY-THE-PERIODIC-GENERATION-PROPERTIES-OF-A-PARAMETER-REPORT-DEFINITION-OF-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION-GENERIC [] {
+	parameter-reporting-entry []
+}
+
+ASW-MODIFY-THE-PERIODIC-GENERATION-PROPERTIES-OF-A-PARAMETER-REPORT-DEFINITION-OF-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-INSTRUCTION []
+
+ASW-MODIFY-THE-PERIODIC-GENERATION-PROPERTIES-OF-PARAMETER-REPORT-DEFINITIONS-OF-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-GENERIC [] {
+	parameter-functional-reporting-definition-id [],
+	padding NULL [pattern '00000'B],
+	instructions []
+}
+
+ASW-MODIFY-THE-PERIODIC-GENERATION-PROPERTIES-OF-PARAMETER-REPORT-DEFINITIONS-OF-A-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION []
+
+ASW-HOUSEKEEPING-TC <ASW-TYPE-ID: message-subtype-id> [] {
+	enable-the-periodic-generation-of-housekeeping-parameter-reports [present-when message-subtype-id==5],
+	disable-the-periodic-generation-of-housekeeping-parameter-reports [present-when message-subtype-id==6],
+	create-a-housekeeping-parameter-report-structure [present-when message-subtype-id==1],
+	delete-housekeeping-parameter-report-structures [present-when message-subtype-id==3],
+	report-housekeeping-parameter-report-structures [present-when message-subtype-id==9],
+	generate-a-one-shot-report-for-housekeeping-parameter-report-structures [present-when message-subtype-id==27],
+	append-parameters-to-a-housekeeping-parameter-report-structure [present-when message-subtype-id==29],
+	modify-the-collection-interval-of-housekeeping-parameter-report-structures [present-when message-subtype-id==31],
+	report-the-periodic-generation-properties-of-housekeeping-parameter-report-structures [present-when message-subtype-id==33],
+	apply-parameter-functional-reporting-configurations [present-when message-subtype-id==37],
+	create-a-parameter-functional-reporting-definition [present-when message-subtype-id==38],
+	delete-parameter-functional-reporting-definitions [present-when message-subtype-id==39],
+	report-parameter-functional-reporting-definitions [present-when message-subtype-id==40],
+	add-parameter-report-definitions-to-a-parameter-functional-reporting-definition [present-when message-subtype-id==42],
+	remove-parameter-report-definitions-from-a-parameter-functional-reporting-definition [present-when message-subtype-id==43],
+	modify-the-periodic-generation-properties-of-parameter-report-definitions-of-a-parameter-functional-reporting-definition [present-when message-subtype-id==44]
+}
+
+ASW-ENABLE-THE-REPORT-GENERATION-OF-AN-EVENT-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-EVENT-IDENTIFIER [size 8, encoding pos-int, encode-values]
+
+ASW-ENABLE-THE-REPORT-GENERATION-OF-AN-EVENT-DEFINITION-INSTRUCTION-GENERIC [] {
+	event-definition-id []
+}
+
+ASW-ENABLE-THE-REPORT-GENERATION-OF-AN-EVENT-DEFINITION-INSTRUCTION []
+
+ASW-ENABLE-THE-REPORT-GENERATION-OF-EVENT-DEFINITIONS-GENERIC [] {
+	padding NULL [pattern '00000'B],
+	instructions []
+}
+
+ASW-ENABLE-THE-REPORT-GENERATION-OF-EVENT-DEFINITIONS []
+
+ASW-DISABLE-THE-REPORT-GENERATION-OF-AN-EVENT-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-DISABLE-THE-REPORT-GENERATION-OF-AN-EVENT-DEFINITION-INSTRUCTION-GENERIC [] {
+	event-definition-id []
+}
+
+ASW-DISABLE-THE-REPORT-GENERATION-OF-AN-EVENT-DEFINITION-INSTRUCTION []
+
+ASW-DISABLE-THE-REPORT-GENERATION-OF-EVENT-DEFINITIONS-GENERIC [] {
+	padding NULL [pattern '00000'B],
+	instructions []
+}
+
+ASW-DISABLE-THE-REPORT-GENERATION-OF-EVENT-DEFINITIONS []
+
+ASW-REPORT-THE-LIST-OF-DISABLED-EVENT-DEFINITIONS-INSTRUCTION-GENERIC [] {
+
+}
+
+ASW-REPORT-THE-LIST-OF-DISABLED-EVENT-DEFINITIONS-INSTRUCTION []
+
+ASW-REPORT-THE-LIST-OF-DISABLED-EVENT-DEFINITIONS-GENERIC [] {
+	instruction []
+}
+
+ASW-REPORT-THE-LIST-OF-DISABLED-EVENT-DEFINITIONS []
+
+ASW-EVENT-REPORTING-TC <ASW-TYPE-ID: message-subtype-id> [] {
+	enable-the-report-generation-of-event-definitions [present-when message-subtype-id==5],
+	disable-the-report-generation-of-event-definitions [present-when message-subtype-id==6],
+	report-the-list-of-disabled-event-definitions [present-when message-subtype-id==7]
+}
+
+ASW-ENABLE-THE-PARAMETER-MONITORING-FUNCTION-INSTRUCTION-GENERIC [] {
+
+}
+
+ASW-ENABLE-THE-PARAMETER-MONITORING-FUNCTION-INSTRUCTION []
+
+ASW-ENABLE-THE-PARAMETER-MONITORING-FUNCTION-GENERIC [] {
+	instruction []
+}
+
+ASW-ENABLE-THE-PARAMETER-MONITORING-FUNCTION []
+
+ASW-DISABLE-THE-PARAMETER-MONITORING-FUNCTION-INSTRUCTION-GENERIC [] {
+
+}
+
+ASW-DISABLE-THE-PARAMETER-MONITORING-FUNCTION-INSTRUCTION []
+
+ASW-DISABLE-THE-PARAMETER-MONITORING-FUNCTION-GENERIC [] {
+	instruction []
+}
+
+ASW-DISABLE-THE-PARAMETER-MONITORING-FUNCTION []
+
+ASW-ENABLE-A-PARAMETER-MONITORING-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-PMON-ID [size 32, encoding pos-int, encode-values, endianness big]
+
+ASW-ENABLE-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC [] {
+	pmon-id []
+}
+
+ASW-ENABLE-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION []
+
+ASW-ENABLE-PARAMETER-MONITORING-DEFINITIONS-GENERIC [] {
+	instructions []
+}
+
+ASW-ENABLE-PARAMETER-MONITORING-DEFINITIONS []
+
+ASW-DISABLE-A-PARAMETER-MONITORING-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-DISABLE-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC [] {
+	pmon-id []
+}
+
+ASW-DISABLE-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION []
+
+ASW-DISABLE-PARAMETER-MONITORING-DEFINITIONS-GENERIC [] {
+	instructions []
+}
+
+ASW-DISABLE-PARAMETER-MONITORING-DEFINITIONS []
+
+ASW-MAXIMUM-REPORTING-DELAY [encoding pos-int, size 8]
+
+ASW-CHANGE-THE-MAXIMUM-TRANSITION-REPORTING-DELAY-INSTRUCTION-GENERIC [] {
+	max-reporting-delay []
+}
+
+ASW-CHANGE-THE-MAXIMUM-TRANSITION-REPORTING-DELAY-INSTRUCTION []
+
+ASW-CHANGE-THE-MAXIMUM-TRANSITION-REPORTING-DELAY-GENERIC [] {
+	instruction []
+}
+
+ASW-CHANGE-THE-MAXIMUM-TRANSITION-REPORTING-DELAY []
+
+ASW-ADD-A-PARAMETER-MONITORING-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-MASK []
+
+ASW-PARAMETER-VALUE-LENGTH [encoding pos-int, size 8]
+
+ASW-PARAMETER-VALUE [] { field-length ASW-PARAMETER-VALUE-LENGTH [size 0, encoding pos-int, mapping-function asw-mapper-12-5-parameter-value], field-data [size field-length] }
+
+ASW-CHECK-VALIDITY-CONDITION-GENERIC [] {
+	validity-parameter-id [],
+	mask [],
+	expected-value []
+}
+
+ASW-CHECK-VALIDITY-CONDITION []
+
+ASW-MONITORING-INTERVAL [encoding pos-int, size 8]
+
+ASW-REPETITION-NUMBER [encoding pos-int, size 8]
+
+ASW-CHECK-TYPE [size 8, encoding pos-int, encode-values]
+
+ASW-SPARE []
+
+ASW-EXPECTED-VALUE-CHECKING-CRITERIA-GENERIC [] {
+	mask [],
+	spare [],
+	expected-value [],
+	event-definition-id []
+}
+
+ASW-EXPECTED-VALUE-CHECKING-CRITERIA []
+
+ASW-LIMIT-CHECKING-CRITERIA-GENERIC [] {
+	low-limit [],
+	low-limit-event-definition-id [],
+	high-limit [],
+	high-limit-event-definition-id []
+}
+
+ASW-LIMIT-CHECKING-CRITERIA []
+
+ASW-NUMBER-OF-CONSECUTIVE-DELTA-VALUES [encoding pos-int, size 8]
+
+ASW-DELTA-CHECKING-CRITERIA-GENERIC [] {
+	low-delta-threshold [],
+	low-delta-event-definition-id [],
+	high-delta-threshold [],
+	high-delta-event-definition-id [],
+	number-of-consecutive-delta-values []
+}
+
+ASW-DELTA-CHECKING-CRITERIA []
+
+ASW-CHECK-TYPE-DEPENDENT-CRITERIA []
+
+ASW-CONTENT-OF-PARAMETER-MONITORING-DEFINITION-GENERIC [] {
+	pmon-id [],
+	monitored-parameter-id [],
+	check-validity-condition [],
+	monitoring-interval [],
+	repetition-number [],
+	check-type ASW-CHECK-TYPE [],
+	check-type-dependent-criteria [determinant check-type]
+}
+
+ASW-CONTENT-OF-PARAMETER-MONITORING-DEFINITION []
+
+ASW-ADD-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC [] {
+	contents-of-parameter-monitoring-definition []
+}
+
+ASW-ADD-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION []
+
+ASW-ADD-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTIONSDATA-LENGTH [encoding pos-int, size 16, endianness big]
+
+ASW-ADD-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTIONSDATA [] { field-length ASW-ADD-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTIONSDATA-LENGTH [size 0, encoding pos-int, mapping-function asw-mapper-12-5-add-a-parameter-monitoring-definition-instructionsdata], field-data [size field-length] }
+
+ASW-ADD-PARAMETER-MONITORING-DEFINITIONS-GENERIC [] {
+	n [], instructions-data []
+}
+
+ASW-ADD-PARAMETER-MONITORING-DEFINITIONS []
+
+ASW-DELETE-ALL-PARAMETER-MONITORING-DEFINITIONS-INSTRUCTION-GENERIC [] {
+
+}
+
+ASW-DELETE-ALL-PARAMETER-MONITORING-DEFINITIONS-INSTRUCTION []
+
+ASW-DELETE-ALL-PARAMETER-MONITORING-DEFINITIONS-GENERIC [] {
+	instruction []
+}
+
+ASW-DELETE-ALL-PARAMETER-MONITORING-DEFINITIONS []
+
+ASW-DELETE-A-PARAMETER-MONITORING-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-DELETE-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC [] {
+	pmon-id []
+}
+
+ASW-DELETE-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION []
+
+ASW-DELETE-PARAMETER-MONITORING-DEFINITIONS-GENERIC [] {
+	instructions []
+}
+
+ASW-DELETE-PARAMETER-MONITORING-DEFINITIONS []
+
+ASW-MODIFY-A-PARAMETER-MONITORING-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-MEANS-TO-MODIFY-PMON-GENERIC [] {
+	repetition-number [],
+	check-type ASW-CHECK-TYPE [],
+	check-type-dependent-criteria [determinant check-type]
+}
+
+ASW-MEANS-TO-MODIFY-PMON []
+
+ASW-MODIFY-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC [] {
+	pmon-id [],
+	monitored-parameter-id [],
+	means-to-modify []
+}
+
+ASW-MODIFY-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION []
+
+ASW-MODIFY-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTIONSDATA-LENGTH [encoding pos-int, size 16, endianness big]
+
+ASW-MODIFY-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTIONSDATA [] { field-length ASW-MODIFY-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTIONSDATA-LENGTH [size 0, encoding pos-int, mapping-function asw-mapper-12-7-modify-a-parameter-monitoring-definition-instructionsdata], field-data [size field-length] }
+
+ASW-MODIFY-PARAMETER-MONITORING-DEFINITIONS-GENERIC [] {
+	n [], instructions-data []
+}
+
+ASW-MODIFY-PARAMETER-MONITORING-DEFINITIONS []
+
+ASW-REPORT-A-PARAMETER-MONITORING-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-REPORT-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC [] {
+	pmon-id []
+}
+
+ASW-REPORT-A-PARAMETER-MONITORING-DEFINITION-INSTRUCTION []
+
+ASW-REPORT-PARAMETER-MONITORING-DEFINITIONS-GENERIC [] {
+	instructions []
+}
+
+ASW-REPORT-PARAMETER-MONITORING-DEFINITIONS []
+
+ASW-REPORT-THE-STATUS-OF-EACH-PARAMETER-MONITORING-DEFINITION-INSTRUCTION-GENERIC [] {
+
+}
+
+ASW-REPORT-THE-STATUS-OF-EACH-PARAMETER-MONITORING-DEFINITION-INSTRUCTION []
+
+ASW-REPORT-THE-STATUS-OF-EACH-PARAMETER-MONITORING-DEFINITION-GENERIC [] {
+	instruction []
+}
+
+ASW-REPORT-THE-STATUS-OF-EACH-PARAMETER-MONITORING-DEFINITION []
+
+ASW-REPORT-THE-OUT-OF-LIMITS-INSTRUCTION-GENERIC [] {
+
+}
+
+ASW-REPORT-THE-OUT-OF-LIMITS-INSTRUCTION []
+
+ASW-REPORT-THE-OUT-OF-LIMITS-GENERIC [] {
+	instruction []
+}
+
+ASW-REPORT-THE-OUT-OF-LIMITS []
+
+ASW-ENABLE-THE-FUNCTIONAL-MONITORING-FUNCTION-INSTRUCTION-GENERIC [] {
+
+}
+
+ASW-ENABLE-THE-FUNCTIONAL-MONITORING-FUNCTION-INSTRUCTION []
+
+ASW-ENABLE-THE-FUNCTIONAL-MONITORING-FUNCTION-GENERIC [] {
+	instruction []
+}
+
+ASW-ENABLE-THE-FUNCTIONAL-MONITORING-FUNCTION []
+
+ASW-DISABLE-THE-FUNCTIONAL-MONITORING-FUNCTION-INSTRUCTION-GENERIC [] {
+
+}
+
+ASW-DISABLE-THE-FUNCTIONAL-MONITORING-FUNCTION-INSTRUCTION []
+
+ASW-DISABLE-THE-FUNCTIONAL-MONITORING-FUNCTION-GENERIC [] {
+	instruction []
+}
+
+ASW-DISABLE-THE-FUNCTIONAL-MONITORING-FUNCTION []
+
+ASW-ENABLE-A-FUNCTIONAL-MONITORING-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-FMON-ID [size 8, encoding pos-int, encode-values]
+
+ASW-ENABLE-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC [] {
+	fmon-id []
+}
+
+ASW-ENABLE-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION []
+
+ASW-ENABLE-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC [] {
+	instructions []
+}
+
+ASW-ENABLE-FUNCTIONAL-MONITORING-DEFINITIONS []
+
+ASW-DISABLE-A-FUNCTIONAL-MONITORING-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-DISABLE-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC [] {
+	fmon-id []
+}
+
+ASW-DISABLE-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION []
+
+ASW-DISABLE-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC [] {
+	instructions []
+}
+
+ASW-DISABLE-FUNCTIONAL-MONITORING-DEFINITIONS []
+
+ASW-PROTECT-A-FUNCTIONAL-MONITORING-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-PROTECT-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC [] {
+	fmon-id []
+}
+
+ASW-PROTECT-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION []
+
+ASW-PROTECT-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC [] {
+	instructions []
+}
+
+ASW-PROTECT-FUNCTIONAL-MONITORING-DEFINITIONS []
+
+ASW-UNPROTECT-A-FUNCTIONAL-MONITORING-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-UNPROTECT-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC [] {
+	fmon-id []
+}
+
+ASW-UNPROTECT-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION []
+
+ASW-UNPROTECT-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC [] {
+	instructions []
+}
+
+ASW-UNPROTECT-FUNCTIONAL-MONITORING-DEFINITIONS []
+
+ASW-ADD-A-FUNCTIONAL-MONITORING-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-MINIMUM-PMON-FAILING-NUMBER [encoding pos-int, size 8]
+
+ASW-PMON-IDS [] {
+	padding NULL [pattern '0000'B],
+	field-data [] 
+}
+
+ASW-CONTENT-OF-FUNCTIONAL-MONITORING-DEFINITION-GENERIC [] {
+	fmon-id [],
+	check-validity-condition [],
+	event-definition-id [],
+	minimum-pmon-failing-number [],
+	pmon-ids []
+}
+
+ASW-CONTENT-OF-FUNCTIONAL-MONITORING-DEFINITION []
+
+ASW-ADD-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC [] {
+	content-of-the-functional-monitoring-definition []
+}
+
+ASW-ADD-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION []
+
+ASW-ADD-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTIONSDATA-LENGTH [encoding pos-int, size 16, endianness big]
+
+ASW-ADD-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTIONSDATA [] { field-length ASW-ADD-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTIONSDATA-LENGTH [size 0, encoding pos-int, mapping-function asw-mapper-12-23-add-a-functional-monitoring-definition-instructionsdata], field-data [size field-length] }
+
+ASW-ADD-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC [] {
+	n [], instructions-data []
+}
+
+ASW-ADD-FUNCTIONAL-MONITORING-DEFINITIONS []
+
+ASW-DELETE-A-FUNCTIONAL-MONITORING-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-DELETE-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC [] {
+	fmon-id []
+}
+
+ASW-DELETE-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION []
+
+ASW-DELETE-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC [] {
+	instructions []
+}
+
+ASW-DELETE-FUNCTIONAL-MONITORING-DEFINITIONS []
+
+ASW-REPORT-A-FUNCTIONAL-MONITORING-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-REPORT-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC [] {
+	fmon-id []
+}
+
+ASW-REPORT-A-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION []
+
+ASW-REPORT-FUNCTIONAL-MONITORING-DEFINITIONS-GENERIC [] {
+	instructions []
+}
+
+ASW-REPORT-FUNCTIONAL-MONITORING-DEFINITIONS []
+
+ASW-REPORT-THE-STATUS-OF-EACH-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION-GENERIC [] {
+
+}
+
+ASW-REPORT-THE-STATUS-OF-EACH-FUNCTIONAL-MONITORING-DEFINITION-INSTRUCTION []
+
+ASW-REPORT-THE-STATUS-OF-EACH-FUNCTIONAL-MONITORING-DEFINITION-GENERIC [] {
+	instruction []
+}
+
+ASW-REPORT-THE-STATUS-OF-EACH-FUNCTIONAL-MONITORING-DEFINITION []
+
+ASW-ON-BOARD-MONITORING-TC <ASW-TYPE-ID: message-subtype-id> [] {
+	enable-the-parameter-monitoring-function [present-when message-subtype-id==15],
+	disable-the-parameter-monitoring-function [present-when message-subtype-id==16],
+	enable-parameter-monitoring-definitions [present-when message-subtype-id==1],
+	disable-parameter-monitoring-definitions [present-when message-subtype-id==2],
+	change-the-maximum-transition-reporting-delay [present-when message-subtype-id==3],
+	add-parameter-monitoring-definitions [present-when message-subtype-id==5],
+	delete-all-parameter-monitoring-definitions [present-when message-subtype-id==4],
+	delete-parameter-monitoring-definitions [present-when message-subtype-id==6],
+	modify-parameter-monitoring-definitions [present-when message-subtype-id==7],
+	report-parameter-monitoring-definitions [present-when message-subtype-id==8],
+	report-the-status-of-each-parameter-monitoring-definition [present-when message-subtype-id==13],
+	report-the-out-of-limits [present-when message-subtype-id==10],
+	enable-the-functional-monitoring-function [present-when message-subtype-id==17],
+	disable-the-functional-monitoring-function [present-when message-subtype-id==18],
+	enable-functional-monitoring-definitions [present-when message-subtype-id==19],
+	disable-functional-monitoring-definitions [present-when message-subtype-id==20],
+	protect-functional-monitoring-definitions [present-when message-subtype-id==21],
+	unprotect-functional-monitoring-definitions [present-when message-subtype-id==22],
+	add-functional-monitoring-definitions [present-when message-subtype-id==23],
+	delete-functional-monitoring-definitions [present-when message-subtype-id==24],
+	report-functional-monitoring-definitions [present-when message-subtype-id==25],
+	report-the-status-of-each-functional-monitoring-definition [present-when message-subtype-id==27]
+}
+
+ASW-PERFORM-AN-ARE-YOU-ALIVE-CONNECTION-TEST-INSTRUCTION-GENERIC [] {
+
+}
+
+ASW-PERFORM-AN-ARE-YOU-ALIVE-CONNECTION-TEST-INSTRUCTION []
+
+ASW-PERFORM-AN-ARE-YOU-ALIVE-CONNECTION-TEST-GENERIC [] {
+	instruction []
+}
+
+ASW-PERFORM-AN-ARE-YOU-ALIVE-CONNECTION-TEST []
+
+ASW-TAILORABLE-APPLICATION-PROCESS-ID-ENUM [size 11, encoding pos-int, encode-values]
+
+ASW-PERFORM-AN-ON-BOARD-CONNECTION-TEST-INSTRUCTION-GENERIC [] {
+	application-process-id []
+}
+
+ASW-PERFORM-AN-ON-BOARD-CONNECTION-TEST-INSTRUCTION []
+
+ASW-PERFORM-AN-ON-BOARD-CONNECTION-TEST-GENERIC [] {
+	instruction []
+}
+
+ASW-PERFORM-AN-ON-BOARD-CONNECTION-TEST []
+
+ASW-TEST-TC <ASW-TYPE-ID: message-subtype-id> [] {
+	perform-an-are-you-alive-connection-test [present-when message-subtype-id==1],
+	perform-an-on-board-connection-test [present-when message-subtype-id==3]
+}
+
+ASW-ENABLE-THE-EVENT-ACTION-FUNCTION-INSTRUCTION-GENERIC [] {
+
+}
+
+ASW-ENABLE-THE-EVENT-ACTION-FUNCTION-INSTRUCTION []
+
+ASW-ENABLE-THE-EVENT-ACTION-FUNCTION-GENERIC [] {
+	instruction []
+}
+
+ASW-ENABLE-THE-EVENT-ACTION-FUNCTION []
+
+ASW-DISABLE-THE-EVENT-ACTION-FUNCTION-INSTRUCTION-GENERIC [] {
+
+}
+
+ASW-DISABLE-THE-EVENT-ACTION-FUNCTION-INSTRUCTION []
+
+ASW-DISABLE-THE-EVENT-ACTION-FUNCTION-GENERIC [] {
+	instruction []
+}
+
+ASW-DISABLE-THE-EVENT-ACTION-FUNCTION []
+
+ASW-ENABLE-AN-EVENT-ACTION-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-APPLICATION-PROCESS-ID-FOR-SYSTEM-ID [size 8, encoding pos-int, encode-values]
+
+ASW-SYSTEM-IDENTIFIER-GENERIC [] {
+	application-process-id [],
+	event-definition-id []
+}
+
+ASW-SYSTEM-IDENTIFIER []
+
+ASW-ENABLE-AN-EVENT-ACTION-DEFINITION-INSTRUCTION-GENERIC [] {
+	event-definition-system-id []
+}
+
+ASW-ENABLE-AN-EVENT-ACTION-DEFINITION-INSTRUCTION []
+
+ASW-ENABLE-EVENT-ACTION-DEFINITIONS-GENERIC [] {
+	instructions []
+}
+
+ASW-ENABLE-EVENT-ACTION-DEFINITIONS []
+
+ASW-DISABLE-AN-EVENT-ACTION-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-DISABLE-AN-EVENT-ACTION-DEFINITION-INSTRUCTION-GENERIC [] {
+	event-definition-system-id []
+}
+
+ASW-DISABLE-AN-EVENT-ACTION-DEFINITION-INSTRUCTION []
+
+ASW-DISABLE-EVENT-ACTION-DEFINITIONS-GENERIC [] {
+	instructions []
+}
+
+ASW-DISABLE-EVENT-ACTION-DEFINITIONS []
+
+ASW-ADD-AN-EVENT-ACTION-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-REQUEST [] {
+  packet-version-number NULL [pattern '000'B],
+  packet-type NULL [pattern '1'B],
+  secondary-header-flag [size 1, encoding pos-int],
+  application-process-id [],
+  sequence-flags NULL [pattern '11'B],
+  packet-sequence-count [],
+  packet-data-length INTEGER [encoding pos-int, size 16, mapping-function puscpayloadlength],
+  packet-data-field [size packet-data-length]
+}
+
+ASW-ADD-AN-EVENT-ACTION-DEFINITION-INSTRUCTION-GENERIC [] {
+	event-definition-system-id [],
+	request []
+}
+
+ASW-ADD-AN-EVENT-ACTION-DEFINITION-INSTRUCTION []
+
+ASW-ADD-EVENT-ACTION-DEFINITIONS-GENERIC [] {
+	instructions []
+}
+
+ASW-ADD-EVENT-ACTION-DEFINITIONS []
+
+ASW-DELETE-AN-EVENT-ACTION-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-DELETE-AN-EVENT-ACTION-DEFINITION-INSTRUCTION-GENERIC [] {
+	event-definition-system-id []
+}
+
+ASW-DELETE-AN-EVENT-ACTION-DEFINITION-INSTRUCTION []
+
+ASW-DELETE-EVENT-ACTION-DEFINITIONS-GENERIC [] {
+	instructions []
+}
+
+ASW-DELETE-EVENT-ACTION-DEFINITIONS []
+
+ASW-DELETE-ALL-EVENT-ACTION-DEFINITIONS-INSTRUCTION-GENERIC [] {
+
+}
+
+ASW-DELETE-ALL-EVENT-ACTION-DEFINITIONS-INSTRUCTION []
+
+ASW-DELETE-ALL-EVENT-ACTION-DEFINITIONS-GENERIC [] {
+	instruction []
+}
+
+ASW-DELETE-ALL-EVENT-ACTION-DEFINITIONS []
+
+ASW-REPORT-THE-STATUS-OF-EVENT-ACTION-DEFINITION-INSTRUCTION-GENERIC [] {
+
+}
+
+ASW-REPORT-THE-STATUS-OF-EVENT-ACTION-DEFINITION-INSTRUCTION []
+
+ASW-REPORT-THE-STATUS-OF-EACH-EVENT-ACTION-DEFINITION-GENERIC [] {
+	instruction []
+}
+
+ASW-REPORT-THE-STATUS-OF-EACH-EVENT-ACTION-DEFINITION []
+
+ASW-REPORT-AN-EVENT-ACTION-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-REPORT-AN-EVENT-ACTION-DEFINITION-INSTRUCTION-GENERIC [] {
+	event-definition-system-id []
+}
+
+ASW-REPORT-AN-EVENT-ACTION-DEFINITION-INSTRUCTION []
+
+ASW-REPORT-EVENT-ACTION-DEFINITIONS-GENERIC [] {
+	instructions []
+}
+
+ASW-REPORT-EVENT-ACTION-DEFINITIONS []
+
+ASW-EVENT-ACTION-TC <ASW-TYPE-ID: message-subtype-id> [] {
+	enable-the-event-action-function [present-when message-subtype-id==8],
+	disable-the-event-action-function [present-when message-subtype-id==9],
+	enable-event-action-definitions [present-when message-subtype-id==4],
+	disable-event-action-definitions [present-when message-subtype-id==5],
+	add-event-action-definitions [present-when message-subtype-id==1],
+	delete-event-action-definitions [present-when message-subtype-id==2],
+	delete-all-event-action-definitions [present-when message-subtype-id==3],
+	report-the-status-of-each-event-action-definition [present-when message-subtype-id==6],
+	report-event-action-definitions [present-when message-subtype-id==10]
+}
+
+ASW-REPORT-A-PARAMETER-VALUE-COUNT [encoding pos-int, size 8]
+
+ASW-REPORT-A-PARAMETER-VALUE-INSTRUCTION-GENERIC [] {
+	parameter-id []
+}
+
+ASW-REPORT-A-PARAMETER-VALUE-INSTRUCTION []
+
+ASW-REPORT-PARAMETER-VALUES-GENERIC [] {
+	padding NULL [pattern '00000'B],
+	instructions []
+}
+
+ASW-REPORT-PARAMETER-VALUES []
+
+ASW-SET-PARAMETER-VALUES-COUNT [encoding pos-int, size 8]
+
+ASW-SET-PARAMETER-VALUES-INSTRUCTION-GENERIC [] {
+	parameter-id [],
+	value []
+}
+
+ASW-SET-PARAMETER-VALUES-INSTRUCTION []
+
+ASW-SET-PARAMETER-VALUES-INSTRUCTIONSDATA-LENGTH [encoding pos-int, size 16, endianness big]
+
+ASW-SET-PARAMETER-VALUES-INSTRUCTIONSDATA [] { field-length ASW-SET-PARAMETER-VALUES-INSTRUCTIONSDATA-LENGTH [size 0, encoding pos-int, mapping-function asw-mapper-20-3-set-parameter-values-instructionsdata], field-data [size field-length] }
+
+ASW-SET-PARAMETER-VALUES-GENERIC [] {
+	n [], instructions-data []
+}
+
+ASW-SET-PARAMETER-VALUES []
+
+ASW-CHANGE-A-RAW-MEMORY-PARAMETER-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-MEMORY-IDENTIFIER [size 8, encoding pos-int, encode-values]
+
+ASW-MEMORY-OFFSET [encoding pos-int, size 16, endianness big]
+
+ASW-PTC [size 8, encoding pos-int, encode-values]
+
+ASW-PFC [size 8, encoding pos-int, encode-values]
+
+ASW-PACKET-FIELD-CODE-GENERIC [] {
+	ptc [],
+	pfc []
+}
+
+ASW-PACKET-FIELD-CODE []
+
+ASW-CHANGE-A-RAW-MEMORY-PARAMETER-DEFINITION-INSTRUCTION-GENERIC [] {
+	parameter-id [],
+	memory-id [],
+	absolute-address [],
+	packet-field-code []
+}
+
+ASW-CHANGE-A-RAW-MEMORY-PARAMETER-DEFINITION-INSTRUCTION []
+
+ASW-CHANGE-RAW-MEMORY-PARAMETER-DEFINITIONS-GENERIC [] {
+	instructions []
+}
+
+ASW-CHANGE-RAW-MEMORY-PARAMETER-DEFINITIONS []
+
+ASW-REPORT-A-PARAMETER-DEFINITION-COUNT [encoding pos-int, size 8]
+
+ASW-REPORT-A-PARAMETER-DEFINITION-INSTRUCTION-GENERIC [] {
+	parameter-id []
+}
+
+ASW-REPORT-A-PARAMETER-DEFINITION-INSTRUCTION []
+
+ASW-REPORT-PARAMETER-DEFINITIONS-GENERIC [] {
+	instructions []
+}
+
+ASW-REPORT-PARAMETER-DEFINITIONS []
+
+ASW-PARAMETER-MANAGEMENT-TC <ASW-TYPE-ID: message-subtype-id> [] {
+	report-parameter-values [present-when message-subtype-id==1],
+	set-parameter-values [present-when message-subtype-id==3],
+	change-raw-memory-parameter-definitions [present-when message-subtype-id==4],
+	report-parameter-definitions [present-when message-subtype-id==6]
+}
+
+ASW-TC-PAYLOAD <ASW-TYPE-ID: service-type-id, ASW-TYPE-ID: message-subtype-id> [] {
+	housekeeping <message-subtype-id>  [present-when service-type-id==3],
+	event-reporting <message-subtype-id>  [present-when service-type-id==5],
+	on-board-monitoring <message-subtype-id>  [present-when service-type-id==12],
+	test <message-subtype-id>  [present-when service-type-id==17],
+	event-action <message-subtype-id>  [present-when service-type-id==19],
+	parameter-management <message-subtype-id>  [present-when service-type-id==20]
+}
+
+ASW-PACKET-VERSION-NUMBER [size 3, encoding pos-int, encode-values]
+
+ASW-PACKET-TYPE [size 1, encoding pos-int, encode-values]
+
+ASW-SECONDARY-HEADER-FLAG [true-value '1'B]
+
+ASW-APPLICATION-PROCESS-ID-ENUM [size 11, encoding pos-int, encode-values]
+
+ASW-PACKET-ID-GENERIC [] {
+	packet-type [],
+	secondary-header-flag [],
+	application-process-id []
+}
+
+ASW-PACKET-ID []
+
+ASW-SEQUENCE-FLAGS [size 2, encoding pos-int, encode-values]
+
+ASW-PACKET-SEQUENCE-COUNT [encoding pos-int, size 14]
+
+ASW-PACKET-SEQUENCE-CONTROL-GENERIC [] {
+	sequence-flags [],
+	packet-sequence-count []
+}
+
+ASW-PACKET-SEQUENCE-CONTROL []
+
+ASW-REQUEST-ID-GENERIC [] {
+	packet-version-number [],
+	packet-id [],
+	packet-sequence-control []
+}
+
+ASW-REQUEST-ID []
+
+ASW-SUCCESSFUL-ACCEPTANCE-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	request-id []
+}
+
+ASW-SUCCESSFUL-ACCEPTANCE-NOTIFICATION-NOTIFICATION []
+
+ASW-SUCCESSFUL-ACCEPTANCE-VERIFICATION-REPORT-GENERIC [] {
+	notification []
+}
+
+ASW-SUCCESSFUL-ACCEPTANCE-VERIFICATION-REPORT []
+
+ASW-ACCEPTANCE-FAILURE-NOTICE-CODE [size 8, encoding pos-int, encode-values]
+
+ASW-EMPTY []
+
+ASW-ACCEPTANCE-FAILURE-NOTICE-DATA []
+
+ASW-ACCEPTANCE-FAILURE-NOTICE-GENERIC [] {
+	failure-notice-code ASW-ACCEPTANCE-FAILURE-NOTICE-CODE [],
+	failure-notice-data [determinant failure-notice-code]
+}
+
+ASW-ACCEPTANCE-FAILURE-NOTICE []
+
+ASW-FAILED-ACCEPTANCE-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	request-id [],
+	failure-notice []
+}
+
+ASW-FAILED-ACCEPTANCE-NOTIFICATION-NOTIFICATION []
+
+ASW-FAILED-ACCEPTANCE-VERIFICATION-REPORT-GENERIC [] {
+	notification []
+}
+
+ASW-FAILED-ACCEPTANCE-VERIFICATION-REPORT []
+
+ASW-ROUTING-FAILURE-NOTICE-CODE [size 8, encoding pos-int, encode-values]
+
+ASW-ROUTING-FAILURE-NOTICE-DATA []
+
+ASW-ROUTING-FAILURE-NOTICE-GENERIC [] {
+	failure-notice-code ASW-ROUTING-FAILURE-NOTICE-CODE [],
+	failure-notice-data [determinant failure-notice-code]
+}
+
+ASW-ROUTING-FAILURE-NOTICE []
+
+ASW-FAILED-ROUTING-VERIFICATION-REPORT-NOTIFICATION-GENERIC [] {
+	request-id [],
+	failure-notice []
+}
+
+ASW-FAILED-ROUTING-VERIFICATION-REPORT-NOTIFICATION []
+
+ASW-FAILED-ROUTING-VERIFICATION-REPORT-GENERIC [] {
+	notification []
+}
+
+ASW-FAILED-ROUTING-VERIFICATION-REPORT []
+
+ASW-SUCCESSFUL-START-OF-EXECUTION-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	request-id []
+}
+
+ASW-SUCCESSFUL-START-OF-EXECUTION-NOTIFICATION-NOTIFICATION []
+
+ASW-SUCCESSFUL-START-OF-EXECUTION-VERIFICATION-REPORT-GENERIC [] {
+	notification []
+}
+
+ASW-SUCCESSFUL-START-OF-EXECUTION-VERIFICATION-REPORT []
+
+ASW-EXECUTION-FAILURE-NOTICE-CODE [size 8, encoding pos-int, encode-values]
+
+ASW-EXECUTION-FAILURE-NOTICE-DATA []
+
+ASW-EXECUTION-FAILURE-NOTICE-GENERIC [] {
+	failure-notice-code ASW-EXECUTION-FAILURE-NOTICE-CODE [],
+	failure-notice-data [determinant failure-notice-code]
+}
+
+ASW-EXECUTION-FAILURE-NOTICE []
+
+ASW-FAILED-START-OF-EXECUTION-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	request-id [],
+	failure-notice []
+}
+
+ASW-FAILED-START-OF-EXECUTION-NOTIFICATION-NOTIFICATION []
+
+ASW-FAILED-START-OF-EXECUTION-VERIFICATION-REPORT-GENERIC [] {
+	notification []
+}
+
+ASW-FAILED-START-OF-EXECUTION-VERIFICATION-REPORT []
+
+ASW-SUCCESSFUL-COMPLETION-OF-EXECUTION-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	request-id []
+}
+
+ASW-SUCCESSFUL-COMPLETION-OF-EXECUTION-NOTIFICATION-NOTIFICATION []
+
+ASW-SUCCESSFUL-COMPLETION-OF-EXECUTION-VERIFICATION-REPORT-GENERIC [] {
+	notification []
+}
+
+ASW-SUCCESSFUL-COMPLETION-OF-EXECUTION-VERIFICATION-REPORT []
+
+ASW-FAILED-COMPLETION-OF-EXECUTION-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	request-id [],
+	failure-notice []
+}
+
+ASW-FAILED-COMPLETION-OF-EXECUTION-NOTIFICATION-NOTIFICATION []
+
+ASW-FAILED-COMPLETION-OF-EXECUTION-VERIFICATION-REPORT-GENERIC [] {
+	notification []
+}
+
+ASW-FAILED-COMPLETION-OF-EXECUTION-VERIFICATION-REPORT []
+
+ASW-EXECUTION-STEP-ID [size 8, encoding pos-int, encode-values]
+
+ASW-SUCCESSFUL-PROGRESS-OF-EXECUTION-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	request-id [],
+	step-id []
+}
+
+ASW-SUCCESSFUL-PROGRESS-OF-EXECUTION-NOTIFICATION-NOTIFICATION []
+
+ASW-SUCCESSFUL-PROGRESS-OF-EXECUTION-VERIFICATION-REPORT-GENERIC [] {
+	notification []
+}
+
+ASW-SUCCESSFUL-PROGRESS-OF-EXECUTION-VERIFICATION-REPORT []
+
+ASW-FAILED-PROGRESS-OF-EXECUTION-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	request-id [],
+	step-id [],
+	failure-notice []
+}
+
+ASW-FAILED-PROGRESS-OF-EXECUTION-NOTIFICATION-NOTIFICATION []
+
+ASW-FAILED-PROGRESS-OF-EXECUTION-VERIFICATION-REPORT-GENERIC [] {
+	notification []
+}
+
+ASW-FAILED-PROGRESS-OF-EXECUTION-VERIFICATION-REPORT []
+
+ASW-REQUEST-VERIFICATION-TM <ASW-TYPE-ID: message-subtype-id> [] {
+	successful-acceptance-verification-report [present-when message-subtype-id==1],
+	failed-acceptance-verification-report [present-when message-subtype-id==2],
+	failed-routing-verification-report [present-when message-subtype-id==10],
+	successful-start-of-execution-verification-report [present-when message-subtype-id==3],
+	failed-start-of-execution-verification-report [present-when message-subtype-id==4],
+	successful-completion-of-execution-verification-report [present-when message-subtype-id==7],
+	failed-completion-of-execution-verification-report [present-when message-subtype-id==8],
+	successful-progress-of-execution-verification-report [present-when message-subtype-id==5],
+	failed-progress-of-execution-verification-report [present-when message-subtype-id==6]
+}
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-ID [encoding pos-int, size 8]
+
+ASW-PARAMETER-VALUES-LENGTH [encoding pos-int, size 8]
+
+ASW-PARAMETER-VALUES [] { field-length ASW-PARAMETER-VALUES-LENGTH [size 0, encoding pos-int, mapping-function asw-mapper-3-25-parameter-values], field-data [size field-length] }
+
+ASW-HOUSEKEEPING-PARAMETER-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	housekeeping-parameter-report-structure-id [],
+	parameter-value []
+}
+
+ASW-HOUSEKEEPING-PARAMETER-NOTIFICATION-NOTIFICATION []
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-GENERIC [] {
+	notification []
+}
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT []
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	housekeeping-parameter-report-structure-id [],
+	periodic-generation-action-status [],
+	collection-interval [],
+	parameter-id [],
+	super-commutated-parameter-sets []
+}
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-NOTIFICATION-NOTIFICATION []
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-REPORT-GENERIC [] {
+	notification []
+}
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-REPORT []
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-PERIODIC-GENERATION-PROPERTIES-NOTIFICATION-COUNT [encoding pos-int, size 8]
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-PERIODIC-GENERATION-PROPERTIES-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	housekeeping-parameter-report-structure-id [],
+	periodic-generation-action-status [],
+	collection-interval []
+}
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-PERIODIC-GENERATION-PROPERTIES-NOTIFICATION-NOTIFICATION []
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-PERIODIC-GENERATION-PROPERTIES-REPORT-GENERIC [] {
+	padding NULL [pattern '00000'B],
+	notifications []
+}
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-PERIODIC-GENERATION-PROPERTIES-REPORT []
+
+ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-NOTIFICATION-COUNT [encoding pos-int, size 8]
+
+ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	application-process-id [],
+	parameter-report-structure-specification []
+}
+
+ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-NOTIFICATION-NOTIFICATION []
+
+ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-REPORT-GENERIC [] {
+	parameter-functional-reporting-definition-id [],
+	padding NULL [pattern '00000'B],
+	notifications []
+}
+
+ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-REPORT []
+
+ASW-HOUSEKEEPING-TM <ASW-TYPE-ID: message-subtype-id> [] {
+	housekeeping-parameter-report [present-when message-subtype-id==25],
+	housekeeping-parameter-report-structure-report [present-when message-subtype-id==10],
+	housekeeping-parameter-report-periodic-generation-properties-report [present-when message-subtype-id==35],
+	parameter-functional-reporting-definition-report [present-when message-subtype-id==41]
+}
+
+ASW-AUXILIARYDATA [encoding pos-int, size 32, endianness big]
+
+ASW-EVENT-AUXILIARY-DATA []
+
+ASW-INFORMATIVE-EVENT-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	event-definition-id ASW-EVENT-IDENTIFIER [],
+	auxiliary-data [determinant event-definition-id]
+}
+
+ASW-INFORMATIVE-EVENT-NOTIFICATION-NOTIFICATION []
+
+ASW-INFORMATIVE-EVENT-REPORT-GENERIC [] {
+	notification []
+}
+
+ASW-INFORMATIVE-EVENT-REPORT []
+
+ASW-LOW-SEVERITY-EVENT-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	event-definition-id ASW-EVENT-IDENTIFIER [],
+	auxiliary-data [determinant event-definition-id]
+}
+
+ASW-LOW-SEVERITY-EVENT-NOTIFICATION-NOTIFICATION []
+
+ASW-LOW-SEVERITY-ANOMALY-REPORT-GENERIC [] {
+	notification []
+}
+
+ASW-LOW-SEVERITY-ANOMALY-REPORT []
+
+ASW-MEDIUM-SEVERITY-EVENT-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	event-definition-id ASW-EVENT-IDENTIFIER [],
+	auxiliary-data [determinant event-definition-id]
+}
+
+ASW-MEDIUM-SEVERITY-EVENT-NOTIFICATION-NOTIFICATION []
+
+ASW-MEDIUM-SEVERITY-ANOMALY-REPORT-GENERIC [] {
+	notification []
+}
+
+ASW-MEDIUM-SEVERITY-ANOMALY-REPORT []
+
+ASW-HIGH-SEVERITY-EVENT-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	event-definition-id ASW-EVENT-IDENTIFIER [],
+	auxiliary-data [determinant event-definition-id]
+}
+
+ASW-HIGH-SEVERITY-EVENT-NOTIFICATION-NOTIFICATION []
+
+ASW-HIGH-SEVERITY-ANOMALY-REPORT-GENERIC [] {
+	notification []
+}
+
+ASW-HIGH-SEVERITY-ANOMALY-REPORT []
+
+ASW-DISABLED-EVENT-DEFINITION-NOTIFICATION-COUNT [encoding pos-int, size 8]
+
+ASW-DISABLED-EVENT-DEFINITION-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	event-definition-id []
+}
+
+ASW-DISABLED-EVENT-DEFINITION-NOTIFICATION-NOTIFICATION []
+
+ASW-DISABLED-EVENT-DEFINITIONS-LIST-REPORT-GENERIC [] {
+	padding NULL [pattern '00000'B],
+	notifications []
+}
+
+ASW-DISABLED-EVENT-DEFINITIONS-LIST-REPORT []
+
+ASW-EVENT-REPORTING-TM <ASW-TYPE-ID: message-subtype-id> [] {
+	informative-event-report [present-when message-subtype-id==1],
+	low-severity-anomaly-report [present-when message-subtype-id==2],
+	medium-severity-anomaly-report [present-when message-subtype-id==3],
+	high-severity-anomaly-report [present-when message-subtype-id==4],
+	disabled-event-definitions-list-report [present-when message-subtype-id==8]
+}
+
+ASW-CHECK-TRANSITION-NOTIFICATION-COUNT [encoding pos-int, size 8]
+
+ASW-PMON-CHECKING-STATUS-FOR-EXPECTED-VALUE-CHECKING [size 8, encoding pos-int, encode-values]
+
+ASW-PMON-CHECKING-STATUS-FOR-LIMIT-CHECKING [size 32, encoding pos-int, encode-values, endianness big]
+
+ASW-PMON-CHECKING-STATUS-FOR-DELTA-CHECKING [size 32, encoding pos-int, encode-values, endianness big]
+
+ASW-PMON-CHECKING-STATUS []
+
+ASW-TRANSITION-TIME [] { t-field [] { day [size 16, encoding pos-int, endianness big], milisecond [size 32, encoding pos-int, endianness big], submilisecond [size 16, encoding pos-int, endianness big] } }
+
+ASW-CHECK-TRANSITION-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	pmon-id [],
+	monitored-parameter-id [],
+	check-type ASW-CHECK-TYPE [],
+	expected-value-check-mask [],
+	parameter-value [],
+	limit-crossed [],
+	previous-pmon-checking-status [determinant check-type],
+	current-pmon-checking-status [determinant check-type],
+	transition-time []
+}
+
+ASW-CHECK-TRANSITION-NOTIFICATION-NOTIFICATION []
+
+ASW-CHECK-TRANSITION-NOTIFICATION-NOTIFICATIONSSDATA-LENGTH [encoding pos-int, size 16, endianness big]
+
+ASW-CHECK-TRANSITION-NOTIFICATION-NOTIFICATIONSSDATA [] { field-length ASW-CHECK-TRANSITION-NOTIFICATION-NOTIFICATIONSSDATA-LENGTH [size 0, encoding pos-int, mapping-function asw-mapper-12-12-check-transition-notification-notificationssdata], field-data [size field-length] }
+
+ASW-CHECK-TRANSITION-REPORT-GENERIC [] {
+	n [], notifications-data []
+}
+
+ASW-CHECK-TRANSITION-REPORT []
+
+ASW-PARAMETER-MONITORING-DEFINITION-NOTIFICATION-COUNT [encoding pos-int, size 8]
+
+ASW-PMON-STATUS [size 8, encoding pos-int, encode-values]
+
+ASW-PARAMETER-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	parameter-monitoring-definition [],
+	pmon-status []
+}
+
+ASW-PARAMETER-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATION []
+
+ASW-PARAMETER-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATIONSSDATA-LENGTH [encoding pos-int, size 16, endianness big]
+
+ASW-PARAMETER-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATIONSSDATA [] { field-length ASW-PARAMETER-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATIONSSDATA-LENGTH [size 0, encoding pos-int, mapping-function asw-mapper-12-9-parameter-monitoring-definition-notification-notificationssdata], field-data [size field-length] }
+
+ASW-PARAMETER-MONITORING-DEFINITION-REPORT-GENERIC [] {
+	max-transition-reporting-delay [],
+	n [], notifications-data []
+}
+
+ASW-PARAMETER-MONITORING-DEFINITION-REPORT []
+
+ASW-PARAMETER-MONITORING-DEFINITION-STATUS-NOTIFICATION-COUNT [encoding pos-int, size 8]
+
+ASW-PARAMETER-MONITORING-DEFINITION-STATUS-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	pmon-id [],
+	pmon-status []
+}
+
+ASW-PARAMETER-MONITORING-DEFINITION-STATUS-NOTIFICATION-NOTIFICATION []
+
+ASW-PARAMETER-MONITORING-DEFINITION-STATUS-REPORT-GENERIC [] {
+	notifications []
+}
+
+ASW-PARAMETER-MONITORING-DEFINITION-STATUS-REPORT []
+
+ASW-OUT-OF-LIMIT-NOTIFICATION-COUNT [encoding pos-int, size 8]
+
+ASW-OUT-OF-LIMIT-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	pmon-id [],
+	monitored-parameter-id [],
+	check-type ASW-CHECK-TYPE [],
+	expected-value-check-mask [],
+	parameter-value [],
+	limit-crossed [],
+	previous-pmon-checking-status [determinant check-type],
+	current-pmon-checking-status [determinant check-type],
+	transition-time []
+}
+
+ASW-OUT-OF-LIMIT-NOTIFICATION-NOTIFICATION []
+
+ASW-OUT-OF-LIMIT-NOTIFICATION-NOTIFICATIONSSDATA-LENGTH [encoding pos-int, size 16, endianness big]
+
+ASW-OUT-OF-LIMIT-NOTIFICATION-NOTIFICATIONSSDATA [] { field-length ASW-OUT-OF-LIMIT-NOTIFICATION-NOTIFICATIONSSDATA-LENGTH [size 0, encoding pos-int, mapping-function asw-mapper-12-11-out-of-limit-notification-notificationssdata], field-data [size field-length] }
+
+ASW-OUT-OF-LIMITS-REPORT-GENERIC [] {
+	n [], notifications-data []
+}
+
+ASW-OUT-OF-LIMITS-REPORT []
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-NOTIFICATION-COUNT [encoding pos-int, size 8]
+
+ASW-FMON-PROTECTION-STATUS [size 32, encoding pos-int, encode-values, endianness big]
+
+ASW-FMON-STATUS [size 32, encoding pos-int, encode-values, endianness big]
+
+ASW-CONTENT-OF-FUNCTIONAL-MONITORING-DEFINITION-WITH-STATUSES-GENERIC [] {
+	fmon-id [],
+	check-validity-condition [],
+	fmon-protection-status [],
+	fmon-status [],
+	event-definition-id [],
+	minimum-pmon-failing-number [],
+	pmon-ids []
+}
+
+ASW-CONTENT-OF-FUNCTIONAL-MONITORING-DEFINITION-WITH-STATUSES []
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	content-of-the-functional-monitoring-definition []
+}
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATION []
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATIONSSDATA-LENGTH [encoding pos-int, size 16, endianness big]
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATIONSSDATA [] { field-length ASW-FUNCTIONAL-MONITORING-DEFINITION-NOTIFICATION-NOTIFICATIONSSDATA-LENGTH [size 0, encoding pos-int, mapping-function asw-mapper-12-26-functional-monitoring-definition-notification-notificationssdata], field-data [size field-length] }
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-REPORT-GENERIC [] {
+	n [], notifications-data []
+}
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-REPORT []
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-STATUS-NOTIFICATION-COUNT [encoding pos-int, size 8]
+
+ASW-FMON-CHECKING-STATUS [size 8, encoding pos-int, encode-values]
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-STATUS-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	fmon-id [],
+	fmon-protection-status [],
+	fmon-status [],
+	fmon-checking-status []
+}
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-STATUS-NOTIFICATION-NOTIFICATION []
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-STATUS-REPORT-GENERIC [] {
+	notifications []
+}
+
+ASW-FUNCTIONAL-MONITORING-DEFINITION-STATUS-REPORT []
+
+ASW-ON-BOARD-MONITORING-TM <ASW-TYPE-ID: message-subtype-id> [] {
+	check-transition-report [present-when message-subtype-id==12],
+	parameter-monitoring-definition-report [present-when message-subtype-id==9],
+	parameter-monitoring-definition-status-report [present-when message-subtype-id==14],
+	out-of-limits-report [present-when message-subtype-id==11],
+	functional-monitoring-definition-report [present-when message-subtype-id==26],
+	functional-monitoring-definition-status-report [present-when message-subtype-id==28]
+}
+
+ASW-ARE-YOU-ALIVE-CONNECTION-TEST-NOTIFICATION-NOTIFICATION-GENERIC [] {
+
+}
+
+ASW-ARE-YOU-ALIVE-CONNECTION-TEST-NOTIFICATION-NOTIFICATION []
+
+ASW-ARE-YOU-ALIVE-CONNECTION-TEST-REPORT-GENERIC [] {
+	notification []
+}
+
+ASW-ARE-YOU-ALIVE-CONNECTION-TEST-REPORT []
+
+ASW-ON-BOARD-CONNECTION-TEST-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	application-process-id []
+}
+
+ASW-ON-BOARD-CONNECTION-TEST-NOTIFICATION-NOTIFICATION []
+
+ASW-ON-BOARD-CONNECTION-TEST-REPORT-GENERIC [] {
+	notification []
+}
+
+ASW-ON-BOARD-CONNECTION-TEST-REPORT []
+
+ASW-TEST-TM <ASW-TYPE-ID: message-subtype-id> [] {
+	are-you-alive-connection-test-report [present-when message-subtype-id==2],
+	on-board-connection-test-report [present-when message-subtype-id==4]
+}
+
+ASW-EVENT-ACTION-STATUS-NOTIFICATION-COUNT [encoding pos-int, size 8]
+
+ASW-EVENT-ACTION-STATUS [size 8, encoding pos-int, encode-values]
+
+ASW-EVENT-ACTION-STATUS-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	event-definition-system-id [],
+	event-action-status []
+}
+
+ASW-EVENT-ACTION-STATUS-NOTIFICATION-NOTIFICATION []
+
+ASW-EVENT-ACTION-STATUS-REPORT-GENERIC [] {
+	notifications []
+}
+
+ASW-EVENT-ACTION-STATUS-REPORT []
+
+ASW-EVENT-ACTION-DEFINITION-NOTIFICATION-COUNT [encoding pos-int, size 8]
+
+ASW-EVENT-ACTION-DEFINITION-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	event-definition-system-id [],
+	event-action-status [],
+	request []
+}
+
+ASW-EVENT-ACTION-DEFINITION-NOTIFICATION-NOTIFICATION []
+
+ASW-EVENT-ACTION-DEFINITION-REPORT-GENERIC [] {
+	notifications []
+}
+
+ASW-EVENT-ACTION-DEFINITION-REPORT []
+
+ASW-EVENT-ACTION-TM <ASW-TYPE-ID: message-subtype-id> [] {
+	event-action-status-report [present-when message-subtype-id==7],
+	event-action-definition-report [present-when message-subtype-id==11]
+}
+
+ASW-PARAMETER-VALUE-NOTIFICATION-COUNT [encoding pos-int, size 8]
+
+ASW-PARAMETER-VALUE-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	parameter-id [],
+	value []
+}
+
+ASW-PARAMETER-VALUE-NOTIFICATION-NOTIFICATION []
+
+ASW-PARAMETER-VALUE-NOTIFICATION-NOTIFICATIONSSDATA-LENGTH [encoding pos-int, size 8]
+
+ASW-PARAMETER-VALUE-NOTIFICATION-NOTIFICATIONSSDATA [] { field-length ASW-PARAMETER-VALUE-NOTIFICATION-NOTIFICATIONSSDATA-LENGTH [size 0, encoding pos-int, mapping-function asw-mapper-20-2-parameter-value-notification-notificationssdata], field-data [size field-length] }
+
+ASW-PARAMETER-VALUE-REPORT-GENERIC [] {
+	n [], notifications-data []
+}
+
+ASW-PARAMETER-VALUE-REPORT []
+
+ASW-PARAMETER-DEFINITION-NOTIFICATION-COUNT [encoding pos-int, size 8]
+
+ASW-ADDRESSING-SCHEME [size 8, encoding pos-int, encode-values]
+
+ASW-FILE-NAME-LENGTH [encoding pos-int, size 8]
+
+ASW-FILE-NAME [] { field-length ASW-FILE-NAME-LENGTH [], field-data [size field-length, encoding ASCII] }
+
+ASW-FILEADDRESS-GENERIC [] {
+	memory-base [],
+	offset []
+}
+
+ASW-FILEADDRESS []
+
+ASW-MEMORY-ADDRESS []
+
+ASW-PARAMETER-DEFINITION-NOTIFICATION-NOTIFICATION-MEMORY-ID-PRESENT-ADDRESSING-SCHEME-PRESENT [] {
+	parameter-id [],
+	memory-id ASW-MEMORY-IDENTIFIER [],
+	addressing-scheme [],
+	addressing-scheme-dependent-address [determinant memory-id],
+	packet-field-code []
+}
+
+ASW-PARAMETER-DEFINITION-NOTIFICATION-NOTIFICATION-MEMORY-ID-PRESENT-ADDRESSING-SCHEME-ABSENT [] {
+	parameter-id [],
+	memory-id ASW-MEMORY-IDENTIFIER [],
+	addressing-scheme-dependent-address [determinant memory-id],
+	packet-field-code []
+}
+
+ASW-PARAMETER-DEFINITION-NOTIFICATION-NOTIFICATION-MEMORY-ID-ABSENT-ADDRESSING-SCHEME-PRESENT [] {
+	parameter-id [],
+	addressing-scheme [],
+	addressing-scheme-dependent-address [],
+	packet-field-code []
+}
+
+ASW-PARAMETER-DEFINITION-NOTIFICATION-NOTIFICATION-MEMORY-ID-ABSENT-ADDRESSING-SCHEME-ABSENT [] {
+	parameter-id [],
+	addressing-scheme-dependent-address [],
+	packet-field-code []
+}
+
+ASW-PARAMETER-DEFINITION-NOTIFICATION-NOTIFICATION-GENERIC [] {
+	memory-id-present-addressing-scheme-present [],
+	memory-id-present-addressing-scheme-absent [],
+	memory-id-absent-addressing-scheme-present [],
+	memory-id-absent-addressing-scheme-absent []
+}
+
+ASW-PARAMETER-DEFINITION-NOTIFICATION-NOTIFICATION []
+
+ASW-PARAMETER-DEFINITION-REPORT-GENERIC [] {
+	notifications []
+}
+
+ASW-PARAMETER-DEFINITION-REPORT []
+
+ASW-PARAMETER-MANAGEMENT-TM <ASW-TYPE-ID: message-subtype-id> [] {
+	parameter-value-report [present-when message-subtype-id==2],
+	parameter-definition-report [present-when message-subtype-id==7]
+}
+
+ASW-TM-PAYLOAD <ASW-TYPE-ID: service-type-id, ASW-TYPE-ID: message-subtype-id> [] {
+	request-verification <message-subtype-id>  [present-when service-type-id==1],
+	housekeeping <message-subtype-id>  [present-when service-type-id==3],
+	event-reporting <message-subtype-id>  [present-when service-type-id==5],
+	on-board-monitoring <message-subtype-id>  [present-when service-type-id==12],
+	test <message-subtype-id>  [present-when service-type-id==17],
+	event-action <message-subtype-id>  [present-when service-type-id==19],
+	parameter-management <message-subtype-id>  [present-when service-type-id==20]
+}
+
+
+
+ASW-IS-SLOT-USED [true-value '1'B]
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-SLOT-GENERIC [] {
+	housekeeping-parameter-report-structure-id [],
+	collection-interval [],
+	parameter-id [],
+	super-commuted-parameter-sets [],
+	periodic-generation-action-status [],
+	is-slot-used []
+}
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-SLOT []
+
+ASW-HOUSEKEEPING-PARAMETER-REPORT-STRUCTURE-SLOTS [] {
+	padding NULL [pattern '0000'B],
+	field-data [] 
+}
+
+ASW-PARAMETER-SIZES [] {
+	padding NULL [pattern '0'B],
+	field-data [] 
+}
+
+ASW-SUPER-COMMUTED-PARAMETER-SET-VALUES-SLOT-GENERIC [] {
+	tick-number [],
+	parameter-ids [],
+	parameter-values [],
+	sizes [],
+	parameter-ids-for-periodic-report-generation []
+}
+
+ASW-SUPER-COMMUTED-PARAMETER-SET-VALUES-SLOT []
+
+ASW-OFFSETS-OF-PARAMETERS [] {
+	padding NULL [pattern '0000'B],
+	field-data [] 
+}
+
+ASW-SPACECRAFT-TIME [] { t-field [] { day [size 16, encoding pos-int, endianness big], milisecond [size 32, encoding pos-int, endianness big], submilisecond [size 16, encoding pos-int, endianness big] } }
+
+ASW-MINIMUM-SAMPLING-INTERVAL [] { t-field [] { day [size 16, encoding pos-int, endianness big], milisecond [size 32, encoding pos-int, endianness big], submilisecond [size 16, encoding pos-int, endianness big] } }
+
+ASW-EVALUATION-TIME [] { t-field [] { day [size 16, encoding pos-int, endianness big], milisecond [size 32, encoding pos-int, endianness big], submilisecond [size 16, encoding pos-int, endianness big] } }
+
+ASW-TIME-OFFSET [] { t-field [] { day [size 16, encoding pos-int, endianness big], milisecond [size 32, encoding pos-int, endianness big], submilisecond [size 16, encoding pos-int, endianness big] } }
+
+ASW-ABSOLUTE-TIME [] { t-field [] { day [size 16, encoding pos-int, endianness big], milisecond [size 32, encoding pos-int, endianness big], submilisecond [size 16, encoding pos-int, endianness big] } }
+
+ASW-RELEASE-TIME [] { t-field [] { day [size 16, encoding pos-int, endianness big], milisecond [size 32, encoding pos-int, endianness big], submilisecond [size 16, encoding pos-int, endianness big] } }
+
+ASW-TIME-INTERVAL [] { t-field [] { day [size 16, encoding pos-int, endianness big], milisecond [size 32, encoding pos-int, endianness big], submilisecond [size 16, encoding pos-int, endianness big] } }
+
+ASW-REQUEST-DELAY [] { t-field [] { day [size 16, encoding pos-int, endianness big], milisecond [size 32, encoding pos-int, endianness big], submilisecond [size 16, encoding pos-int, endianness big] } }
+
+ASW-MEMORY-BASE []
+
+ASW-MEMORY-DATA-LENGTH [encoding pos-int, size 8]
+
+ASW-MEMORY-DATA [] { field-length ASW-MEMORY-DATA-LENGTH [], field-data [size field-length] }
+
+ASW-PARAMETER-EXPECTED-VALUE-CHECK-GENERIC [] {
+	expected-value [],
+	mask [],
+	event-definition-id []
+}
+
+ASW-PARAMETER-EXPECTED-VALUE-CHECK []
+
+ASW-PARAMETER-LIMIT-CHECK-GENERIC [] {
+	low-limit [],
+	high-limit [],
+	low-event-definition-id [],
+	high-event-definition-id []
+}
+
+ASW-PARAMETER-LIMIT-CHECK []
+
+ASW-UINT8 [encoding pos-int, size 8]
+
+ASW-PARAMETER-DELTA-CHECK-GENERIC [] {
+	number-of-consecutive-delta-values [],
+	low-delta-threshold-value [],
+	high-delta-threshold-value [],
+	low-event-definition-id [],
+	high-event-definition-id []
+}
+
+ASW-PARAMETER-DELTA-CHECK []
+
+ASW-PARAMETER-CHECK []
+
+ASW-MEMORY-ADDRESS-CONTAINER-GENERIC [] {
+	address []
+}
+
+ASW-MEMORY-ADDRESS-CONTAINER []
+
+ASW-PARAMETER-MONITORING-DEFINITION-IDENTIFIER [size 8, encoding pos-int, encode-values]
+
+ASW-PARAMETER-REPORT-DEFINITION-ID-GENERIC [] {
+	apid [],
+	parameter-report-structure-type [],
+	parameter-report-definition-id []
+}
+
+ASW-PARAMETER-REPORT-DEFINITION-ID []
+
+ASW-NFA [encoding pos-int, size 8]
+
+ASW-APPLICATION-PROCESS-ID [encoding pos-int, size 11]
+
+ASW-PARAMETER-REPORT-STRUCTURE-SLOT-GENERIC [] {
+	apid [],
+	parameter-report-structure-type ASW-PARAMETER-REPORT-STRUCTURE-TYPE [],
+	parameter-report-structure-id [determinant parameter-report-structure-type],
+	periodic-generation-action-status [],
+	collection-interval []
+}
+
+ASW-PARAMETER-REPORT-STRUCTURE-SLOT []
+
+ASW-PARAMETER-REPORT-STRUCTURE-SLOTS [] {
+	padding NULL [pattern '0000'B],
+	field-data [] 
+}
+
+ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-SLOT-GENERIC [] {
+	parameter-functional-reporting-definition-id [],
+	parameter-reporting-entries [],
+	is-slot-used []
+}
+
+ASW-PARAMETER-FUNCTIONAL-REPORTING-DEFINITION-SLOT []
+
+ASW-DIAGNOSTIC-PARAMETER-REPORT-STRUCTURE-ID [encoding pos-int, size 8]
+
+ASW-EVENT-SEVERITY-LEVEL [size 8, encoding pos-int, encode-values]
+
+ASW-PMON-FUNCTION-STATUS [size 32, encoding pos-int, encode-values, endianness big]
+
+ASW-COUNTER [encoding pos-int, size 8]
+
+ASW-PMON-CHECKING-STATUS-VALUE [encoding pos-int, size 8]
+
+ASW-PMON-CHECKING-STATUS-VALUES []
+
+ASW-CHECKING-STATUS-SAMPLING-TIMES []
+
+ASW-IS-CHECKING-STATUS-VALUES-FULL [true-value '00000001'B]
+
+ASW-PMON-SLOT-GENERIC [] {
+	pmon-id [],
+	monitored-parameter-id [],
+	check-validity-condition [],
+	monitoring-interval [],
+	repetition-number [],
+	check-type ASW-CHECK-TYPE [],
+	check-type-dependent-criteria [determinant check-type],
+	pmon-status [],
+	checking-status [determinant check-type],
+	monitoring-interval-count [],
+	repetition-count [],
+	pmon-checking-status-values [],
+	pmon-checking-status-sampling-times [],
+	is-checking-status-values-full [],
+	is-slot-used []
+}
+
+ASW-PMON-SLOT []
+
+ASW-CHECK-TRANSITION-SLOT-GENERIC [] {
+	pmon-id [],
+	monitored-parameter-id [],
+	check-type ASW-CHECK-TYPE [],
+	expected-value-check-mask [],
+	parameter-value [],
+	limit-crossed [],
+	previous-pmon-checking-status [determinant check-type],
+	current-pmon-checking-status [determinant check-type],
+	transition-time [],
+	is-slot-used []
+}
+
+ASW-CHECK-TRANSITION-SLOT []
+
+ASW-DELTA-CHECKING-METADATA-GENERIC [] {
+	sampled-values-count [],
+	last-sampled-value [],
+	is-delta-checking-data-full []
+}
+
+ASW-DELTA-CHECKING-METADATA []
+
+ASW-EQUALITY-MASK-LENGTH [encoding pos-int, size 9]
+
+ASW-EQUALITY-MASK [] { field-length ASW-EQUALITY-MASK-LENGTH [], field-data [size field-length] }
+
+ASW-FMON-FUNCTION-STATUS [size 32, encoding pos-int, encode-values, endianness big]
+
+ASW-FMON-SLOT-GENERIC [] {
+	fmon-id [],
+	check-validity-condition [],
+	event-definition-id [],
+	minimum-pmon-failing-number [],
+	pmon-ids [],
+	fmon-checking-status [],
+	fmon-status [],
+	fmon-protection-status [],
+	is-slot-used []
+}
+
+ASW-FMON-SLOT []
+
+ASW-FMON-IDS [] {
+	padding NULL [pattern '0000'B],
+	field-data [] 
+}
+
+ASW-EVENT-ACTION-FUNCTION-STATUS [size 8, encoding pos-int, encode-values]
+
+ASW-EVENT-ACTION-DEFINITION-SLOT-GENERIC [] {
+	system-identifier [],
+	request [],
+	status [],
+	is-slot-used []
+}
+
+ASW-EVENT-ACTION-DEFINITION-SLOT []
+
+ASW-SUPER-COMMUTED-PARAMETER-SETS-SYSTEM-OBJECT-VALUE [] {
+	padding NULL [pattern '0000'B],
+	field-data [] 
+}
+
+
+ASW-TELECOMMAND                 [] {
+   packet-secondary-header             [] {
+      tc-packet-version                NULL [pattern '0010'B],
+      ack-successful-completion        [true-value '1'B],
+      ack-successful-progress          [true-value '1'B],
+      ack-successful-start             [true-value '1'B],
+      ack-successful-acceptance        [true-value '1'B],
+      service-type-id                  ASW-TYPE-ID[],
+      message-subtype-id               ASW-TYPE-ID[],
+      source-id                        []
+   },
+   user-data-field                     <packet-secondary-header.service-type-id, packet-secondary-header.message-subtype-id> []
+}
+
+ASW-TELEMETRY                   [] {
+   packet-secondary-header             [] {
+      tc-packet-version                NULL [pattern '0010'B],
+      time-reference-status            [],
+      service-type-id                  ASW-TYPE-ID[],
+      message-subtype-id               ASW-TYPE-ID[],
+      message-type-counter             [size 16, encoding pos-int],
+      destination-id                   []
+   },
+   user-data-field                     <packet-secondary-header.service-type-id, packet-secondary-header.message-subtype-id> []
+}
+
+ASW-HEADERLESS-TELEMETRY        [] {
+   user-data-field                     []
+}
+
+END

@@ -5,10 +5,23 @@ from pathlib import Path
 import tempfile
 import xml.etree.ElementTree as ET
 
-from statementCollector import c, measure, read_report
+from statementCollector import GNAT_MAX_LINE, c, measure, read_report, split_ada_line
+
+
+def check_split_ada_line():
+    """Over-long instrumented lines are broken after statements only (gnatcov MC/DC state declarations)."""
+    decl = "S_{0}_Var:T:=0;S_{0}:constant A:=S_{0}_Var'Address;"
+    line = "".join(decl.format(i) for i in range(3)) + 'X:=";";C:=\';\';-- a; b'
+    parts = split_ada_line(line).split("\n")
+    assert parts == ["S_0_Var:T:=0;", "S_0:constant A:=S_0_Var'Address;", "S_1_Var:T:=0;",
+                     "S_1:constant A:=S_1_Var'Address;", "S_2_Var:T:=0;", "S_2:constant A:=S_2_Var'Address;",
+                     'X:=";";', "C:=';';", "-- a; b"], parts
+    assert "".join(parts) == line
+    assert all(len(p) <= GNAT_MAX_LINE for p in split_ada_line(decl.format(7) * 4000).split("\n"))
 
 
 def main():
+    check_split_ada_line()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--language", choices=("c", "Ada"), required=True)
     parser.add_argument("--outdir", type=Path)

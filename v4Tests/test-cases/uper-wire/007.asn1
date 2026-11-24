@@ -1,0 +1,24 @@
+-- Issue 151: fixed-size fragmented lengths (SIZE(N), N >= 64K). When the last fragment holds a multiple of 16K items
+-- (N = k x 64K + m x 16K), a final fragment that is a single length octet 0 follows (X.691 10.9.3.8.3 NOTE): the
+-- encoders write it, the decoders read it and reject any other octet with the type's error code. F70 / QR (a rest of
+-- 4464 items) end with the length of the rest and get no final octet. QE / QN / QR have elements with their own
+-- decoder (an Ada element decoder sets the error code to 0 when it succeeds: a header after such a block must still
+-- reject with the type's error code).
+UPER-WIRE-FIXED DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    F64  ::= OCTET STRING (SIZE(65536))
+    F80  ::= OCTET STRING (SIZE(81920))
+    F112 ::= OCTET STRING (SIZE(114688))
+    F128 ::= OCTET STRING (SIZE(131072))
+    F70  ::= OCTET STRING (SIZE(70000))
+    B64  ::= BIT STRING (SIZE(65536))
+    B80  ::= BIT STRING (SIZE(81920))
+    S80  ::= IA5String (SIZE(81920)) (FROM("A".."Z"))
+    Q80  ::= SEQUENCE (SIZE(81920)) OF INTEGER (0..7)
+    Elm  ::= SEQUENCE { a INTEGER (0..5), b BOOLEAN }
+    En   ::= ENUMERATED { red, green, blue }
+    QE   ::= SEQUENCE (SIZE(147456)) OF Elm
+    QN   ::= SEQUENCE (SIZE(81920)) OF En
+    QR   ::= SEQUENCE (SIZE(70000)) OF Elm
+    W    ::= SEQUENCE { a F80, b INTEGER (0..255) }
+    WI   ::= SEQUENCE { a OCTET STRING (SIZE(81920)), b INTEGER (0..255) }
+END

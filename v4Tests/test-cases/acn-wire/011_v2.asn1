@@ -1,0 +1,8 @@
+-- --acn-v2 only (legacy rejects a consumer inside the elements of a SEQUENCE OF): a fixed-size consumer that is OPTIONAL
+-- inside the elements of a callee's SEQUENCE OF is patched per element, so a list in which no element holds it leaves
+-- the default 0 (cycle i108a round 2; before, the constant 3 was written). Run by runWireTests.sh with
+-- 011_v2_wire_test.c / .adb.
+WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    PGX ::= SEQUENCE { items SEQUENCE (SIZE(0..2)) OF SEQUENCE { x OCTET STRING (SIZE(3)) OPTIONAL, e INTEGER (0..255) } }
+    S17 ::= SEQUENCE { pl PGX, tail INTEGER (0..255) }
+END

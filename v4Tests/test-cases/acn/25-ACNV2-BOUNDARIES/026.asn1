@@ -1,0 +1,18 @@
+-- ACNV2_ONLY
+-- q/issues.md Issue 50: a CHOICE whose determinant is an ACN parameter, reached from the specialised
+-- (--acn-v2) function through an OPTIONAL component (In1, In2) or through an alternative of
+-- another CHOICE (In3). The PatchDet of the determinant runs only when the CHOICE exists; otherwise
+-- the fallback PatchDet of the producer writes the default. Before 4.9.52.0: an absent y with
+-- y.kind = 0 made the encoder fail with error code 0 (C), and In3 did not compile (C) or raised
+-- Constraint_Error (Ada).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+K2 ::= ENUMERATED { a, b }
+In1 ::= SEQUENCE { z INTEGER (0..3), y CHOICE { a INTEGER(0..3), b BOOLEAN } OPTIONAL }
+In2 ::= SEQUENCE { s SEQUENCE { y CHOICE { a INTEGER(0..3), b BOOLEAN } } OPTIONAL }
+In3 ::= CHOICE { p SEQUENCE { y CHOICE { a INTEGER(0..3), b BOOLEAN } }, q NULL }
+O1 ::= SEQUENCE { i1 In1 }
+O2 ::= SEQUENCE { i2 In2 }
+O3 ::= SEQUENCE { i3 In3 }
+END
+
+--TCFS   026.acn

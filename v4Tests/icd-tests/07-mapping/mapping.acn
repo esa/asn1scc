@@ -1,0 +1,14 @@
+MAPPING DEFINITIONS ::= BEGIN
+
+Percent [encoding pos-int, size 8, mapping-function app-mappers.percent]
+Offset [encoding twos-complement, size 8, mapping-function offset-map]
+
+Frame [] {
+    payload-len INTEGER [encoding pos-int, size 0, mapping-function app-mappers.payload-length],
+    pct [],
+    off [],
+    payload [size payload-len],
+    readings []
+}
+
+END

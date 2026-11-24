@@ -1,0 +1,19 @@
+-- C_ADA_ONLY: byte-exact C check of 'size deduced' contents in a CONTAINING region that does not start at a byte
+-- boundary (runWireTests.sh, both modes; the automatic tests run for C and Ada)
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    Item9 ::= INTEGER (0..500)
+    List9 ::= SEQUENCE (SIZE(1..100)) OF Item9
+    -- the region (2 octets for one element) starts at bit 4 of a byte and ends at bit 4 of a byte
+    ExtPdu ::= SEQUENCE {
+        hdr     INTEGER (0..15),
+        payload OCTET STRING (CONTAINING List9),
+        tail    INTEGER (0..255)
+    }
+    -- the region starts at bit 3, after a 4-bit field and a 7-bit embedded length
+    EmbPdu ::= SEQUENCE {
+        hdr     INTEGER (0..15),
+        payload OCTET STRING (CONTAINING List9),
+        tail    INTEGER (0..255)
+    }
+END
+--TCFS 035.acn

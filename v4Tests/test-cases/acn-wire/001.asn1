@@ -1,0 +1,12 @@
+-- ACN INTEGER encoded as ASCII digits with a terminator (q: Issue 97): the decoders reject a value outside the range
+-- of the type and a digit string that does not fit the integer type, with an error code (Ada: no Constraint_Error).
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 001_decode_test.c / 001_decode_test.adb.
+WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+	Un  ::= INTEGER (0 .. 255)
+	Nr  ::= INTEGER (10 .. 20)
+	Sg  ::= INTEGER (-100 .. 100)
+	Big ::= INTEGER (0 .. MAX)
+	Any ::= INTEGER
+
+END

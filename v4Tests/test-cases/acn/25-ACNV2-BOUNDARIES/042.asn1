@@ -1,0 +1,67 @@
+-- ACNV2_ONLY (the --acn-v2 specialised encoders patch every consumer of an ACN parameter, Issue 121)
+-- An ACN parameter with several consumers inside the referenced type: two inline / named OCTET STRINGs, BIT STRING and
+-- SEQUENCE OF, IA5Strings, CHOICE alternatives, an inline child, a callee passing the parameter on, a callee in a
+-- SEQUENCE OF element, mandatory consumers, two CHOICE determinants, two present-when flags, fixed-size consumers
+-- (SIZE(3)) next to variable ones in a SEQUENCE and in a CHOICE (their patches run only when they are encoded).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    MyOct ::= OCTET STRING (SIZE(0..15))
+    MyOct2 ::= OCTET STRING (SIZE(0..15))
+    MyBit ::= BIT STRING (SIZE(0..15))
+    MySeqOf ::= SEQUENCE (SIZE(0..15)) OF INTEGER(0..7)
+    MyStr ::= IA5String (SIZE(0..15))
+    PA ::= SEQUENCE { o OCTET STRING (SIZE(0..15)) OPTIONAL, d OCTET STRING (SIZE(0..15)) OPTIONAL, e INTEGER(0..255) }
+    TA ::= SEQUENCE { a INTEGER(0..255), pl PA, tail INTEGER(0..255) }
+    PB ::= SEQUENCE { o MyOct OPTIONAL, d OCTET STRING (SIZE(0..15)) OPTIONAL, e INTEGER(0..255) }
+    TB ::= SEQUENCE { a INTEGER(0..255), pl PB, tail INTEGER(0..255) }
+    PC ::= SEQUENCE { d OCTET STRING (SIZE(0..15)) OPTIONAL, o MyOct OPTIONAL, e INTEGER(0..255) }
+    TC ::= SEQUENCE { a INTEGER(0..255), pl PC, tail INTEGER(0..255) }
+    PD ::= SEQUENCE { o MyOct OPTIONAL, d MyOct2 OPTIONAL, e INTEGER(0..255) }
+    TD ::= SEQUENCE { a INTEGER(0..255), pl PD, tail INTEGER(0..255) }
+    PE ::= SEQUENCE { o MyStr OPTIONAL, d OCTET STRING (SIZE(0..15)) OPTIONAL, e INTEGER(0..255) }
+    TE ::= SEQUENCE { a INTEGER(0..255), pl PE, tail INTEGER(0..255) }
+    PF ::= SEQUENCE { o MyBit OPTIONAL, d MySeqOf OPTIONAL, e INTEGER(0..255) }
+    TF ::= SEQUENCE { a INTEGER(0..255), pl PF, tail INTEGER(0..255) }
+    PG ::= SEQUENCE { o MyOct, d OCTET STRING (SIZE(0..15)), e INTEGER(0..255) }
+    TG ::= SEQUENCE { a INTEGER(0..255), pl PG, tail INTEGER(0..255) }
+    CH ::= CHOICE { a OCTET STRING (SIZE(0..15)), b MyOct, c INTEGER(0..7) }
+    TH ::= SEQUENCE { a INTEGER(0..255), pl CH, tail INTEGER(0..255) }
+    PI ::= SEQUENCE { inner SEQUENCE { o MyOct } OPTIONAL, d OCTET STRING (SIZE(0..15)) OPTIONAL, e INTEGER(0..255) }
+    TI ::= SEQUENCE { a INTEGER(0..255), pl PI, tail INTEGER(0..255) }
+    PK ::= SEQUENCE { x INTEGER(0..7), q PB }
+    TK ::= SEQUENCE { a INTEGER(0..255), pl PK, tail INTEGER(0..255) }
+    PL ::= SEQUENCE { o MyOct, d OCTET STRING (SIZE(0..15)) OPTIONAL }
+    TL ::= SEQUENCE { a INTEGER(0..255), pl PL, tail INTEGER(0..255) }
+    TM ::= SEQUENCE (SIZE(1..2)) OF SEQUENCE { a INTEGER(0..255), pl PB, tail INTEGER(0..255) }
+    Kind ::= ENUMERATED { k1, k2 }
+    C1 ::= CHOICE { k1 INTEGER(0..7), k2 BOOLEAN }
+    PN ::= SEQUENCE { c1 C1 OPTIONAL, c2 CHOICE { k1 INTEGER(0..3), k2 NULL } OPTIONAL }
+    TN ::= SEQUENCE { a INTEGER(0..255), pl PN, tail INTEGER(0..255) }
+    PP ::= SEQUENCE { x INTEGER(0..7) OPTIONAL, y INTEGER(0..7) OPTIONAL, e INTEGER(0..255) }
+    TP ::= SEQUENCE { a INTEGER(0..255), pl PP, tail INTEGER(0..255) }
+    PS ::= SEQUENCE { s1 MyStr OPTIONAL, s2 IA5String (SIZE(0..15)) OPTIONAL, e INTEGER(0..255) }
+    TS ::= SEQUENCE { a INTEGER(0..255), pl PS, tail INTEGER(0..255) }
+    PF1 ::= SEQUENCE { o OCTET STRING (SIZE(3)) OPTIONAL, d OCTET STRING (SIZE(0..15)) OPTIONAL, e INTEGER(0..255) }
+    TF1 ::= SEQUENCE { a INTEGER(0..255), pl PF1, tail INTEGER(0..255) }
+    PF2 ::= SEQUENCE { d OCTET STRING (SIZE(0..15)) OPTIONAL, o OCTET STRING (SIZE(3)) OPTIONAL, e INTEGER(0..255) }
+    TF2 ::= SEQUENCE { a INTEGER(0..255), pl PF2, tail INTEGER(0..255) }
+    CF1 ::= CHOICE { a OCTET STRING (SIZE(3)), b OCTET STRING (SIZE(0..15)), c INTEGER(0..7) }
+    TC1 ::= SEQUENCE { a INTEGER(0..255), pl CF1, tail INTEGER(0..255) }
+    CF2 ::= CHOICE { b OCTET STRING (SIZE(0..15)), a OCTET STRING (SIZE(3)), c INTEGER(0..7) }
+    TC2 ::= SEQUENCE { a INTEGER(0..255), pl CF2, tail INTEGER(0..255) }
+    PL2 ::= SEQUENCE { o MyOct OPTIONAL, d OCTET STRING (SIZE(0..15)) }
+    TL2 ::= SEQUENCE { a INTEGER(0..255), pl PL2, tail INTEGER(0..255) }
+    -- values master --acn-v2 encoded with a wrong size (the consumer it patched is absent, another one present)
+    tb-o TB ::= { a 1, pl { o '010203'H, e 5 }, tail 7 }
+    th-a TH ::= { a 1, pl a : '010203'H, tail 7 }
+    tf1-o TF1 ::= { a 1, pl { o '010203'H, e 5 }, tail 7 }
+    tf2-d TF2 ::= { a 1, pl { d '0102030405'H, e 5 }, tail 7 }
+    tc1-a TC1 ::= { a 1, pl a : '010203'H, tail 7 }
+    tc2-b TC2 ::= { a 1, pl b : '0102030405'H, tail 7 }
+    -- positive controls (master already right: the present consumer is the one it patched); they also run the
+    -- decoder lines of the fixed-size consumers
+    tf2-o TF2 ::= { a 1, pl { o '010203'H, e 5 }, tail 7 }
+    tf1-d TF1 ::= { a 1, pl { d '0102030405'H, e 5 }, tail 7 }
+    tc1-b TC1 ::= { a 1, pl b : '0102030405'H, tail 7 }
+END
+
+--TCFS   042.acn

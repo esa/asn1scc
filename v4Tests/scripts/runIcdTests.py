@@ -26,6 +26,13 @@ temporary directory and then runs:
                        conversion) is byte-identical to the legacy one, so the
                        internal transform does not leak into the ICD (roadmap
                        B8).  Skipped for test dirs without the marker.
+ 10. mapping-fns     - the ACN mapping-functions of the AST xml are those named
+                       by the row notes of the -icdRaw JSON
+ 11. generator       - contrib/icd-generator.py renders the case (HTML from
+                       the grammar and from the dump, Excel with openpyxl)
+ 12. units           - every value row carries the unit of measure of its
+                       ASN.1 node (the use-site unit first), and length /
+                       presence / choice-index / padding rows carry none
 
 Some checks FAIL today because of documented bugs (icd-analysis par.2: R1
 zero-bit dropout, R2 presence mask, R6 dead anchors, R7 duplicate names). A
@@ -40,7 +47,9 @@ Usage details: v4Tests/icd-tests/README.md
 
 import argparse
 import difflib
+import importlib.util
 import math
+import os
 import re
 import shutil
 import subprocess
@@ -57,8 +66,17 @@ DEFAULT_COMPILER = V4TESTS_DIR.parent / "asn1scc" / "bin" / "Debug" / "net10.0" 
 CHECK_NAMES = [
     "golden", "json-structure", "nav-labels", "presence-mask",
     "choice-alts", "c-macros", "tas-coverage", "html-anchors",
-    "v2-parity",
+    "v2-parity", "mapping-fns", "generator", "units",
 ]
+
+# The HTML / Excel ICD generator (contrib/icd-generator.py) is run on every
+# test case by the 'generator' check.
+ICD_GENERATOR = V4TESTS_DIR.parent / "contrib" / "icd-generator.py"
+
+# Row comment that asn1scc puts on an INTEGER with an ACN mapping-function
+# (BackendAst/Acn/AcnPrimitives.fs, icdMappingFunctionNote).
+MAPPING_NOTE_RE = re.compile(r"^mapping-function ([\w.]+): (.*)$")
+MAPPING_NO_BITS = "occupies no bits on the wire"
 
 # A test dir opts into the legacy-vs-v2 ICD comparison by containing this
 # (empty) marker file.  --acn-v2 is C-only, so only grammars that compile in
@@ -308,6 +326,131 @@ def check_html_anchors(html_path):
             for t, n in sorted(missing.items())]
 
 
+def mapping_notes(icd):
+    """(table id, field name, function, note text, max bits) of every row that
+    carries the mapping-function comment."""
+    notes = []
+    for table in icd.get("tables", []):
+        for row in table.get("rows", []):
+            for comment in row.get("comments") or []:
+                m = MAPPING_NOTE_RE.match(comment)
+                if m:
+                    notes.append((table.get("id", "?"), row.get("fieldName", ""),
+                                  m.group(1), m.group(2), row.get("maxLengthInBits")))
+    return notes
+
+
+def check_mapping_fns(icd, ast_root):
+    """The mapping-functions of the -x AST (attribute on INTEGER and on ACN
+    INTEGER fields) are exactly those named by the -icdRaw row notes, and the
+    note says 'no bits on the wire' exactly for the rows of size 0."""
+    errors = []
+    in_xml = {e.get("mapping-function") for e in ast_root.iter()
+              if e.get("mapping-function")}
+    notes = mapping_notes(icd)
+    in_icd = {fn for _, _, fn, _, _ in notes}
+    for fn in sorted(in_xml - in_icd):
+        errors.append(f"mapping-function '{fn}' is in the AST xml but on no ICD row")
+    for fn in sorted(in_icd - in_xml):
+        errors.append(f"mapping-function '{fn}' is on an ICD row but not in the AST xml")
+    for table_id, field, fn, text, max_bits in notes:
+        if (MAPPING_NO_BITS in text) != (str(max_bits) == "0"):
+            errors.append(f"{table_id} / {field}: note of '{fn}' does not match its "
+                          f"size ({max_bits} bits): '{text}'")
+    return errors
+
+
+def xml_units(ast_root):
+    """Unit of measure by node id. A reference repeats its id on the nested
+    node of the referenced type; the outer node comes first in document order
+    and carries the unit written at the use site ('a Angle --{deg}--'), which
+    wins over the referenced type's own unit."""
+    units = {}
+    for node in ast_root.iter("Asn1Type"):
+        unit = (node.get("unitsOfMeasure") or "").strip()
+        if unit and node.get("id"):
+            units.setdefault(node.get("id"), unit)
+    return units
+
+
+def value_row_node_id(usage_path, row):
+    """Id of the ASN.1 node of a value row of the table at 'usage_path':
+    a type's own single row (field name '') is the type itself, a field 'f'
+    is 'usage_path.f', an element row ('f[k]' collapsed into the parent,
+    'Item #k' in the SEQUENCE OF's own table) is the element node '.#'."""
+    field = row.get("fieldName", "")
+    if row.get("rowType") == "SubItemRow":
+        m = re.match(r"^(.*)\[\d+\]$", field)
+        return f"{usage_path}.{m.group(1)}.#" if m else None
+    if not field:
+        return usage_path
+    if re.match(r"^Item #\d+$", field):
+        return f"{usage_path}.#"
+    return f"{usage_path}.{field}"
+
+
+def check_units(icd, ast_root):
+    """Every value row (FieldRow, SubItemRow) has the unit of its ASN.1 node,
+    or none when the node has none; a length / presence / choice-index /
+    padding row has no unit (a LengthDeterminantRow that refers to a
+    composite type's table may carry the component's unit)."""
+    errors = []
+    units = xml_units(ast_root)
+    for table in icd.get("tables", []):
+        usage_path = table.get("usagePath", "")
+        for row in table.get("rows", []):
+            row_type = row.get("rowType")
+            got = (row.get("sUnits") or "").strip()
+            where = f"{table.get('name', '?')} / {row.get('fieldName', '')!r}"
+            if row_type in ("FieldRow", "SubItemRow"):
+                node_id = value_row_node_id(usage_path, row)
+                expected = units.get(node_id, "") if node_id else ""
+                if got != expected:
+                    errors.append(f"{where}: unit {got!r}, expected {expected!r} "
+                                  f"(AST node {node_id})")
+            elif (row.get("sType") or {}).get("kind") != "reference" and got:
+                errors.append(f"{where}: {row_type} carries the unit {got!r}")
+    return errors
+
+
+def run_icd_generator(compiler, out_path, out_type, inputs):
+    cmd = [sys.executable, "-I", str(ICD_GENERATOR), "-t", out_type,
+           "-o", str(out_path)] + [str(f) for f in inputs]
+    env = dict(os.environ, ASN1SCC=str(compiler))
+    proc = subprocess.run(cmd, capture_output=True, text=True, env=env)
+    if proc.returncode != 0 or not out_path.exists():
+        return [f"icd-generator.py failed (exit {proc.returncode}): {' '.join(cmd)}\n"
+                f"{proc.stdout}{proc.stderr}".rstrip()]
+    return []
+
+
+def check_generator(compiler, asn1_files, acn_files, json_path, icd, temp_dir,
+                    require_excel):
+    """contrib/icd-generator.py renders the test case: HTML from the grammar
+    and from the -icdRaw dump, and Excel when openpyxl is installed.  The HTML
+    must have no dead internal link and must show every mapping-function."""
+    errors = []
+    html_path = temp_dir / "generator.html"
+    errors += run_icd_generator(compiler, html_path, "html", asn1_files + acn_files)
+    if not errors:
+        errors += check_html_anchors(html_path)
+        html = html_path.read_text(encoding="utf-8", errors="replace")
+        for fn in sorted({fn for _, _, fn, _, _ in mapping_notes(icd)}):
+            if fn not in html:
+                errors.append(f"generator.html does not show mapping-function '{fn}'")
+    errors += run_icd_generator(compiler, temp_dir / "generator-from-json.html", "html",
+                                [json_path])
+    if importlib.util.find_spec("openpyxl") is not None:
+        errors += run_icd_generator(compiler, temp_dir / "generator.xlsx", "excel",
+                                    asn1_files + acn_files)
+    elif require_excel:
+        errors.append("openpyxl is not installed: Excel output cannot be checked "
+                      "(--require-excel)")
+    else:
+        print("    note: openpyxl not installed, Excel output of the generator not checked")
+    return errors
+
+
 def check_v2_parity(test_dir, compiler, asn1_files, acn_files, legacy_json_path,
                     keep_temp):
     """Compile with --acn-v2 and diff the -icdRaw JSON against the legacy one.
@@ -366,7 +509,7 @@ def load_xfails(test_dir):
 # Test-case driver
 # ---------------------------------------------------------------------------
 
-def run_test_case(test_dir, compiler, update_goldens, keep_temp):
+def run_test_case(test_dir, compiler, update_goldens, keep_temp, require_excel):
     name = re.sub(r"^\d+-", "", test_dir.name)
     asn1_files = sorted(test_dir.glob("*.asn1"))
     acn_files = sorted(test_dir.glob("*.acn"))
@@ -380,13 +523,13 @@ def run_test_case(test_dir, compiler, update_goldens, keep_temp):
     new_html_path = temp_dir / "icd_new.html"
     ast_path = temp_dir / "ast.xml"
 
-    # Output paths are relative and the compiler runs with cwd=temp_dir: the
-    # -x export prepends 'backend_' to the given path (breaks with absolute
-    # paths).
+    # The compiler runs with cwd=temp_dir. -x takes the absolute path: with C
+    # output the backend AST goes to backend_<name> in the same directory
+    # (before 4.9.78.0 the compiler prefixed the whole path and crashed).
     cmd = [str(compiler), "-c", "-ACN",
            "-icdAcn", html_path.name,
            "-icdRaw", json_path.name,
-           "-x", ast_path.name,
+           "-x", str(ast_path),
            "-o", "."]
     cmd += [str(f) for f in asn1_files] + [str(f) for f in acn_files]
     proc = subprocess.run(cmd, capture_output=True, text=True, cwd=temp_dir)
@@ -413,6 +556,10 @@ def run_test_case(test_dir, compiler, update_goldens, keep_temp):
         "html-anchors": check_html_anchors(new_html_path),
         "v2-parity": check_v2_parity(test_dir, compiler, asn1_files, acn_files,
                                      json_path, keep_temp),
+        "mapping-fns": check_mapping_fns(icd, ast_root),
+        "generator": check_generator(compiler, asn1_files, acn_files, json_path, icd,
+                                     temp_dir, require_excel),
+        "units": check_units(icd, ast_root),
     }
 
     failed = False
@@ -458,6 +605,9 @@ def main():
                              "compiler behavior instead of diffing against them")
     parser.add_argument("--keep-temp", action="store_true",
                         help="keep the per-test temporary output directories")
+    parser.add_argument("--require-excel", action="store_true",
+                        help="fail the 'generator' check when openpyxl is missing "
+                             "(by default the Excel output is then not checked)")
     args = parser.parse_args()
 
     if not args.compiler.exists():
@@ -475,7 +625,8 @@ def main():
 
     for test_dir in test_dirs:
         print(f"{test_dir.name}:")
-        run_test_case(test_dir, args.compiler, args.update_goldens, args.keep_temp)
+        run_test_case(test_dir, args.compiler, args.update_goldens, args.keep_temp,
+                      args.require_excel)
     print(f"{GREEN}All {len(test_dirs)} ICD test case(s) passed.{RESET}")
 
 

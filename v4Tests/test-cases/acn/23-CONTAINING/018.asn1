@@ -1,0 +1,41 @@
+-- C_ADA_ONLY (Issue 134; Python encodes an inline CONTAINING site without its octet / bit string, the experimental backends are not checked on this file)
+-- An inline CONTAINING whose contents are a CONTAINING type assignment (f1 OCTET STRING (CONTAINING Box), Box ::= OCTET
+-- STRING (CONTAINING T)) shares T's typedef: the call and the temporary buffer were named after T (T_Decode into
+-- arr[T_REQUIRED_BYTES_FOR_ENCODING]) while the region range came from Box, so the decoders wrote past the buffer and the
+-- encoders wrote T without Box's octet string (uPER: wrong per X.691; legacy ACN: a length outside its range, the encoder
+-- failed). The contents are now Box's encoding: chains of 2 and 3 type assignments, BIT STRING forms, an alias, a type
+-- assignment of another module, an OPTIONAL component, a CHOICE alternative and a SEQUENCE OF element.
+-- Byte-exact tests: v4Tests/test-cases/uper-wire/003.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+    IMPORTS T, Box, Box2 FROM MOD-A;
+
+    BBox    ::= BIT STRING (CONTAINING T)
+    Alias   ::= Box
+    Alias2  ::= Box2
+    Box3    ::= BIT STRING (CONTAINING Box2)
+    AltCh   ::= CHOICE { ca OCTET STRING (CONTAINING Box), cb BIT STRING (CONTAINING Box2) }
+    Boxes   ::= SEQUENCE (SIZE(1..2)) OF OCTET STRING (CONTAINING Box)
+
+    MyPDU ::= SEQUENCE {
+        f1  OCTET STRING (CONTAINING Box),
+        f2  BIT STRING (CONTAINING Box),
+        f3  OCTET STRING (CONTAINING BBox),
+        f4  BIT STRING (CONTAINING BBox),
+        f5  OCTET STRING (CONTAINING Alias),
+        f6  OCTET STRING (CONTAINING Box3),
+        f7  BIT STRING (CONTAINING Alias2),
+        opt OCTET STRING (CONTAINING Box) OPTIONAL,
+        alt AltCh,
+        bxs Boxes,
+        z   BOOLEAN
+    }
+
+END
+
+MOD-A DEFINITIONS AUTOMATIC TAGS::= BEGIN
+    T     ::= SEQUENCE { a INTEGER (0..255), b BOOLEAN OPTIONAL, c INTEGER (0..255) OPTIONAL }
+    Box   ::= OCTET STRING (CONTAINING T)
+    Box2  ::= OCTET STRING (CONTAINING Box)
+END
+
+--TCLS     MyPDU[]

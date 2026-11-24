@@ -1,0 +1,21 @@
+-- ACNV2_ONLY
+-- q/issues.md Issue 52: two ACN fields with the same name, each passed as an ACN argument (and
+-- exposed by a referenced type, S1 / S3, or in an inline child, S4). Before 4.9.55.0 the encoding
+-- function of the outer SEQUENCE declared one AcnInsertedFieldRef per field name and passed it
+-- for both fields: both producers reserved their position in it, both consumers patched it (a
+-- valid value with c1 /= c2 failed with ERR_ACN_DET_CONSISTENCY_MISMATCH, the first field stayed
+-- 0 on the wire) and the decoder gave both consumers the second field's value (C and Ada). S3 did
+-- not compile: closure conversion gave the encoder of `header` two parameters with the same name.
+-- The automatic test values always select the same alternative in c1 and c2 (028_wire_test.c
+-- checks c1 /= c2).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+Truth ::= CHOICE { yes NULL, no NULL }
+Hdr ::= SEQUENCE { b INTEGER (0..7) }
+Hdr2 ::= SEQUENCE { sub SEQUENCE { b INTEGER (0..7) } }
+S1 ::= SEQUENCE { a INTEGER (0..15), header Hdr, trailer Hdr, c1 Truth, c2 Truth }
+S2 ::= SEQUENCE { a INTEGER (0..15), header Hdr, c1 Truth, c2 Truth }
+S3 ::= SEQUENCE { a INTEGER (0..15), header Hdr2, c1 Truth, c2 Truth }
+S4 ::= SEQUENCE { a INTEGER (0..15), header SEQUENCE { b INTEGER (0..7) }, trailer SEQUENCE { b INTEGER (0..7) }, c1 Truth, c2 Truth }
+END
+
+--TCFS   028.acn

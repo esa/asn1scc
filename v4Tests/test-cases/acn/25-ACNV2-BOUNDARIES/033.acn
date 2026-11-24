@@ -1,0 +1,22 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+Inner<BOOLEAN:p> [] {
+    opt [present-when p]
+}
+
+Msg1 [] {
+    pa BOOLEAN [true-value '101'B],
+    pb BOOLEAN [false-value '0110'B],
+    pc BOOLEAN [true-value '0'B],
+    a [present-when pa],
+    b [present-when pb],
+    c [present-when pc]
+}
+
+Msg2 [] {
+    pr BOOLEAN [true-value '10'B, false-value '01'B],
+    inr <pr> [],
+    tail []
+}
+
+END

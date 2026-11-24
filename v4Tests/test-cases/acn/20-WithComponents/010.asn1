@@ -1,0 +1,24 @@
+-- C_ADA_ONLY (the Python backend fails these sites before and after the fix: uPER / ACN decodes report "Insufficient data")
+-- A WITH COMPONENT(S) site that narrows an IA5String / NumericString (default ACN encoding) or a BIT STRING by a value
+-- set or a fixed size (Issue 168, Issue 92): the encoders write the length field of the PER-visible range (ACN strings:
+-- the uPER body; uPER BIT STRING: the base type's encoder, or the inlined body for SEQUENCE OF elements), so
+-- REQUIRED_BITS counts it (before, the narrowed sizes: the encoders of the automatic test values did not fit the
+-- stream of REQUIRED_BYTES, C assert / Ada Constraint_Error). Byte-exact checks: v4Tests/test-cases/acn-wire/016.
+-- The ACN decoders of the narrowed strings reject a length above the narrowed maximum before reading the characters
+-- (Issue 171; before, a corrupted length made them read up to the PER-visible maximum, past REQUIRED_BITS: the Ada decode
+-- sweep failed contracts under -gnata), and the Ada value-set check of OuterB4 accepts a decoded length 0 (Issue 172:
+-- RTL precondition of BitString_equal). Rejection rows: v4Tests/test-cases/acn-wire/017.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    InnerS  ::= SEQUENCE { s IA5String (SIZE(1..6)), b BOOLEAN }
+    OuterS  ::= SEQUENCE { x InnerS (WITH COMPONENTS { ..., s ("ab" | "a") }) }
+    InnerN  ::= SEQUENCE { n NumericString (SIZE(1..12)), b BOOLEAN }
+    OuterN  ::= SEQUENCE { x InnerN (WITH COMPONENTS { ..., n ("12" | "345") }) }
+    InnerB  ::= SEQUENCE { b BIT STRING (SIZE(0..200)) }
+    OuterB  ::= SEQUENCE { x InnerB (WITH COMPONENTS { b (SIZE(20)) }) }
+    InnerB4 ::= SEQUENCE { b BIT STRING (SIZE(0..60)), k BOOLEAN }
+    OuterB4 ::= SEQUENCE { x InnerB4 (WITH COMPONENTS { ..., b ('1010'B | '11'B) }) }
+    Arr     ::= SEQUENCE (SIZE(1..2)) OF BIT STRING (SIZE(0..100))
+    OuterA  ::= SEQUENCE { x Arr (WITH COMPONENT (SIZE(8))) }
+END
+
+--TCLS     OuterS[]

@@ -1,0 +1,28 @@
+-- C_ADA_ONLY: byte-exact C check of Issue 65 (the automatic tests run for C and Ada)
+-- Issue 65: an ACN inserted BOOLEAN with a true-value / false-value pattern other than the uPER bit ('1'B true,
+-- '0'B false) was encoded and decoded as one bit, in legacy and --acn-v2 (where a deferred BOOLEAN determinant
+-- with such a pattern was never set). The pattern is now written as given; a deferred determinant is patched
+-- with the bits of its true- or false-pattern. scripts/runWireTests.sh checks the exact bytes in both modes
+-- (033_wire_test.c).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+Inner ::= SEQUENCE {
+    opt INTEGER (0..7) OPTIONAL
+}
+
+-- determinants of the same SEQUENCE
+Msg1 ::= SEQUENCE {
+    a INTEGER (0..7) OPTIONAL,
+    b INTEGER (0..7) OPTIONAL,
+    c INTEGER (0..7) OPTIONAL
+}
+
+-- a determinant passed to a reference (deferred in --acn-v2)
+Msg2 ::= SEQUENCE {
+    inr  Inner,
+    tail INTEGER (0..15)
+}
+
+END
+
+--TCFS   033.acn

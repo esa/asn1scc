@@ -1,0 +1,28 @@
+UNITS-TEST DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+
+DeltaAngle    ::= REAL (-0.25 .. 0.25)
+DeltaVelocity ::= REAL (-16 .. 16)
+Angle         ::= INTEGER (0 .. 1000) --{rad}--
+AngleDeg      ::= Angle --{deg}--
+Plain         ::= INTEGER (0 .. 1000)
+Name          ::= IA5String (SIZE (1 .. 10))
+Vec           ::= SEQUENCE { x INTEGER (0 .. 100), y INTEGER (0 .. 100) }
+Temps         ::= SEQUENCE (SIZE (1 .. 3)) OF INTEGER (0 .. 10) --{K}--
+
+Packet ::= SEQUENCE {
+    dAngle    DeltaAngle --{deg}--,
+    dVelocity DeltaVelocity --{m/s}--,
+    a1        Angle --{deg}--,
+    a2        Angle,
+    a3        AngleDeg,
+    p1        Plain --{m}--,
+    p2        Plain,
+    nm        Name --{mm}--,
+    v         Vec --{km}--,
+    nested    SEQUENCE { p2 Plain --{A}-- },
+    ch        CHOICE { c1 Plain --{Hz}--, c2 Angle --{deg}--, c3 Plain },
+    sq        SEQUENCE (SIZE (1 .. 3)) OF Plain --{Pa}--,
+    t         Temps
+}
+
+END

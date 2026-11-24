@@ -1,0 +1,94 @@
+-- ACNV2_ONLY (the --acn-v2 references of determinant fields; several types use fields of referenced components)
+-- A determinant field in a component the stream may say absent (OPTIONAL, nested OPTIONAL, an OPTIONAL component of a
+-- referenced component), read outside it by a specialised function: an ACN argument (size, BOOLEAN present-when,
+-- fixed size, CHOICE determinant, IA5String size, a reference passed through two functions), a CONTAINING size (at the
+-- call and inside the callee), a field exposed by an OPTIONAL referenced component, also inside SEQUENCE OF elements.
+-- The encoders write nothing for a field whose component is absent (a PatchDet wrote at bit 0 of the buffer), the
+-- decoders reject a present dependent whose field is not in the stream, and the references are reset per element.
+-- One presence flag per dependent: the corruption sweep reaches every rejection. Exact bytes and rejected streams:
+-- scripts/runWireTests.sh (test-cases/acn-wire/005, also the ALWAYS ABSENT holder).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    -- a size passed as an ACN argument, used by an OPTIONAL part of the callee
+    Payload ::= SEQUENCE { d OCTET STRING (SIZE(0..15)) OPTIONAL, e INTEGER(0..255) }
+    ArgPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        pl      Payload OPTIONAL,
+        tail    INTEGER(0..255)
+    }
+    -- a BOOLEAN passed as an ACN argument, read by a present-when in the callee
+    PayB ::= SEQUENCE { y INTEGER(0..255) OPTIONAL, e INTEGER(0..255) }
+    BoolPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        pl      PayB OPTIONAL,
+        tail    INTEGER(0..255)
+    }
+    -- a fixed-size consumer in the callee (its patch has no path checks)
+    PayF ::= SEQUENCE { d OCTET STRING (SIZE(3)) OPTIONAL, e INTEGER(0..255) }
+    FixPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        pl      PayF OPTIONAL,
+        tail    INTEGER(0..255)
+    }
+    -- nested holders
+    NestPDU ::= SEQUENCE {
+        h1  SEQUENCE { a INTEGER(0..255), h2 SEQUENCE { b INTEGER(0..255) } OPTIONAL } OPTIONAL,
+        pl  Payload OPTIONAL,
+        tail INTEGER(0..255)
+    }
+    -- a CHOICE determinant, and a reference passed through two specialised functions to a SEQUENCE OF
+    Sel ::= ENUMERATED { one, two }
+    PayC ::= SEQUENCE { ch CHOICE { one INTEGER(0..255), two BOOLEAN } OPTIONAL, e INTEGER(0..255) }
+    ChPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        pl      PayC OPTIONAL,
+        tail    INTEGER(0..255)
+    }
+    Inner ::= SEQUENCE { s SEQUENCE (SIZE(0..15)) OF INTEGER(0..255) OPTIONAL, e INTEGER(0..255) }
+    Outer ::= SEQUENCE { x INTEGER(0..255), inr Inner }
+    DeepPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        pl      Outer OPTIONAL,
+        tail    INTEGER(0..255)
+    }
+    -- an IA5String size in the callee
+    PayS ::= SEQUENCE { s IA5String (SIZE(0..15)) OPTIONAL, e INTEGER(0..255) }
+    StrPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        pl      PayS OPTIONAL,
+        tail    INTEGER(0..255)
+    }
+    -- a CONTAINING sized by the field (the region of the callee), and a CONTAINING inside the callee
+    Cv ::= SEQUENCE { v INTEGER(0..255) }
+    ContPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        cont    OCTET STRING (CONTAINING Cv) OPTIONAL,
+        tail    INTEGER(0..255)
+    }
+    Wrap ::= SEQUENCE { p OCTET STRING (CONTAINING Cv) OPTIONAL, y INTEGER(0..255) }
+    CwPDU ::= SEQUENCE {
+        header  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        w       Wrap OPTIONAL,
+        tail    INTEGER(0..255)
+    }
+    -- a field of an OPTIONAL component inside a mandatory referenced component, exposed to a sibling's argument
+    Hdr3 ::= SEQUENCE { hin SEQUENCE { b INTEGER(0..255) } OPTIONAL }
+    R3PDU ::= SEQUENCE {
+        h       Hdr3,
+        pl      Payload OPTIONAL,
+        tail    INTEGER(0..255)
+    }
+    -- inside SEQUENCE OF elements: an inline holder, and an OPTIONAL referenced component exposing the field
+    SqBPDU ::= SEQUENCE (SIZE(2)) OF SEQUENCE {
+        h  SEQUENCE { a INTEGER(0..255) } OPTIONAL,
+        pl PayB OPTIONAL,
+        tail INTEGER(0..255)
+    }
+    HdrL ::= SEQUENCE { a INTEGER(0..255) }
+    LxPDU ::= SEQUENCE (SIZE(2)) OF SEQUENCE {
+        hd HdrL OPTIONAL,
+        pl PayB OPTIONAL,
+        tail INTEGER(0..255)
+    }
+END
+
+--TCFS   041.acn

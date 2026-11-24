@@ -46,7 +46,8 @@ let private aux (s:string) = 2 * (s.Length + 1) + 1 |> BigInteger
 let getMaxSizeInBytesForXER_boolean ()  =  BigInteger ("<false/>".Length)  //<>
 let getMaxSizeInBytesForXER_Integer ()  =  BigInteger (System.Int64.MinValue.ToString().Length)
 let getMaxSizeInBytesForXER_Enumerated (itemNames : string list) =
-    let maxName = itemNames |>  Seq.max
+    // the longest name (Seq.max took the name that sorts last: zlib before reserved, GitHub #272)
+    let maxName = itemNames |> Seq.maxBy String.length
     aux maxName
 let getMaxSizeInBytesForXER_BitString   maxSize = maxSize * 8I
 let getMaxSizeInBytesForXER_OctetString maxSize = maxSize * 2I
@@ -258,7 +259,7 @@ let createOctetStringFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let contentSize = getMaxSizeInBytesForXER_OctetString o.maxSize.uper
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
-        let bodyStm = OctetString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) xmlTag.p nLevel o.maxSize.uper (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
+        let bodyStm = OctetString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) xmlTag.p nLevel o.minSize.uper o.maxSize.uper (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
         Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
     createXerFunction_any r lm codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
@@ -270,7 +271,7 @@ let createBitStringFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros) (codec:C
         let nLevel = BigInteger (t.id.AcnAbsPath.Length - 2)
         let contentSize = getMaxSizeInBytesForXER_BitString o.maxSize.uper
         let totalSize = getMaxSizeInBytesForXER xmlTag contentSize
-        let bodyStm = BitString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) xmlTag.p nLevel o.maxSize.uper (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
+        let bodyStm = BitString (p.accessPath.joined lm.lg) (lm.lg.getAccess p.accessPath) xmlTag.p nLevel o.minSize.uper o.maxSize.uper (o.minSize.uper=o.maxSize.uper) (checkExp isValidFunc p) errCode.errCodeName codec
         Some {XERFuncBodyResult.funcBody = bodyStm; errCodes= [errCode]; localVariables=[];encodingSizeInBytes=totalSize}
     let soSparkAnnotations = None
     createXerFunction_any r lm codec t typeDefinition  isValidFunc  funcBody  soSparkAnnotations us
@@ -423,7 +424,7 @@ let createReferenceFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Co
         | true   ->
             match t.id.ModName = o.modName.Value with
             | true  -> typeDefinitionName0
-            | false -> moduleName + "." + typeDefinitionName0
+            | false -> lm.lg.constructCrossModuleFuncPrefix moduleName + typeDefinitionName0
 
     let baseFncName = baseTypeDefinitionName+ "_XER"  + (lm.lg.codecSuffix codec)
 

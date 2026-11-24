@@ -210,24 +210,24 @@ Enumerated_decode(p, sTag, nLevel, arrsItems, soCheckExp, sErrCode) ::= <<
 >>
 
 
-OctetString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+OctetString_encode(p, sAcc, sTag, nLevel, nSizeMin, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 ret = Xer_EncodeOctetString(pByteStrm, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>, pErrCode, <nLevel>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
-OctetString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+OctetString_decode(p, sAcc, sTag, nLevel, nSizeMin, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 ret = Xer_DecodeOctetString(pByteStrm, <sTag>, <p><sAcc>arr, <nSizeMax>, <if(!bIsFixedSize)>&<p><sAcc>nCount<else>NULL<endif>, pErrCode);
 <if(soCheckExp)><soCheckExp><endif>
 *pErrCode = ret  ? 0 : <sErrCode>;
 >>
 
 
-BitString_encode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+BitString_encode(p, sAcc, sTag, nLevel, nSizeMin, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 ret = Xer_EncodeBitString(pByteStrm, <sTag>, <p><sAcc>arr, <if(!bIsFixedSize)><p><sAcc>nCount<else><nSizeMax><endif>, pErrCode, <nLevel>);
 *pErrCode = ret ? 0 : <sErrCode>;
 >>
 
-BitString_decode(p, sAcc, sTag, nLevel, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
+BitString_decode(p, sAcc, sTag, nLevel, nSizeMin, nSizeMax, bIsFixedSize, soCheckExp, sErrCode) ::= <<
 ret = Xer_DecodeBitString(pByteStrm, <sTag>, <p><sAcc>arr, <nSizeMax>, <if(!bIsFixedSize)>&<p><sAcc>nCount<else>NULL<endif>, pErrCode);
 <if(soCheckExp)><soCheckExp><endif>
 *pErrCode = ret  ? 0 : <sErrCode>;

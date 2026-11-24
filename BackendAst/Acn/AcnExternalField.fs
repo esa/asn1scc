@@ -10,6 +10,220 @@ open DAstUtilFunctions
 open Language
 
 
+/// Name of the AcnInsertedFieldRef local variable called `name` in the caller:
+/// ToC name, with the suffix "_ref" when that would clash with a keyword of the
+/// target language or, in a case-insensitive language (Ada), with a module
+/// (package) or type name, which the local would hide (e.g. "type", or
+/// "parameterReportStructureType" hiding package ParameterReportStructureType).
+let deferredDetLocalName (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (name: string) : string =
+    let cName = ToC name
+    let same (a: string) (b: string) =
+        if lm.lg.isCaseSensitive then a = b else a.ToUpperInvariant() = b.ToUpperInvariant()
+    let isKeyword = lm.lg.Keywords |> Seq.exists (same cName)
+    let hidesModuleOrType =
+        not lm.lg.isCaseSensitive
+        && (r.modulesMap |> Map.exists (fun modName _ -> same cName (ToC modName))
+            || r.typeAssignmentsMap |> Map.exists (fun (_, tasName) _ -> same cName (ToC (r.args.TypePrefix + tasName))))
+    if isKeyword || hidesModuleOrType then cName + "_ref" else cName
+
+
+// The identity of the field an ACN parameter stands for (Issue 52) lives in AbsentHolder.fs since Issue 106 (DecodeOutcome,
+// compiled before this file, needs it).
+let private paramLinks = AbsentHolder.paramLinks
+let determinantIdentity = AbsentHolder.determinantIdentity
+let private paramIdIdentity = AbsentHolder.paramIdIdentity
+
+/// determinantIdentity of an ACN parameter.
+let paramIdentity (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (prm: AcnParameter) : ReferenceToType =
+    determinantIdentity r deps (AcnParameterDeterminant prm)
+
+let private fieldParams = AbsentHolder.fieldParams
+
+/// --acn-v2: whether the ACN field fieldId is held in an AcnInsertedFieldRef (InitDet / PatchDet) (AbsentHolder).
+let isDeferredField = AbsentHolder.isDeferredField
+
+/// --acn-v2: the formal parameter (id) that holds the ACN field fieldId in the function that encodes it: the
+/// parameter standing for the field of the innermost reference boundary enclosing it, when the field is exposed to
+/// an enclosing type (closure conversion adds such a parameter at every boundary on the way out).
+let fieldOwnParam (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (fieldId: ReferenceToType) : ReferenceToType option =
+    let fieldPath = fieldId.ToScopeNodeList
+    (fieldParams r deps).TryFind fieldId
+    |> Option.defaultValue []
+    |> List.choose (fun prmId ->
+        let boundary = prmId.ToScopeNodeList |> List.take (prmId.ToScopeNodeList.Length - 1)
+        match boundary.Length < fieldPath.Length && List.take boundary.Length fieldPath = boundary with
+        | true  -> Some (boundary.Length, prmId)
+        | false -> None)
+    |> List.sortByDescending fst
+    |> List.tryHead
+    |> Option.map snd
+
+/// --acn-v2 (q/issues.md Issue 107): the formal parameter (id) standing for the ACN field fieldId in the function that
+/// encodes the scope scopeId, i.e. of a boundary that encloses the scope (or is the scope); None when that function
+/// holds the field in a local AcnInsertedFieldRef (deferredDetRefName) or does not hold it at all.
+let fieldParamOfScope (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (fieldId: ReferenceToType) (scopeId: ReferenceToType) : ReferenceToType option =
+    let scopePath = scopeId.ToScopeNodeList
+    (fieldParams r deps).TryFind fieldId
+    |> Option.defaultValue []
+    |> List.tryFind (fun prmId ->
+        let boundary = prmId.ToScopeNodeList |> List.take (prmId.ToScopeNodeList.Length - 1)
+        boundary.Length <= scopePath.Length && List.take boundary.Length scopePath = boundary)
+
+/// The consumers of each ACN field (determinantIdentity): the dependencies that patch it (every kind but the
+/// RefTypeArgument links that pass it on), built once per dependency list.
+let private fieldConsumersCache =
+    System.Runtime.CompilerServices.ConditionalWeakTable<AcnInsertedFieldDependencies, Map<ReferenceToType, AcnDependency list>>()
+
+let private fieldConsumers (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) : Map<ReferenceToType, AcnDependency list> =
+    fieldConsumersCache.GetValue(deps, fun deps ->
+        deps.acnDependencies
+        |> List.filter (fun d -> match d.dependencyKind with AcnDepRefTypeArgument _ -> false | _ -> true)
+        |> List.groupBy (fun d -> determinantIdentity r deps d.determinant)
+        |> Map.ofList)
+
+/// --acn-v2: the consumers of the ACN field fieldId (the dependencies that patch it).
+let consumersOfField (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (fieldId: ReferenceToType) : AcnDependency list =
+    (fieldConsumers r deps).TryFind fieldId |> Option.defaultValue []
+
+/// --acn-v2, coverage step 13b: whether at most one PatchDet of the ACN field fieldId runs per InitDet, so none can
+/// fail (Acn_PatchDet_* fails only on a ref already set with another value). True when the field has one consumer,
+/// or consumers in different alternatives of one CHOICE (only one is encoded), and no consumer is under a SEQUENCE
+/// OF that does not also hold the field (one patch per element).
+let isOnlyPatchOfField (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (fieldId: ReferenceToType) : bool =
+    let fieldPath = fieldId.ToScopeNodeList
+    let commonPrefix (a: ScopeNode list) (b: ScopeNode list) =
+        List.zip (List.truncate b.Length a) (List.truncate a.Length b) |> List.takeWhile (fun (x, y) -> x = y) |> List.length
+    let belowSequenceOf (path: ScopeNode list) =
+        path |> List.skip (commonPrefix fieldPath path) |> List.exists (function SQF -> true | _ -> false)
+    let exclusive (a: ScopeNode list) (b: ScopeNode list) =
+        let n = commonPrefix a b
+        match List.tryItem n a, List.tryItem n b with
+        | Some (CH_CHILD _), Some (CH_CHILD _) -> true
+        | _ -> false
+    match (fieldConsumers r deps).TryFind fieldId |> Option.defaultValue [] |> List.map (fun d -> d.asn1Type.ToScopeNodeList) with
+    | [] -> false
+    | paths ->
+        not (paths |> List.exists belowSequenceOf)
+        && (List.allPairs (List.indexed paths) (List.indexed paths)
+            |> List.forall (fun ((i, a), (j, b)) -> i = j || exclusive a b))
+
+/// --acn-v2, coverage step 14e (E6-C, q/issues.md Issue 79): whether every consumer of the ACN field fieldId writes one
+/// and the same value, known at compile time: a size with SIZE min = max (not a CONTAINING length, which is measured),
+/// a presence (present-when) or CHOICE determinant whose alternatives all write the same value (e.g. a CHOICE with one
+/// alternative, an ENUMERATED field with one item). Then no PatchDet of the field can fail: Acn_PatchDet_* fails only on
+/// a ref already set with another value, and the fallback patches only a ref that is not set. Any consumer whose value
+/// the compiler does not know (a variable size, a presence flag, a measured length, a string length) keeps the checks.
+let consumersWriteOneValue (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (fieldId: ReferenceToType) : bool =
+    let presentWhenValues (relPath: RelativePath) (chc: Asn1AcnAst.Choice) =
+        chc.children |> List.map (fun ch ->
+            match ch.acnPresentWhenConditions |> Seq.find (fun x -> x.relativePath = relPath) with
+            | PresenceInt (_, intVal) -> intVal.Value.ToString()
+            | PresenceStr (_, strVal) -> "\"" + strVal.Value + "\"")
+    let valuesOf (d: AcnDependency) : string list option =
+        match d.dependencyKind with
+        | AcnDepSizeDeterminant (minSize, maxSize, _) when minSize.acn = maxSize.acn -> Some [minSize.acn.ToString()]
+        | AcnDepSizeDeterminant _                         -> None
+        | AcnDepPresence (relPath, chc)                   -> Some (presentWhenValues relPath chc)
+        | AcnDepPresenceStr (relPath, chc, _)             -> Some (presentWhenValues relPath chc)
+        | AcnDepChoiceDeterminant (enm, chc, _) ->
+            let items = AcnHelpers.determinantEnumItems deps d.determinant enm.enm
+            chc.children |> List.map (fun ch ->
+                items |> List.tryFind (fun itm -> itm.Name.Value = ch.Name.Value) |> Option.map (fun itm -> itm.acnEncodeValue.ToString()))
+            |> fun vs -> match vs |> List.forall Option.isSome with
+                         | true  -> Some (vs |> List.choose id)
+                         | false -> None
+        | AcnDepSizeDeterminant_bit_oct_str_contain _     -> None
+        | AcnDepIA5StringSizeDeterminant _                -> None
+        | AcnDepPresenceBool                              -> None
+        | AcnDepRefTypeArgument _                         -> None
+    match (fieldConsumers r deps).TryFind fieldId |> Option.defaultValue [] |> List.map valuesOf with
+    | [] -> false
+    | values ->
+        match values |> List.forall Option.isSome with
+        | true  -> (values |> List.choose id |> List.concat |> List.distinct).Length = 1
+        | false -> false
+
+/// The nodes of a type assignment in encoding order (preorder, ACN children included, references not entered).
+let private encodingOrderCache =
+    System.Runtime.CompilerServices.ConditionalWeakTable<Asn1AcnAst.AstRoot, System.Collections.Generic.Dictionary<ReferenceToType, Map<ReferenceToType, int>>>()
+
+let private encodingOrder (r: Asn1AcnAst.AstRoot) (tasId: ReferenceToType) : Map<ReferenceToType, int> =
+    let perTas = encodingOrderCache.GetValue(r, fun _ -> System.Collections.Generic.Dictionary<ReferenceToType, Map<ReferenceToType, int>>())
+    match perTas.TryGetValue tasId with
+    | true, order -> order
+    | false, _ ->
+        let rec walk (t: Asn1AcnAst.Asn1Type) (acc: ReferenceToType list) =
+            let acc = t.id :: acc
+            match t.Kind with
+            | Asn1AcnAst.Sequence sq ->
+                sq.children |> List.fold (fun acc (c: Asn1AcnAst.SeqChildInfo) ->
+                    match c with
+                    | Asn1AcnAst.Asn1Child ch -> walk ch.Type acc
+                    | Asn1AcnAst.AcnChild ac  -> ac.id :: acc) acc
+            | Asn1AcnAst.Choice ch      -> ch.children |> List.fold (fun acc (c: Asn1AcnAst.ChChildInfo) -> walk c.Type acc) acc
+            | Asn1AcnAst.SequenceOf sqf -> walk sqf.child acc
+            // coverage step 14e (E6-C): a reference site with node ids of its own (ACN fields or constraints at the
+            // site, 12d: the merged type is keyed by the site) is entered; any other reference holds the referenced
+            // type's ids, shared by every site
+            | Asn1AcnAst.ReferenceType rf when rf.resolvedType.id = t.id -> walk rf.resolvedType (List.tail acc)
+            | Asn1AcnAst.Integer _ | Asn1AcnAst.Real _ | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _
+            | Asn1AcnAst.OctetString _ | Asn1AcnAst.NullType _ | Asn1AcnAst.BitString _ | Asn1AcnAst.Boolean _
+            | Asn1AcnAst.Enumerated _ | Asn1AcnAst.ObjectIdentifier _ | Asn1AcnAst.TimeType _ | Asn1AcnAst.ReferenceType _ -> acc
+        let order =
+            r.Files |> List.collect (fun f -> f.Modules) |> List.collect (fun m -> m.TypeAssignments) |>
+            List.tryFind (fun ts -> ts.Type.id = tasId) |>
+            Option.map (fun ts -> walk ts.Type [] |> List.rev |> List.mapi (fun i id -> id, i) |> Map.ofList) |>
+            Option.defaultValue Map.empty
+        perTas.[tasId] <- order
+        order
+
+/// --acn-v2, coverage step 14d: whether the PatchDet at the reference site siteId (of its parameter paramId, which
+/// stands for the ACN field fieldId) is the first patch of the field after its InitDet, so it cannot fail. True when
+/// the site receives the field directly as an argument, its type does not pass the parameter on (no other patch of the
+/// field inside the site), the site is not under a SEQUENCE OF relative to the field, and every other site that
+/// receives the field comes later in encoding order. The consumers that are not reference sites patch in the epilogue
+/// of a SEQUENCE that holds the site, after its children. A field exposed by a referenced child (no site with the field
+/// as argument in its tree) keeps the check.
+let isFirstPatchOfField (r: Asn1AcnAst.AstRoot) (deps: AcnInsertedFieldDependencies) (fieldId: ReferenceToType) (siteId: ReferenceToType) (paramId: ReferenceToType) : bool =
+    let sites =
+        deps.acnDependencies |> List.choose (fun d ->
+            match d.dependencyKind, d.determinant with
+            | AcnDepRefTypeArgument _, AcnChildDeterminant ac when ac.id = fieldId -> Some d.asn1Type
+            | _ -> None)
+    let passedOn =
+        deps.acnDependencies |> List.exists (fun d ->
+            match d.dependencyKind with
+            | AcnDepRefTypeArgument _ -> d.determinant.id = paramId
+            | _ -> false)
+    let fieldPath = fieldId.ToScopeNodeList
+    let sitePath = siteId.ToScopeNodeList
+    let belowSequenceOf =
+        let common = List.zip (List.truncate sitePath.Length fieldPath) (List.truncate fieldPath.Length sitePath) |> List.takeWhile (fun (x, y) -> x = y) |> List.length
+        sitePath |> List.skip common |> List.exists (function SQF -> true | _ -> false)
+    match sites |> List.contains siteId, passedOn, belowSequenceOf, fieldPath with
+    | true, false, false, md :: ta :: _ ->
+        let order = encodingOrder r (ReferenceToType [md; ta])
+        match order.TryFind siteId with
+        | None   -> false
+        | Some k ->
+            sites |> List.forall (fun s ->
+                s = siteId ||
+                (match order.TryFind s with
+                 | Some ks -> ks > k
+                 | None    -> false))
+    | _ -> false
+
+/// --acn-v2: name of the AcnInsertedFieldRef local that holds the ACN field `identity`
+/// (determinantIdentity) in the function that declares it: the field's path from its
+/// type assignment (`detail`, `header_detail`), unique in every function by
+/// construction (q/issues.md Issue 52). A parameter of the outermost function keeps
+/// its parameter name.
+let deferredDetRefName (r: Asn1AcnAst.AstRoot) (lm: LanguageMacros) (identity: ReferenceToType) : string =
+    match identity.ToScopeNodeList |> List.tryLast with
+    | Some (PRM _) -> AcnHelpers.getAcnDeterminantName identity
+    | _ -> deferredDetLocalName r lm ((identity.AcnAbsPath |> List.skip 2 |> String.concat "_").Replace("#", "elm"))
+
+
 let getExternalField0 (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency func1 (stopAtPrm: bool) =
     let dependency =
         match deps.acnDependencies |> List.tryFind (fun d -> d.asn1Type = asn1TypeIdWithDependency && func1 d ) with
@@ -77,7 +291,9 @@ let getExternalField0 (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAs
         let resolvedLastNode = resolvedNodes |> List.rev |> List.head
         match resolvedLastNode, isExposedProducer with
         | _, true ->
-            let pointer = lm.lg.getPointer (AccessPath.valueEmptyPath baseName)
+            // the caller's local of the exposed field (DAstACNDeferred.buildCallerWrapper)
+            let localName = deferredDetRefName r lm (determinantIdentity r deps dependency.determinant)
+            let pointer = lm.lg.getPointer (AccessPath.valueEmptyPath localName)
             match dependency.dependencyKind with
             | Asn1AcnAst.AcnDepPresenceStr _ -> lm.acn.acn_deferred_det_access_str_ptr pointer
             | Asn1AcnAst.AcnDepPresenceBool  -> lm.acn.acn_deferred_det_access_bool_ptr pointer
@@ -147,68 +363,7 @@ let getExternalField (lm:LanguageMacros) (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst
 let getExternalFieldType (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnInsertedFieldDependencies) asn1TypeIdWithDependency =
     getExternalField0Type r deps asn1TypeIdWithDependency (fun z -> true)
 
-//The largest value the decoder can return for the size determinant of asn1TypeIdWithDependency,
-//or None when its encoding does not bound it. The bound comes from the encoding width, not from
-//the ASN.1 constraint of the determinant (uperRange): the C and Rust fixed-size integer decoders
-//return every value of the width (ESACERT #74995). When the determinant is an ACN parameter,
-//every argument passed to it must be bounded.
-let getSizeDeterminantWireMax (deps:Asn1AcnAst.AcnInsertedFieldDependencies) (asn1TypeIdWithDependency: ReferenceToType) : System.Numerics.BigInteger option =
-    let unsignedMax (nBits:System.Numerics.BigInteger) = Some (System.Numerics.BigInteger.Pow(2I, int nBits) - 1I)
-    let signedMax (nBits:System.Numerics.BigInteger) = Some (System.Numerics.BigInteger.Pow(2I, int nBits - 1) - 1I)
-    let encodingMax (int: Asn1AcnAst.AcnInteger) =
-        match int.acnProperties.mappingFunction with
-        | Some _ -> None
-        | None   ->
-            match int.acnEncodingClass with
-            | PositiveInteger_ConstSize_8                  -> unsignedMax 8I
-            | PositiveInteger_ConstSize_big_endian_16      -> unsignedMax 16I
-            | PositiveInteger_ConstSize_little_endian_16   -> unsignedMax 16I
-            | PositiveInteger_ConstSize_big_endian_32      -> unsignedMax 32I
-            | PositiveInteger_ConstSize_little_endian_32   -> unsignedMax 32I
-            | PositiveInteger_ConstSize_big_endian_64      -> unsignedMax 64I
-            | PositiveInteger_ConstSize_little_endian_64   -> unsignedMax 64I
-            | PositiveInteger_ConstSize nBits              -> unsignedMax nBits
-            | TwosComplement_ConstSize_8                   -> signedMax 8I
-            | TwosComplement_ConstSize_big_endian_16       -> signedMax 16I
-            | TwosComplement_ConstSize_little_endian_16    -> signedMax 16I
-            | TwosComplement_ConstSize_big_endian_32       -> signedMax 32I
-            | TwosComplement_ConstSize_little_endian_32    -> signedMax 32I
-            | TwosComplement_ConstSize_big_endian_64       -> signedMax 64I
-            | TwosComplement_ConstSize_little_endian_64    -> signedMax 64I
-            | TwosComplement_ConstSize nBits               -> signedMax nBits
-            | Integer_uPER
-            | ASCII_ConstSize _
-            | ASCII_VarSize_NullTerminated _
-            | ASCII_UINT_ConstSize _
-            | ASCII_UINT_VarSize_NullTerminated _
-            | BCD_ConstSize _
-            | BCD_VarSize_NullTerminated _                 -> None
-    let determinantMax (det: Determinant) =
-        match det with
-        | AcnChildDeterminant child ->
-            match child.Type with
-            | AcnInsertedType.AcnInteger int              -> encodingMax int
-            | AcnInsertedType.AcnNullType _
-            | AcnInsertedType.AcnBoolean _
-            | AcnInsertedType.AcnReferenceToEnumerated _
-            | AcnInsertedType.AcnReferenceToIA5String _   -> None
-        | AcnParameterDeterminant _ -> None
-    let dependency = deps.acnDependencies |> List.find(fun d -> d.asn1Type = asn1TypeIdWithDependency)
-    let nodes = match dependency.determinant.id with ReferenceToType nodes -> nodes
-    let candidates =
-        match nodes |> List.last with
-        | PRM _ ->
-            let args =
-                deps.acnDependencies |>
-                List.choose(fun d ->
-                    match d.dependencyKind with
-                    | AcnDepRefTypeArgument prm when prm.id = dependency.determinant.id -> Some d.determinant
-                    | _ -> None)
-            match args with
-            | [] -> [dependency.determinant]
-            | _  -> args
-        | _ -> [dependency.determinant]
-    candidates |> List.fold (fun acc det ->
-        match acc, determinantMax det with
-        | Some m1, Some m2 -> Some (max m1 m2)
-        | _                -> None) (determinantMax candidates.Head)
+// Moved to SizeDeterminantBounds.fs (coverage step 14c2b: DecodeOutcome needs them, it is compiled first)
+let extFieldMayBeNegative = SizeDeterminantBounds.extFieldMayBeNegative
+let extFieldSizeMin = SizeDeterminantBounds.extFieldSizeMin
+let getSizeDeterminantWireMax = SizeDeterminantBounds.getSizeDeterminantWireMax

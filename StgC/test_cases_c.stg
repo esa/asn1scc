@@ -152,7 +152,7 @@ ret = <sFuncName>(<sVal>, <sAmber>decodedPDU);
 *pErrCode = ret ? 0 : 4;
 >>
 
-/* Decode fault sweep of the uPER / ACN automatic tests (coverage step 10): after a successful round trip,
+/* Decode fault sweep of the uPER / ACN automatic tests (coverage steps 10 and 14c1): after a successful round trip,
    truncated and corrupted copies of the encoded value are decoded. Emitted once per *_auto_tcs.c file. */
 Codec_DecodeSweep_helper(nBudget) ::= <<
 #include \<stdlib.h\>
@@ -161,10 +161,17 @@ Codec_DecodeSweep_helper(nBudget) ::= <<
    copies of the encoded value are decoded:
    - truncation: the first k bytes, from a buffer of exactly k bytes (a read past the view is an out-of-bounds
      read); the decoder must fail with a nonzero error code ('size deduced' PDUs: or succeed with a valid value);
-   - corruption: byte i set to 0x00, then to 0xFF (restored after each decode); the decoder must fail with a
-     nonzero error code or succeed with a valid value.
+   - truncation at a bit offset: the value is encoded again starting at bit s = 1..7 of the buffer, decoded
+     from bit s (the decoder must succeed with a valid value), then the first k bytes are decoded from bit s
+     as above. A field that lies inside one byte without starting it ends the stream only at an offset;
+   - corruption: byte i set to 0x00, then to 0xFF, then with each of its 8 bits flipped, then decremented by
+     2^b for b = 0..7 (restored after each decode); the decoder must fail with a nonzero error code or succeed
+     with a valid value. Also on the copy encoded from bit 1 (0x00, 0xFF, flips) and on the copy encoded from
+     bit 3 (decrements only), each with one more budget. A decrement turns a length field n into n - 1, which
+     neither 0x00 / 0xFF nor a bit flip can do for an even n.
    At most ASN1SCC_SWEEP_POSITIONS positions at each end of the encoding, and about ASN1SCC_SWEEP_BUDGET
-   decoded bytes per sweep (asn1scc -atcSweepBudget); at least 2 positions at each end. */
+   decoded bytes per sweep (asn1scc -atcSweepBudget; the offsets 1..7 share one more budget); at least 2
+   positions at each end. */
 #ifndef ASN1SCC_SWEEP_POSITIONS
 #define ASN1SCC_SWEEP_POSITIONS 128
 #endif
@@ -173,10 +180,12 @@ Codec_DecodeSweep_helper(nBudget) ::= <<
 #endif
 
 typedef flag (*asn1scc_sweep_decoder)(void* pDecoded, BitStream* pBitStrm, int* pErrCode, flag* pValid);
+typedef flag (*asn1scc_sweep_encoder)(const void* pVal, BitStream* pBitStrm, int* pErrCode);
 
 /* Positions 0 .. nBytes-1 to try: the head first, then the tail. The cost of a position is the number of bytes
-   the decoder reads: the position itself (truncation, bFullCost FALSE) or nBytes (corruption, bFullCost TRUE). */
-static int asn1scc_sweep_positions(long* positions, long nBytes, flag bFullCost)
+   the decoder reads: the position itself (truncation, bFullCost FALSE) or nBytes (corruption, bFullCost TRUE),
+   times nShare (the number of encodings that use the same positions). */
+static int asn1scc_sweep_positions(long* positions, long nBytes, flag bFullCost, long long nShare)
 {
     int nPositions = 0;
     int side;
@@ -191,7 +200,7 @@ static int asn1scc_sweep_positions(long* positions, long nBytes, flag bFullCost)
             }
             positions[nPositions++] = k;
             count++;
-            spent += bFullCost ? nBytes : k;
+            spent += (bFullCost ? nBytes : k) * nShare;
             if (side == 0) {
                 lastHead = k;
                 k++;
@@ -203,58 +212,62 @@ static int asn1scc_sweep_positions(long* positions, long nBytes, flag bFullCost)
     return nPositions;
 }
 
-/* Returns 0, 6 (a truncated copy was accepted, or rejected without an error code) or 7 (a corrupted copy was
-   accepted with an invalid value, or rejected without an error code); stops at the first violation. */
-static int asn1scc_decode_fault_sweep(const char* sTestName, byte* encBuff, long nBytes, void* pDecoded,
-                                      asn1scc_sweep_decoder decode, flag bTruncate, flag bDeduced)
+/* Decodes the first k bytes of buf from bit nOffset; a violation is printed and returns 6. */
+static int asn1scc_sweep_truncated(const char* sTestName, const byte* buf, long k, long nBytes, int nOffset, void* pDecoded,
+                                   asn1scc_sweep_decoder decode, flag bDeduced)
 {
-    long positions[2 * ASN1SCC_SWEEP_POSITIONS];
-    int nPositions;
+    BitStream sweepStrm;
+    int errCode = 0;
+    flag valid = TRUE;
+    flag ok;
+    byte* prefix = (byte*)malloc((size_t)(k \> 0 ? k : 1));
+    if (prefix == NULL) {
+        return 0;
+    }
+    memcpy(prefix, buf, (size_t)k);
+    BitStream_AttachBuffer(&sweepStrm, prefix, k);
+    sweepStrm.currentBit = nOffset;
+    ok = decode(pDecoded, &sweepStrm, &errCode, &valid);
+    free(prefix);
+    if (ok ? !(bDeduced && errCode == 0 && valid) : errCode == 0) {
+        printf("%s: decoding the first %ld of %ld bytes from bit %d returned %s with error code %d%s\n", sTestName, k, nBytes,
+               nOffset, ok ? "TRUE" : "FALSE", errCode, ok && !valid ? " and an invalid value" : "");
+        return 6;
+    }
+    return 0;
+}
+
+/* Decodes buf (nBytes bytes, the value from bit nOffset) with byte positions[j] changed by the patterns nFirst .. nEnd-1
+   (restored after each decode): 0 = 0x00, 1 = 0xFF, 2..9 = bit (pattern - 2) flipped, 10..17 = decremented by
+   2^(pattern - 10); a violation is printed and returns 7. */
+static int asn1scc_sweep_corrupted(const char* sTestName, byte* buf, long nBytes, int nOffset, int nFirst, int nEnd,
+                                   const long* positions, int nPositions, void* pDecoded, asn1scc_sweep_decoder decode)
+{
     int j;
     int pattern;
     int errCode;
     flag ok;
     flag valid;
     BitStream sweepStrm;
-
-    if (bTruncate) {
-        nPositions = asn1scc_sweep_positions(positions, nBytes, FALSE);
-        for (j = 0; j \< nPositions; j++) {
-            long k = positions[j];
-            byte* prefix = (byte*)malloc((size_t)(k \> 0 ? k : 1));
-            if (prefix == NULL) {
-                return 0;
-            }
-            memcpy(prefix, encBuff, (size_t)k);
-            BitStream_AttachBuffer(&sweepStrm, prefix, k);
-            errCode = 0;
-            valid = TRUE;
-            ok = decode(pDecoded, &sweepStrm, &errCode, &valid);
-            free(prefix);
-            if (ok ? !(bDeduced && errCode == 0 && valid) : errCode == 0) {
-                printf("%s: decoding the first %ld of %ld bytes returned %s with error code %d%s\n", sTestName, k, nBytes,
-                       ok ? "TRUE" : "FALSE", errCode, ok && !valid ? " and an invalid value" : "");
-                return 6;
-            }
-        }
-    }
-    nPositions = asn1scc_sweep_positions(positions, nBytes, TRUE);
     for (j = 0; j \< nPositions; j++) {
         long i = positions[j];
-        for (pattern = 0x00; pattern \<= 0xFF; pattern += 0xFF) {
-            byte saved = encBuff[i];
-            if (saved == (byte)pattern) {
+        for (pattern = nFirst; pattern \< nEnd; pattern++) {
+            byte saved = buf[i];
+            byte value = pattern == 0 ? (byte)0x00 : pattern == 1 ? (byte)0xFF :
+                         pattern \< 10 ? (byte)(saved ^ (1u \<\< (pattern - 2))) : (byte)(saved - (1u \<\< (pattern - 10)));
+            if (saved == value) {
                 continue;
             }
-            encBuff[i] = (byte)pattern;
-            BitStream_AttachBuffer(&sweepStrm, encBuff, nBytes);
+            buf[i] = value;
+            BitStream_AttachBuffer(&sweepStrm, buf, nBytes);
+            sweepStrm.currentBit = nOffset;
             errCode = 0;
             valid = TRUE;
             ok = decode(pDecoded, &sweepStrm, &errCode, &valid);
-            encBuff[i] = saved;
+            buf[i] = saved;
             if (ok ? (errCode != 0 || !valid) : errCode == 0) {
-                printf("%s: decoding with byte %ld of %ld set to 0x%02X returned %s with error code %d%s\n", sTestName, i, nBytes,
-                       pattern, ok ? "TRUE" : "FALSE", errCode, ok && !valid ? " and an invalid value" : "");
+                printf("%s: decoding from bit %d with byte %ld of %ld set to 0x%02X returned %s with error code %d%s\n", sTestName,
+                       nOffset, i, nBytes, value, ok ? "TRUE" : "FALSE", errCode, ok && !valid ? " and an invalid value" : "");
                 return 7;
             }
         }
@@ -262,11 +275,95 @@ static int asn1scc_decode_fault_sweep(const char* sTestName, byte* encBuff, long
     return 0;
 }
 
+/* Returns 0, 6 (a truncated copy was accepted, or rejected without an error code), 7 (a corrupted copy, also the one
+   encoded from bit 1 or 3, was
+   accepted with an invalid value, or rejected without an error code) or 8 (the value encoded from bit 1..7 did
+   not decode to a valid value); stops at the first violation. */
+static int asn1scc_decode_fault_sweep(const char* sTestName, byte* encBuff, long nBytes, void* pDecoded,
+                                      asn1scc_sweep_decoder decode, const void* pVal, asn1scc_sweep_encoder encode,
+                                      long nCapacity, flag bTruncate, flag bDeduced)
+{
+    long positions[2 * ASN1SCC_SWEEP_POSITIONS];
+    int nPositions;
+    int j;
+    int errCode;
+    flag ok;
+    flag valid;
+    BitStream sweepStrm;
+
+    if (bTruncate) {
+        int nOffset;
+        nPositions = asn1scc_sweep_positions(positions, nBytes, FALSE, 1);
+        for (j = 0; j \< nPositions; j++) {
+            int rc = asn1scc_sweep_truncated(sTestName, encBuff, positions[j], nBytes, 0, pDecoded, decode, bDeduced);
+            if (rc != 0) {
+                return rc;
+            }
+        }
+        for (nOffset = 1; nOffset \< 8 && encode != NULL; nOffset++) {
+            byte* offsetBuff = (byte*)malloc((size_t)nCapacity + 1);
+            long nOffsetBytes;
+            if (offsetBuff == NULL) {
+                return 0;
+            }
+            BitStream_Init(&sweepStrm, offsetBuff, nCapacity + 1);
+            sweepStrm.currentBit = nOffset;
+            errCode = 0;
+            ok = encode(pVal, &sweepStrm, &errCode);
+            nOffsetBytes = sweepStrm.currentByte + (sweepStrm.currentBit \> 0 ? 1 : 0);
+            if (ok && errCode == 0) {
+                BitStream_AttachBuffer(&sweepStrm, offsetBuff, nOffsetBytes);
+                sweepStrm.currentBit = nOffset;
+                errCode = 0;
+                valid = TRUE;
+                ok = decode(pDecoded, &sweepStrm, &errCode, &valid);
+            }
+            if (!ok || errCode != 0 || !valid) {
+                printf("%s: the value encoded from bit %d (%ld bytes) did not decode: %s with error code %d%s\n", sTestName,
+                       nOffset, nOffsetBytes, ok ? "TRUE" : "FALSE", errCode, ok && !valid ? " and an invalid value" : "");
+                free(offsetBuff);
+                return 8;
+            }
+            nPositions = asn1scc_sweep_positions(positions, nOffsetBytes, FALSE, 7);
+            for (j = 0; j \< nPositions; j++) {
+                int rc;
+                if (positions[j] == 0) {
+                    continue;   /* nothing to read from bit nOffset: offset 0 covers it */
+                }
+                rc = asn1scc_sweep_truncated(sTestName, offsetBuff, positions[j], nOffsetBytes, nOffset, pDecoded, decode, bDeduced);
+                if (rc != 0) {
+                    free(offsetBuff);
+                    return rc;
+                }
+            }
+            /* corruption from bit 1 too (coverage step 14e, E5): a region that starts inside a byte ends inside one,
+               so contents that a corrupted length cuts short can read into the rest of that byte (8 - offset bits:
+               most from bit 1). Decrements from bit 3 too (coverage step 14g): the region must end 1 .. 8 - e bits
+               before the contents (e = its start inside the byte), which a length decremented by one gives for
+               region starts that bit 1 aligns. Few copies: at least 2 positions per end are decoded whatever the
+               budget, and each corrupted decode reads the whole value (PUS-C S12: 7 offsets made the run 4x slower) */
+            if (nOffset == 1 || nOffset == 3) {
+                int rc;
+                nPositions = asn1scc_sweep_positions(positions, nOffsetBytes, TRUE, 1);
+                rc = asn1scc_sweep_corrupted(sTestName, offsetBuff, nOffsetBytes, nOffset, nOffset == 1 ? 0 : 10,
+                                             nOffset == 1 ? 10 : 18, positions, nPositions, pDecoded, decode);
+                if (rc != 0) {
+                    free(offsetBuff);
+                    return rc;
+                }
+            }
+            free(offsetBuff);
+        }
+    }
+    nPositions = asn1scc_sweep_positions(positions, nBytes, TRUE, 1);
+    return asn1scc_sweep_corrupted(sTestName, encBuff, nBytes, 0, 0, 18, positions, nPositions, pDecoded, decode);
+}
+
 >>
 
-/* Decoder of one automatic test function for asn1scc_decode_fault_sweep: decodes into the function's
-   decodedPDU and reports whether a decoded value is valid. */
-Codec_DecodeSweep_adapter(sModName, sFuncName, sDecFuncName, sTasName, sAmber, soIsValidFunc) ::= <<
+/* Decoder (and encoder, for the bit-offset truncation) of one automatic test function for
+   asn1scc_decode_fault_sweep: decodes into the function's decodedPDU and reports whether a decoded value is valid. */
+Codec_DecodeSweep_adapter(sModName, sFuncName, sDecFuncName, soEncFuncName, sTasName, sAmber, soIsValidFunc) ::= <<
 static flag <sFuncName>_sweep_decoder(void* pDecoded, BitStream* pBitStrm, int* pErrCode, flag* pValid)
 {
     int validErrCode = 0;
@@ -279,12 +376,25 @@ static flag <sFuncName>_sweep_decoder(void* pDecoded, BitStream* pBitStrm, int* 
     <endif>
     return ok;
 }
+<if(soEncFuncName)>
+static flag <sFuncName>_sweep_encoder(const void* pVal, BitStream* pBitStrm, int* pErrCode)
+{
+    return <soEncFuncName>(pVal, pBitStrm, pErrCode, TRUE);   /* const void* converts to the encoder's pointer parameter */
+}
+<endif>
 >>
 
-Codec_DecodeSweep(sModName, sFuncName, sDecFuncName, sTasName, sEnc, sAmber, soIsValidFunc, bTruncate, bDeduced, nBudget) ::= <<
+Codec_DecodeSweep(sModName, sFuncName, sDecFuncName, soEncFuncName, sTasName, sEnc, sAmber, sVal, soIsValidFunc, bTruncate, bDeduced, nBudget, soEqualFunc, sInitFunc, nLastOffset, nExtraBytes, arrnCorruptAt) ::= <<
 // Decode truncated and corrupted copies of the encoded value
-*pErrCode = asn1scc_decode_fault_sweep("<sFuncName>", encBuff, BitStream_GetLength(&bitStrm), &decodedPDU, <sFuncName>_sweep_decoder, <if(bTruncate)>TRUE<else>FALSE<endif>, <if(bDeduced)>TRUE<else>FALSE<endif>);
-ret = *pErrCode == 0;
+*pErrCode = asn1scc_decode_fault_sweep("<sFuncName>", encBuff, BitStream_GetLength(&bitStrm), &decodedPDU, <sFuncName>_sweep_decoder, <if(soEncFuncName)>(const void*)<sVal>, <sFuncName>_sweep_encoder<else>NULL, NULL<endif>, (long)sizeof(encBuff) - 1, <if(bTruncate)>TRUE<else>FALSE<endif>, <if(bDeduced)>TRUE<else>FALSE<endif>);
+ret = *pErrCode == 0;<if(arrnCorruptAt)><\n>if (ret) {
+    /* the fragmentation headers of the fixed-size encoding and the byte after each, deep inside the value where the
+       positions above do not reach (coverage cycle 15d): corrupted with the same patterns */
+    static const long fragmentationHeaderBytes[] = {<arrnCorruptAt; separator=", ">};
+    *pErrCode = asn1scc_sweep_corrupted("<sFuncName>", encBuff, BitStream_GetLength(&bitStrm), 0, 0, 18, fragmentationHeaderBytes,
+                                        (int)(sizeof(fragmentationHeaderBytes) / sizeof(fragmentationHeaderBytes[0])), &decodedPDU, <sFuncName>_sweep_decoder);
+    ret = *pErrCode == 0;
+}<endif>
 >>
 
 Codec_write_CharstreamToFile() ::= <<
@@ -539,6 +649,27 @@ emitTestCaseAsFunc_dummy_init_function(sTypeName, sFuncName, sDummyVarname) ::= 
 //<sDummyVarname> = <sFuncName>();
 >>
 
+/* The data of an automatic test on the heap instead of a static object of the function: the static test data of
+   PUS-C S12 exceeded the 2 GB that x86-64 code can address (2026-10-27). The name keeps working through a #define
+   (an array type too: *p is the array), testDataFree ends it before the next test function. */
+testDataOnHeap(sTasName, sVar, sFuncName) /*nogen*/ ::= <<
+<sTasName>* const <sVar>_p = (<sTasName>*)malloc(sizeof(<sTasName>));
+#define <sVar> (*<sVar>_p)
+if (<sVar>_p == NULL) {
+    output->report_failure_begin();
+    output->report_failure_message("Test case '<sFuncName>': out of memory.");
+    *totalErrors = (*totalErrors) + 1;
+    output->report_failure_end();
+    output->report_case_end();
+    return;
+}
+>>
+
+testDataFree(sVar) /*nogen*/ ::= <<
+#undef <sVar>
+free(<sVar>_p);
+>>
+
 emitTestCaseAsFunc(sFuncName, arrsVars, sModName, sTasName, sAmber, sEnc, bValueAssignment, sInitializeTcData, bStatic, sGenerateDatFile, arrsDummyInitStatementsNeededForStatementCoverage, sInitAmber, soEncDecPrefix) ::= <<
 void <sFuncName>(const TestOutput* output, int *totalErrors)
 {
@@ -550,13 +681,29 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
     <if(arrsDummyInitStatementsNeededForStatementCoverage)>
     {
         // dummy statement used for calling init functions
-        <if(bStatic)>        static <endif><sTasName> tmp0;
+        <if(bStatic)>
+        <testDataOnHeap(sTasName=sTasName, sVar="tmp0", sFuncName=sFuncName)>
+        <else>
+        <sTasName> tmp0;
+        <endif>
         <arrsDummyInitStatementsNeededForStatementCoverage; separator="\n">
+        <if(bStatic)>
+        <testDataFree(sVar="tmp0")>
+        <endif>
     }
 
     <endif>
-    <if(bStatic)>    static <endif><sTasName> tc_data<if(bValueAssignment)> = <else>; <endif>
-    <sInitializeTcData><if(bValueAssignment)>;<endif>
+    <if(bValueAssignment)>
+    <if(bStatic)>    static <endif><sTasName> tc_data = 
+    <sInitializeTcData>;
+    <else>
+    <if(bStatic)>
+    <testDataOnHeap(sTasName=sTasName, sVar="tc_data", sFuncName=sFuncName)>
+    <else>
+    <sTasName> tc_data;
+    <endif>
+    <sInitializeTcData>
+    <endif>
 #ifndef _MSC_VER
     struct timeval stop, start;
     gettimeofday(&start, NULL);
@@ -595,6 +742,9 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
         case 7:
             output->report_failure_message("Test case '<sFuncName>' failed. A corrupted copy of the encoded value was decoded to an invalid value or without an error code.");
             break;
+        case 8:
+            output->report_failure_message("Test case '<sFuncName>' failed. The value encoded from a bit offset other than 0 did not decode to a valid value.");
+            break;
         default:
             output->report_failure_message("Unexpected error code in test case '<sFuncName>'.");
         }
@@ -604,6 +754,9 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
         output->report_failure_end();
     }
     <sGenerateDatFile>
+    <if(bStatic)><if(!bValueAssignment)>
+    <testDataFree(sVar="tc_data")>
+    <endif><endif>
 
     output->report_case_end();
 }
@@ -624,7 +777,11 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
     <arrsVars; separator="\n">
 
     output->report_case_begin("<sFuncName>");
-    <if(bStatic)>static <endif><sTasName> tc_data;
+    <if(bStatic)>
+    <testDataOnHeap(sTasName=sTasName, sVar="tc_data", sFuncName=sFuncName)>
+    <else>
+    <sTasName> tc_data;
+    <endif>
     <sInitializeTcData>
     /* the automatic test value is valid before the change */
     result = <sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode == 0;
@@ -658,6 +815,9 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
         output->report_failure_end();
     }
 
+    <if(bStatic)>
+    <testDataFree(sVar="tc_data")>
+    <endif>
     output->report_case_end();
 }
 >>
@@ -678,7 +838,11 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
     <arrsVars; separator="\n">
 
     output->report_case_begin("<sFuncName>");
-    <if(bStatic)>static <endif><sTasName> tc_data;
+    <if(bStatic)>
+    <testDataOnHeap(sTasName=sTasName, sVar="tc_data", sFuncName=sFuncName)>
+    <else>
+    <sTasName> tc_data;
+    <endif>
     <sInitializeTcData>
     /* the automatic test value is valid before the change */
     result = <sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode == 0;
@@ -712,6 +876,9 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
         output->report_failure_end();
     }
 
+    <if(bStatic)>
+    <testDataFree(sVar="tc_data")>
+    <endif>
     output->report_case_end();
 }
 >>
@@ -789,6 +956,7 @@ printTestCaseFileBody(sThisFile, arrsIncludedModules, arrsTestFunctionBodies, ar
 
 #include \<stdio.h>
 #include \<string.h>
+#include \<stdlib.h>
 #include \<math.h>
 #include \<float.h>
 #include \<limits.h>
@@ -816,7 +984,7 @@ decodingCaseKind(sBody, sIdentifier) ::= <<
 
 /* Coverage step 11c (T2): a value just outside one constraint. IsConstraintValid and every checked encoder must
    fail with the error code of that constraint. */
-emitConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, sErrCodeModule, sErrCode, arrsEncodeChecks) ::= <<
+emitConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, sErrCodeModule, sErrCode, arrsEncodeChecks, soEqualFunc) ::= <<
 void <sFuncName>(const TestOutput* output, int *totalErrors)
 {
     flag result;
@@ -824,8 +992,28 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
     <arrsVars; separator="\n">
 
     output->report_case_begin("<sFuncName>");
-    <if(bStatic)>static <endif><sTasName> tc_data;
+    <if(bStatic)>
+    <testDataOnHeap(sTasName=sTasName, sVar="tc_data", sFuncName=sFuncName)>
+    <else>
+    <sTasName> tc_data;
+    <endif>
     <sInitializeTcData>
+    <if(soEqualFunc)>
+    /* the start value (no macro, and "__" is never in a name generated from an ASN.1 name) */
+    <sTasName>* const tc__start = (<sTasName>*)malloc(sizeof(<sTasName>));
+    if (tc__start == NULL) {
+        output->report_failure_begin();
+        output->report_failure_message("Test case '<sFuncName>': out of memory.");
+        *totalErrors = (*totalErrors) + 1;
+        output->report_failure_end();
+        <if(bStatic)>
+        free(tc_data_p);
+        <endif>
+        output->report_case_end();
+        return;
+    }
+    memcpy(tc__start, <sAmber>tc_data, sizeof(<sTasName>));
+    <endif>
     /* the automatic test value is valid before the change */
     result = <sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode == 0;
     if (result) {
@@ -834,17 +1022,29 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
         errCode = 0;
         result = !<sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode == <sErrCode>;
     }
+    <if(soEqualFunc)>
+    /* the validator reached the changed selector, so <soEqualFunc> reaches it too and must tell the two values apart,
+       in both orders (coverage cycle 15f) */
+    result = result && !<soEqualFunc>(<sAmber>(*tc__start), <sAmber>tc_data) && !<soEqualFunc>(<sAmber>tc_data, <sAmber>(*tc__start));
+    free(tc__start);
+    <endif>
     <arrsEncodeChecks; separator="\n">
     if (result) {
         output->report_test_case_success("<sTasName>/<sFuncName>", 0);
     } else {
         output->report_failure_begin();
         output->report_failure_message("Test case '<sFuncName>' failed: <sWhat>: not rejected with <sErrCode>, or the starting value was not valid.");
+        <if(soEqualFunc)>
+        output->report_failure_message("(or <soEqualFunc> did not tell the changed value from the starting value)");
+        <endif>
         output->report_failure_message("========================================");
         *totalErrors = (*totalErrors) + 1;
         output->report_failure_end();
     }
 
+    <if(bStatic)>
+    <testDataFree(sVar="tc_data")>
+    <endif>
     output->report_case_end();
 }
 >>
@@ -859,7 +1059,182 @@ if (result) {
 }
 >>
 
+/* Coverage step 12d: an invalid CHOICE selector or ENUMERATED value behind a reference or in a SEQUENCE OF element.
+   The unchecked encoder must fail too, with any error code: the arm that rejects the value depends on the encoding
+   (the parent's inline ENUMERATED map, a determinant switch, the CHOICE's own switch). */
+constraintViolationUncheckedEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber) ::= <<
+if (result) {
+    static byte encBuffUnchecked_<sEnc>[<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING + 1]; /* +1 for zerosized types */
+    BitStream bitStrm;
+    errCode = 0;
+    BitStream_Init(&bitStrm, encBuffUnchecked_<sEnc>, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
+    result = !<sEncFunc>(<sAmber>tc_data, &bitStrm, &errCode, FALSE) && errCode != 0;
+}
+>>
+
 /* Coverage step 11c: character nIndex (0-based) of a string set to the code nChar (0 ends the string there). */
 constraintViolationStringChar(sStr, nIndex, nChar) ::= <<
 <sStr>[<nIndex>] = (char)<nChar>;
+>>
+
+/* Coverage step 14q: Ada only (a string without its terminating NUL has no length in this backend). */
+constraintViolationStringFill(sStr, nCount, nChar) ::= <<
+>>
+
+/* Coverage step 14q: a REAL set to -/+ infinity (beyond a range that ends at the largest double). */
+constraintViolationRealInfinity(sVal, bNegative) ::= <<
+<sVal> = <if(bNegative)>-<endif>INFINITY;
+>>
+
+/* Coverage step 14f: a constraint violation that needs a selection inside a SEQUENCE OF element, set in every element
+   that makes the selection (arrsGuards: the CHOICE alternatives / OPTIONAL children on the way). */
+constraintViolationEveryElement(sIdx, sCount, arrsGuards, sSetInvalidValue) ::= <<
+for (<sIdx> = 0; <sIdx> \< <sCount>; <sIdx>++) {
+    <if(arrsGuards)>
+    if (<arrsGuards; separator=" && ">) {
+        <sSetInvalidValue>
+    }
+    <else>
+    <sSetInvalidValue>
+    <endif>
+}
+>>
+
+/* Coverage step 14j (task 0): IsConstraintValid of a type assignment that has no test of its own (no encoding is tested,
+   e.g. its ACN encoding takes ACN parameters, with -ACN only): every automatic test value must be valid. */
+emitValidityTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, bStatic, sIsValidFunc, arrsValueChecks) ::= <<
+void <sFuncName>(const TestOutput* output, int *totalErrors)
+{
+    const char* invalidFor = NULL;
+    int errCode = 0;
+    <arrsVars; separator="\n">
+
+    output->report_case_begin("<sFuncName>");
+    <if(bStatic)>
+    <testDataOnHeap(sTasName=sTasName, sVar="tc_data", sFuncName=sFuncName)>
+    <else>
+    <sTasName> tc_data;
+    <endif>
+    <arrsValueChecks; separator="\n">
+    if (invalidFor == NULL) {
+        output->report_test_case_success("<sTasName>/<sFuncName>", 0);
+    } else {
+        output->report_failure_begin();
+        output->report_failure_message("Test case '<sFuncName>' failed: <sIsValidFunc> rejected an automatic test value:");
+        output->report_failure_message(invalidFor);
+        output->report_failure_message("========================================");
+        *totalErrors = (*totalErrors) + 1;
+        output->report_failure_end();
+    }
+
+    <if(bStatic)>
+    <testDataFree(sVar="tc_data")>
+    <endif>
+    output->report_case_end();
+}
+>>
+
+validityCheck(sModName, sAmber, sInitializeTcData, sWhat, sIsValidFunc) ::= <<
+/* <sWhat> */
+<sInitializeTcData>
+errCode = 0;
+if (!<sIsValidFunc>(<sAmber>tc_data, &errCode) || errCode != 0) {
+    invalidFor = "<sWhat>";
+}
+>>
+
+/* Coverage step 14a: T_Equal with two different values (AutomaticTestCase.variants): the test value with one node
+   changed must compare unequal, both ways. */
+emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks, bReflexiveChecks) ::= <<
+void <sFuncName>(const TestOutput* output, int *totalErrors)
+{
+    const char* equalFor = NULL;
+    <arrsVars; separator="\n">
+
+    output->report_case_begin("<sFuncName>");
+    <if(bStatic)>
+    <testDataOnHeap(sTasName=sTasName, sVar="tc_data", sFuncName=sFuncName)>
+    <else>
+    <sTasName> tc_data;
+    <endif>
+    <if(bStatic)>
+    <testDataOnHeap(sTasName=sTasName, sVar="tc_data2", sFuncName=sFuncName)>
+    <else>
+    <sTasName> tc_data2;
+    <endif>
+    <sInitializeTcData>
+    <arrsVariantChecks; separator="\n">
+    if (equalFor == NULL) {
+        output->report_test_case_success("<sTasName>/<sFuncName>", 0);
+    } else {
+        output->report_failure_begin();
+        output->report_failure_message("Test case '<sFuncName>' failed: <sEqualFunc> returned TRUE for two different values<if(bReflexiveChecks)> or FALSE for a value and itself<endif>:");
+        output->report_failure_message(equalFor);
+        output->report_failure_message("========================================");
+        *totalErrors = (*totalErrors) + 1;
+        output->report_failure_end();
+    }
+
+    <if(bStatic)>
+    <testDataFree(sVar="tc_data2")>
+    <testDataFree(sVar="tc_data")>
+    <endif>
+    output->report_case_end();
+}
+>>
+
+equalityVariantCheck(sModName, sAmber, sApplyVariant, sWhat, sEqualFunc) ::= <<
+/* <sWhat> */
+memcpy(&tc_data2, &tc_data, sizeof(tc_data));
+<sApplyVariant>
+if (<sEqualFunc>(<sAmber>tc_data, <sAmber>tc_data2) || <sEqualFunc>(<sAmber>tc_data2, <sAmber>tc_data)) {
+    equalFor = "<sWhat>";
+}
+>>
+
+/* Coverage cycle 15c (P4): after equalityVariantCheck, the changed value (tc_data2) compared with itself must be equal:
+   the MC/DC pair of `ret && pVal1->exist.x` with x absent on both sides (an ALWAYS PRESENT child made absent). */
+equalityReflexiveCheck(sModName, sAmber, sWhat, sEqualFunc) ::= <<
+if (!<sEqualFunc>(<sAmber>tc_data2, <sAmber>tc_data2)) {
+    equalFor = "<sEqualFunc> returned FALSE for a value and itself: <sWhat>";
+}
+>>
+
+/* Coverage step 14d: a value whose ACN fields disagree (one consumer of a shared field changed): the ACN encoder must
+   reject it with a nonzero error code. */
+emitInconsistentValueTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sChange, sWhat, sEncFunc, sEnc) ::= <<
+void <sFuncName>(const TestOutput* output, int *totalErrors)
+{
+    flag result;
+    int errCode = 0;
+    static byte encBuff[<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING + 1]; /* +1 for zerosized types */
+    BitStream bitStrm;
+    <arrsVars; separator="\n">
+
+    output->report_case_begin("<sFuncName>");
+    <if(bStatic)>
+    <testDataOnHeap(sTasName=sTasName, sVar="tc_data", sFuncName=sFuncName)>
+    <else>
+    <sTasName> tc_data;
+    <endif>
+    <sInitializeTcData>
+    /* <sWhat> */
+    <sChange>
+    BitStream_Init(&bitStrm, encBuff, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
+    result = !<sEncFunc>(<sAmber>tc_data, &bitStrm, &errCode, TRUE) && errCode != 0;
+    if (result) {
+        output->report_test_case_success("<sTasName>/<sFuncName>", 0);
+    } else {
+        output->report_failure_begin();
+        output->report_failure_message("Test case '<sFuncName>' failed: <sWhat>: the ACN fields of the value disagree, but <sEncFunc> did not fail with an error code.");
+        output->report_failure_message("========================================");
+        *totalErrors = (*totalErrors) + 1;
+        output->report_failure_end();
+    }
+
+    <if(bStatic)>
+    <testDataFree(sVar="tc_data")>
+    <endif>
+    output->report_case_end();
+}
 >>

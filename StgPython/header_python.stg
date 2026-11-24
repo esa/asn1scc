@@ -149,7 +149,7 @@ class <td.typeName>(Asn1Base):
     arr: List[int] = field(default_factory=list)
 >>
 
-Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage, arr_Asn1Encoding) ::= <<
+Define_subType_ia5string(td/*:FE_StringTypeDefinition*/, prTd/*:FE_StringTypeDefinition*/, soParentTypePackage, arrnAlphaChars, arr_Asn1Encoding) ::= <<
 class <td.typeName>(<prTd.typeName>):
     __all__.append("<td.typeName>")
 >>

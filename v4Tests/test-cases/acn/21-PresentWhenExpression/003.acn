@@ -1,0 +1,15 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+
+   Item [] { a [encoding pos-int, size 8], b [] }
+
+   MyPDU [] {
+      hasX   BOOLEAN [],
+      hasY   BOOLEAN [true-value '1'B],
+      hasZ   BOOLEAN [],
+      x      [present-when hasX],
+      y      [present-when hasY],
+      z      [present-when hasZ],
+      last   []
+   }
+
+END

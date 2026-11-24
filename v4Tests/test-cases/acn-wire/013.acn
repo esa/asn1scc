@@ -1,0 +1,17 @@
+ACN-WIRE-CONTENTS DEFINITIONS ::= BEGIN
+    T []
+    Tf []
+    Tc []
+    T16 [] { a [size 16, encoding pos-int], b [] }
+    Box [] { a [size 32, encoding pos-int], b [] }
+    BBox [] { a [size 32, encoding pos-int], b [] }
+    FixO [] { f [] { a [size 32, encoding pos-int], b [] }, z [] }
+    EmbO [] { f [] { a [size 32, encoding pos-int], c [] }, z [] }
+    FixB [] { f [] { a [size 32, encoding pos-int], b [] }, z [] }
+    EmbB [] { f [] { a [size 32, encoding pos-int], b [] }, z [] }
+    Eq [] { f [] { a [size 16, encoding pos-int, endianness little], b [] },
+            g [] { a [size 16, encoding pos-int, endianness little], b [] }, z [] }
+    Tas [] { x [], y [], z [] }
+    Ctl [] { fl BOOLEAN [], f [present-when fl], z [] }
+    Ext [] { n INTEGER [encoding pos-int, size 8], f [size n] { a [size 32, encoding pos-int], b [] }, z [] }
+END

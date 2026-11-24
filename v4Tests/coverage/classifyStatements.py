@@ -200,6 +200,922 @@ def cov002(lines, first, src):
     return decoded_range(lines, first, "charIndex") == (0, int(match[1]))
 
 
+# ASN1SCC-COV-004 / -005: the generated encoders are structured C (blocks, if / else,
+# switch, one statement per line), which the helpers below follow line by line.
+
+def c_function_head(lines, line):
+    """Line number of the definition of the C function that holds `line`, or None."""
+    for number in range(line, 0, -1):
+        text = lines[number - 1]
+        if not text.strip() or text[:1].isspace() or text.startswith(("#", "/", "{")):
+            continue
+        if text.startswith("}"):
+            return None
+        match = C_FUNCTION.match(text)
+        if match and match[1] not in {"if", "while", "for", "switch", "return", "sizeof"}:
+            return number
+        return None
+    return None
+
+
+def block_stacks(lines, start, end):
+    """{line: enclosing blocks} for the lines start..end (1-based) of a C function,
+    each block a tuple (open line, header, current case label). The header is the
+    code before the block's '{' (or the line before it when the '{' stands alone);
+    the case label is the last `case L:` met directly in a switch block."""
+    stacks, stack, previous = {}, [], ""
+    for number in range(start, end + 1):
+        text = code_only(lines[number - 1])
+        stacks[number] = tuple(stack)
+        label = re.match(r"^\s*(case\s+([^:]+?)\s*:|default\s*:)", text)
+        if label and stack and re.match(r"^\s*switch\b", stack[-1][1]):
+            stack[-1] = (stack[-1][0], stack[-1][1], label[2].strip() if label[2] else "default")
+        pos = 0
+        for match in re.finditer(r"[{}]", text):
+            if match[0] == "{":
+                header = text[pos:match.start()].strip()
+                header = re.sub(r"^\}\s*", "", header)
+                if not header and not previous.endswith(("{", "}", ";", ":")):
+                    header = previous  # `switch (E)` / a function head on the line before the '{'
+                stack.append((number, header, None))
+            elif stack:
+                stack.pop()
+            pos = match.end()
+        if text.strip() and text.strip() != "{":
+            previous = text.strip()
+    return stacks
+
+
+def norm(expr):
+    expr = re.sub(r"\s+", "", expr)
+    while expr.startswith("(") and expr.endswith(")") and balanced(expr[1:-1]):
+        expr = expr[1:-1]
+    return expr
+
+
+def balanced(text):
+    depth = 0
+    for char in text:
+        depth += {"(": 1, ")": -1}.get(char, 0)
+        if depth < 0:
+            return False
+    return depth == 0
+
+
+def guard(block):
+    """The condition under which a block runs: ('ret',), ('if', C), ('elif', C) (C and the
+    earlier conditions of the chain false), ('case', E, L), None for a plain block,
+    ('other',) for else / loops."""
+    _, header, label = block
+    match = re.match(r"^if\s*\((.*)\)$", header)
+    if match:
+        cond = norm(match[1])
+        return ("ret",) if cond == "ret" or cond.startswith("ret&&") else ("if", cond)
+    match = re.match(r"^else\s+if\s*\((.*)\)$", header)
+    if match:
+        return ("elif", norm(match[1]))  # runs when the condition holds, but not only then
+    match = re.match(r"^switch\s*\((.*)\)$", header)
+    if match:
+        return ("case", norm(match[1]), label)
+    if header == "" or C_FUNCTION.match(header) or re.match(r"^[\w ]+\*?\s*\w+\s*\(.*\)$", header):
+        return None
+    return ("other",)
+
+
+def conjuncts(g):
+    """The conditions of a guard: `if (a && b)` runs only when a and b hold."""
+    if g is None or g[0] != "if":
+        return [g]
+    parts, depth, start, cond = [], 0, 0, g[1]
+    for i, char in enumerate(cond):
+        depth += {"(": 1, ")": -1}.get(char, 0)
+        if depth == 0 and cond.startswith("&&", i):
+            parts.append(cond[start:i])
+            start = i + 2
+    parts.append(cond[start:])
+    return [("if", norm(x)) for x in parts]
+
+
+def same_guard(a, b):
+    """True when guards a and b are the same condition: also `if (E == L)` against
+    `case L:` of `switch (E)`."""
+    if a == b:
+        return True
+    for x, y in ((a, b), (b, a)):
+        if x[0] == "if" and y[0] == "case" and y[2] not in (None, "default"):
+            if x[1] in (f"{y[1]}=={norm(y[2])}", f"{norm(y[2])}=={y[1]}"):
+                return True
+    return False
+
+
+RET_SET = re.compile(r"(?<![\w.>])ret\s*=(?!=)\s*([^;]*);")
+
+
+def sticky(stacks, after, until):
+    """True when no line between `after` and `until` can turn a FALSE ret back to
+    TRUE: every assignment of ret there other than `ret = FALSE` sits in a block
+    `if (ret ...)` opened after `after`."""
+    lines = stacks["lines"]
+
+    def runs_with_ret_true(number):
+        # asn1scc 4.9.140.0: inside a block `if (ret)` (opened anywhere) with no assignment of ret between its opening
+        # and `number`, ret is TRUE at `number`: an assignment there cannot turn a FALSE ret back to TRUE
+        return any(guard(b) == ("ret",) and not any(RET_SET.search(code_only(lines[m - 1])) for m in range(b[0] + 1, number))
+                   for b in stacks[number])
+    for number in range(after + 1, until):
+        for match in RET_SET.finditer(code_only(lines[number - 1])):
+            if match[1].strip() == "FALSE":
+                continue
+            if not any(b[0] > after and guard(b) == ("ret",) for b in stacks[number]) and not runs_with_ret_true(number):
+                return False
+    return True
+
+
+def runs_after(stacks, first_head, first_end, later_head):
+    """True when the code at `later_head` runs only after the construct first_head ..
+    first_end ran to its end with ret TRUE: `later_head` is inside a block `if (ret)`
+    opened after the construct, ret cannot turn TRUE again on the way, and every
+    condition of the construct that `later_head` does not share is a condition of
+    `later_head` as well (or an `if (ret)` that keeps ret FALSE)."""
+    a, b = stacks[first_head], stacks[later_head]
+    checks = [x for x in b if x[0] > first_end and guard(x) == ("ret",) and sticky(stacks, first_end, x[0])]
+    if not checks:
+        return False
+    check = checks[0][0]
+    shared = {x[0] for x in b}
+    for block in a:
+        if block[0] in shared:
+            continue
+        g = guard(block)
+        if g is None:
+            continue
+        if g == ("ret",):
+            # when the block `if (ret)` is not entered, nothing in it runs and ret is FALSE at its end
+            # (coverage step 14c3: a decoder's determinant inside an inline SEQUENCE's `if (ret)`)
+            block_end = max(n for n, st in stacks.items() if n != "lines" and block in st)
+            if not sticky(stacks, block_end, check):
+                return False
+            continue
+        later = [c for y in b for c in conjuncts(guard(y)) if c]
+        if g[0] in ("other", "elif") or not all(any(same_guard(c, x) for x in later) for c in conjuncts(g)):
+            return False
+    return True
+
+
+def switch_body(lines, head, limit):
+    """(selector, '{' line, end line, {label: [lines]}, default lines) of the switch
+    at line `head`, or None. Labels with no statement between them share one group."""
+    match = re.match(r"^\s*switch\s*\((.*)\)\s*\{?\s*$", code_only(lines[head - 1]))
+    if not match:
+        return None
+    opened = head if "{" in code_only(lines[head - 1]) else head + 1
+    depth, groups, default, current = 0, {}, [], None
+    for number in range(opened, limit + 1):
+        text = code_only(lines[number - 1])
+        if depth == 1:
+            case = re.match(r"^\s*case\s+([^:]+?)\s*:(.*)$", text)
+            if case:
+                label = case[1].strip()
+                if current is None or current == "default" or any(groups[x] for x in current):
+                    current = []
+                current.append(label)
+                groups[label] = groups.get(label, [])
+                if case[2].strip():
+                    for x in current:
+                        groups[x].append(number)
+            elif re.match(r"^\s*default\s*:", text):
+                current = "default"
+                default.append(number)
+            elif text.strip() and current is not None:
+                target = [default] if current == "default" else [groups[x] for x in current]
+                for lines_of in target:
+                    lines_of.append(number)
+        elif depth > 1 and current is not None:
+            target = [default] if current == "default" else [groups[x] for x in current]
+            for lines_of in target:
+                lines_of.append(number)
+        depth += text.count("{") - text.count("}")
+        if depth <= 0 and number >= opened:
+            return norm(match[1]), opened, number, groups, default
+    return None
+
+
+def owning_switch(lines, first):
+    """Head line of the switch whose `default:` arm holds line `first`, or None."""
+    default = None
+    for number in range(first, max(first - 4, 0), -1):
+        if re.match(r"^\s*default\s*:", lines[number - 1]):
+            default = number
+            break
+        if re.match(r"^\s*(case\b|\}|break;)", lines[number - 1]) and number != first:
+            return None
+    if default is None:
+        return None
+    head, depth = default - 1, 0
+    while head > 0:
+        text = code_only(lines[head - 1])
+        depth += text.count("}") - text.count("{")
+        if depth < 0:
+            break
+        head -= 1
+    if head > 1 and code_only(lines[head - 1]).strip() == "{":
+        head -= 1
+    return head if head and re.match(r"^\s*switch\s*\(", lines[head - 1]) else None
+
+
+def fails(lines, numbers):
+    """True when the statements of a default arm end the switch with ret FALSE."""
+    code = " ".join(code_only(lines[n - 1]) for n in numbers)
+    sets = [m[1].strip() for m in RET_SET.finditer(code)]
+    return (sets == ["FALSE"] or "return FALSE;" in code) and all(v == "FALSE" for v in sets)
+
+
+def function_region(lines, first):
+    """(definition line, last line) of the C function holding `first`, or None."""
+    start = c_function_head(lines, first)
+    if start is None:
+        return None
+    for number in range(start, len(lines) + 1):
+        if lines[number - 1].startswith("}"):
+            return start, number
+    return None
+
+
+def cov004(lines, first):
+    """ASN1SCC-COV-004: the statement is in the `default:` arm of a switch on a
+    selector read through the encoder's `const` pointer pVal, and an earlier switch
+    of the same function on the same selector, whose default arm fails and whose
+    labels are all labels of this switch, ran before it with ret TRUE."""
+    head = owning_switch(lines, first)
+    region = function_region(lines, first)
+    if head is None or region is None:
+        return False
+    start, end = region
+    if not re.search(r"\(\s*const\s+[\w ]+\*\s*pVal\s*,", lines[start - 1]):
+        return False
+    later = switch_body(lines, head, end)
+    if later is None or not re.fullmatch(r"pVal->[\w.>-]+", later[0]):
+        return False
+    stacks = block_stacks(lines, start, end)
+    stacks["lines"] = lines
+    for number in range(start + 1, head):
+        earlier = switch_body(lines, number, end)
+        if earlier is None or earlier[0] != later[0] or earlier[2] >= head:
+            continue
+        if not set(earlier[3]) <= set(later[3]) or not fails(lines, earlier[4]):
+            continue
+        if runs_after(stacks, number, earlier[2], head):
+            return True
+    return False
+
+
+def local_assignments(lines, start, end, name):
+    """Right-hand sides of the assignments of local `name` in lines start..end."""
+    pattern = re.compile(r"(?<![\w.>])" + re.escape(name) + r"\s*=(?!=)\s*([^;]*);")
+    return [(n, m[1].strip()) for n in range(start, end + 1) for m in pattern.finditer(code_only(lines[n - 1]))]
+
+
+def flag_follows_value(lines, stacks, start, end, name):
+    """True when `name_is_initialized` starts FALSE and every `name_is_initialized = TRUE`
+    follows an assignment of `name` in the same block (the update's case arm)."""
+    flag = name + "_is_initialized"
+    declared = any(re.search(r"\bflag\s+" + flag + r"\s*=\s*FALSE\s*;", lines[n - 1]) for n in range(start, end + 1))
+    sets = [n for n, v in local_assignments(lines, start, end, flag) if v == "TRUE"]
+    if not declared:
+        return False
+    for n in sets:
+        block = stacks[n][-1][0] if stacks[n] else start
+        if not any(m < n and m > block and stacks[m] == stacks[n] for m, _ in local_assignments(lines, start, end, name)):
+            return False
+    return True
+
+
+def assigns_on_every_exit(lines, stacks, end, head, name):
+    """For the construct starting at line `head`: a switch whose every case group assigns
+    `name` and whose default arm fails, or an if / else if chain whose every branch
+    assigns `name` but a final else that sets ret FALSE (or, asn1scc Issue 105, assigns it the
+    default value too). Returns its last line or None."""
+    def assigned(numbers, block):
+        """An unconditional statement of the block (opened at line `block`) assigns `name`."""
+        return any(re.match(r"^\s*" + re.escape(name) + r"\s*=(?!=)", code_only(lines[n - 1]))
+                   and stacks[n] and stacks[n][-1][0] == block for n in numbers)
+    # asn1scc 4.9.140.0: a plain assignment (the value of a multi-determinant update taken from a source whose update
+    # is not under a check of the path)
+    if re.match(r"^\s*" + re.escape(name) + r"\s*=(?!=)[^;]*;\s*$", code_only(lines[head - 1])):
+        return head
+    body = switch_body(lines, head, end)
+    if body is not None:
+        _, opened, last, groups, default = body
+        ok = groups and all(assigned(ns, opened) for ns in groups.values()) and default and fails(lines, default)
+        return last if ok else None
+    if not re.match(r"^\s*if\s*\(.*\)\s*\{\s*$", code_only(lines[head - 1])):
+        return None
+    branches, depth = [("if", head, [])], 1
+    for number in range(head + 1, end + 1):
+        text = code_only(lines[number - 1])
+        branch = re.match(r"^\s*\}\s*(else(?:\s+if\s*\(.*\))?)\s*\{\s*$", text)
+        if depth == 1 and branch:
+            branches.append((branch[1], number, []))
+            continue
+        depth += text.count("{") - text.count("}")
+        if depth == 0:
+            break
+        branches[-1][2].append(number)
+    else:
+        return None
+    if branches[-1][0] != "else" or len(branches) < 2:
+        return None
+    _, else_opened, else_lines = branches[-1]
+    if not all(assigned(ns, opened) for _, opened, ns in branches[:-1]) \
+            or not (fails(lines, else_lines) or assigned(else_lines, else_opened)):
+        return None
+    return number
+
+
+def cov005(lines, first):
+    """ASN1SCC-COV-005: the statement is in the `default:` arm of a switch on a local
+    of the encoder that every assignment sets to a label of that switch (or to a local
+    set only to such labels and read under its _is_initialized flag), and the switch
+    reads it only after it was assigned: under its _is_initialized flag, set only with
+    the value, or after a construct that assigns it on every exit with ret TRUE."""
+    head = owning_switch(lines, first)
+    region = function_region(lines, first)
+    if head is None or region is None:
+        return False
+    start, end = region
+    if "_Encode" not in lines[start - 1]:
+        return False
+    body = switch_body(lines, head, end)
+    if body is None or not re.fullmatch(r"[A-Za-z_]\w*", body[0]) or body[0] == "pVal":
+        return False
+    name, labels = body[0], set(body[3])
+    declared = lambda v: any(re.match(r"^\s*[\w]+\s+" + re.escape(v) + r"\s*;", lines[n - 1]) for n in range(start, head))
+    if not declared(name):
+        return False
+    stacks = block_stacks(lines, start, end)
+    stacks["lines"] = lines
+    for n, value in local_assignments(lines, start, end, name):
+        if value in labels:
+            continue
+        # a source of a multi-determinant update: set only to labels, read only under its flag, or (asn1scc 4.9.140.0,
+        # a source whose update is not under a check of the path) read after a construct that assigns it on every
+        # exit with ret TRUE
+        def read_after_assignment(value, n):
+            for number in range(start + 1, n):
+                last = assigns_on_every_exit(lines, stacks, end, number, value)
+                if last is not None and last < n and runs_after(stacks, number, last, n):
+                    return True
+            return False
+        if not (re.fullmatch(r"\w+", value) and declared(value)
+                and all(v in labels for _, v in local_assignments(lines, start, end, value))
+                and ((flag_follows_value(lines, stacks, start, end, value)
+                      and any(guard(b) in (("if", value + "_is_initialized"), ("elif", value + "_is_initialized"))
+                              for b in stacks[n]))
+                     or read_after_assignment(value, n))):
+            return False
+    if any(guard(b) == ("if", name + "_is_initialized") for b in stacks[head]) and flag_follows_value(lines, stacks, start, end, name):
+        return True
+    for number in range(start + 1, head):
+        last = assigns_on_every_exit(lines, stacks, end, number, name)
+        if last is not None and last < head and runs_after(stacks, number, last, head):
+            return True
+    return False
+
+
+def cov008(lines, first):
+    """ASN1SCC-COV-008: the statement is in the `default:` arm of a switch on a local
+    of the decoder that every assignment sets to a label of that switch, and the switch
+    reads it only after it was assigned: after an assignment in the same block or an
+    enclosing one (the item of a one-item determinant), or after a construct that
+    assigns it on every exit with ret TRUE (the determinant's decoding switch, whose
+    default arm fails)."""
+    head = owning_switch(lines, first)
+    region = function_region(lines, first)
+    if head is None or region is None:
+        return False
+    start, end = region
+    if "_Decode" not in lines[start - 1]:
+        return False
+    body = switch_body(lines, head, end)
+    if body is None or not re.fullmatch(r"[A-Za-z_]\w*", body[0]) or body[0] == "pVal":
+        return False
+    name, labels = body[0], set(body[3])
+    if not any(re.match(r"^\s*[\w]+\s+" + re.escape(name) + r"\s*;", lines[n - 1]) for n in range(start, head)):
+        return False
+    assignments = local_assignments(lines, start, end, name)
+    if not assignments or any(value not in labels for _, value in assignments):
+        return False
+    stacks = block_stacks(lines, start, end)
+    stacks["lines"] = lines
+    for n, _ in assignments:
+        if n < head and stacks[n] == stacks[head][:len(stacks[n])]:
+            return True
+    for number in range(start + 1, head):
+        last = assigns_on_every_exit(lines, stacks, end, number, name)
+        if last is not None and last < head and runs_after(stacks, number, last, head):
+            return True
+    return False
+
+
+# ASN1SCC-COV-009 (coverage step 14e, E4): the default arm of the switch of an --acn-v2
+# specialised CHOICE decoder on the value of its AcnInsertedFieldRef parameter.
+
+ENUM_CONSTANT = re.compile(r"^\s*([A-Za-z_]\w*)\s*=\s*(-?\d+)\s*,?\s*$")
+
+
+def enum_values(sources):
+    """{constant: value} of the C enum constants written `Name = N,` in the given files."""
+    values = {}
+    for lines in sources:
+        for text in lines:
+            match = ENUM_CONSTANT.match(code_only(text))
+            if match:
+                values[match[1]] = match[2]
+    return values
+
+
+def split_args(text):
+    """The comma separated top-level arguments of an argument list text."""
+    args, depth, current = [], 0, ""
+    for char in text:
+        if char == "," and depth == 0:
+            args.append(current)
+            current = ""
+            continue
+        depth += {"(": 1, ")": -1}.get(char, 0)
+        current += char
+    return [norm(a) for a in args + [current]]
+
+
+def call_arguments(text, name):
+    """The arguments of the (first) call of `name` on a line, or None."""
+    match = re.search(r"(?<![\w.>])" + re.escape(name) + r"\s*\(", text)
+    if not match:
+        return None
+    depth, start = 1, match.end()
+    for index in range(start, len(text)):
+        depth += {"(": 1, ")": -1}.get(text[index], 0)
+        if depth == 0:
+            return split_args(text[start:index])
+    return None
+
+
+def ref_parameters(header):
+    """(function name, [parameter names]) of a C definition line, or None."""
+    match = re.match(r"^\s*flag\s+(\w+)\s*\((.*)\)\s*$", code_only(header))
+    if not match:
+        return None
+    names = [re.sub(r".*?(\w+)\s*$", r"\1", p) for p in split_args(match[2])]
+    return match[1], names
+
+
+def assigned_before(lines, stacks, start, end, name, head):
+    """`name` was assigned before line `head` on every path that reaches it with ret TRUE: an
+    assignment in the same or an enclosing block, or a construct that assigns it on every exit
+    with ret TRUE (the decoding switch of an ENUMERATED field, whose default arm fails)."""
+    for n, _ in local_assignments(lines, start, end, name):
+        if n < head and stacks[n] == stacks[head][:len(stacks[n])]:
+            return True
+    for number in range(start + 1, head):
+        last = assigns_on_every_exit(lines, stacks, end, number, name)
+        if last is not None and last < head and runs_after(stacks, number, last, head):
+            return True
+    return False
+
+
+def holds_only(lines, start, end, name, allowed):
+    """The local `name` (declared without initializer) is assigned only values of `allowed`."""
+    if not any(re.match(r"^\s*[\w]+\s+" + re.escape(name) + r"\s*;", lines[n - 1]) for n in range(start, end + 1)):
+        return False
+    assignments = local_assignments(lines, start, end, name)
+    return bool(assignments) and all(value in allowed for _, value in assignments)
+
+
+def precedes_unconditionally(lines, stacks, start, first_head, first_end, later):
+    """The construct first_head .. first_end ran before line `later` on every path that reaches
+    it: it ends before `later`, and each block holding it that does not hold `later` is an
+    `if (ret)` that nothing can have set FALSE since ret was last known TRUE (its declaration,
+    or the opening of the innermost `if (ret)` holding both), as after the one-item decoding of
+    a determinant (coverage step 14c3)."""
+    if first_end >= later:
+        return False
+    shared = {x[0] for x in stacks[later]}
+    # ret is TRUE at the start of the function and inside the innermost shared `if (ret)` block
+    anchors = [x[0] for x in stacks[first_head] if x[0] in shared and guard(x) == ("ret",)]
+    anchor = anchors[-1] if anchors else start
+    for block in stacks[first_head]:
+        if block[0] in shared:
+            continue
+        if guard(block) != ("ret",):
+            return False
+        if any(RET_SET.search(code_only(lines[n - 1])) and not re.search(r"\bflag\s+ret\s*=", lines[n - 1])
+               for n in range(anchor + 1, block[0])):
+            return False
+    return True
+
+
+def ref_holds_labels(lines, enums, call, arg, labels, depth):
+    """At the call on line `call`, the AcnInsertedFieldRef argument `arg` holds one of `labels`:
+    `&L` with L a local ref of the caller whose every value assignment stores a label after
+    the determinant's local was decoded (`L.value = (asn1SccUint)T;` with T holding only enum
+    items whose values are labels, or a `switch (T)` with a case per value of T storing a label),
+    the call running after it with ret TRUE; or a ref parameter of the caller, for which every
+    call of the caller is checked the same way."""
+    region = function_region(lines, call)
+    if region is None or depth > 8:
+        return False
+    start, end = region
+    stacks = block_stacks(lines, start, end)
+    stacks["lines"] = lines
+    local = re.fullmatch(r"&\(?(\w+)\)?", arg)
+    if local is None:
+        params = ref_parameters(lines[start - 1])
+        if params is None or arg not in params[1] or not re.search(r"AcnInsertedFieldRef\s*\*\s*" + re.escape(arg) + r"\b",
+                                                                     lines[start - 1]):
+            return False
+        return all_calls_hold_labels(lines, enums, params[0], params[1].index(arg), labels, depth + 1)
+    ref = local[1]
+    if not any(re.match(r"^\s*AcnInsertedFieldRef\s+" + re.escape(ref) + r"\s*=\s*\{\s*0\s*\}\s*;", lines[n - 1])
+               for n in range(start, call)):
+        return False
+    stores = local_assignments(lines, start, end, ref + ".value")
+    if not stores:
+        return False
+    item_constants = {c for c, v in enums.items() if v in labels}
+    for n, value in stores:
+        cast = re.fullmatch(r"\(asn1SccUint\)\(?(\w+)\)?", norm(value))
+        if cast:
+            source = cast[1]
+            if not holds_only(lines, start, end, source, item_constants):
+                return False
+            if not assigned_before(lines, stacks, start, end, source, n):
+                return False
+            if not (runs_after(stacks, n, n, call) or precedes_unconditionally(lines, stacks, start, n, n, call)):
+                return False
+            continue
+        if value not in labels:
+            return False
+        # a case of `switch (T)` that stores a literal: every value T can hold has a case, every case stores a label
+        head = next((h for h in range(n - 1, start, -1) if re.match(r"^\s*switch\s*\(", lines[h - 1])), None)
+        body = switch_body(lines, head, end) if head else None
+        if body is None or not re.fullmatch(r"\w+", body[0]) or body[2] < n:
+            return False
+        source, cases = body[0], body[3]
+        possible = {v for _, v in local_assignments(lines, start, end, source)}
+        if not possible or not possible <= set(cases) or not holds_only(lines, start, end, source, set(cases)):
+            return False
+        stored = {v for m, v in stores if head < m <= body[2]}
+        if not stored <= labels or not assigned_before(lines, stacks, start, end, source, head):
+            return False
+        if not (runs_after(stacks, head, body[2], call) or precedes_unconditionally(lines, stacks, start, head, body[2], call)):
+            return False
+    return True
+
+
+def all_calls_hold_labels(lines, enums, name, index, labels, depth):
+    """Every call of the function `name` in the file passes, as argument `index`, a ref that
+    holds one of `labels` (ref_holds_labels); at least one call."""
+    calls = [n for n, text in enumerate(lines, 1)
+             if not text.startswith("flag ") and call_arguments(code_only(text), name) is not None]
+    if not calls:
+        return False
+    for n in calls:
+        args = call_arguments(code_only(lines[n - 1]), name)
+        if args is None or index >= len(args) or not ref_holds_labels(lines, enums, n, args[index], labels, depth):
+            return False
+    return True
+
+
+def cov009(lines, first, headers=()):
+    """ASN1SCC-COV-009: the statement is in the `default:` arm of a switch on `P->value`, P an
+    AcnInsertedFieldRef parameter of an --acn-v2 specialised decoder, and every call of the
+    decoder in the file passes a ref that holds one of the switch's integer labels
+    (all_calls_hold_labels): its determinant was decoded as an ENUMERATED item before the call."""
+    head = owning_switch(lines, first)
+    region = function_region(lines, first)
+    if head is None or region is None:
+        return False
+    start, end = region
+    header = lines[start - 1]
+    if "_Decode" not in header or "AcnInsertedFieldRef" not in header:
+        return False
+    body = switch_body(lines, head, end)
+    selector = re.fullmatch(r"(\w+)->value", body[0]) if body else None
+    params = ref_parameters(header)
+    if selector is None or params is None or selector[1] not in params[1]:
+        return False
+    labels = set(body[3])
+    if not labels or not all(re.fullmatch(r"\d+", label) for label in labels):
+        return False
+    enums = enum_values(list(headers) + [lines])
+    return all_calls_hold_labels(lines, enums, params[0], params[1].index(selector[1]), labels, 0)
+
+# ASN1SCC-COV-009 in Ada (coverage step 14g, K3): the `when others` arm of the `case P.Value is` of an --acn-v2
+# specialised CHOICE decoder. The caller stores the value of an Ada ENUMERATED local (`R.Value :=
+# Asn1UInt(T'Enum_Rep(L))`, or a case expression over L with one value per item), L is assigned an item on every
+# path of the field's decoding, and the call runs only after the store.
+ADA_REF_TYPE = r"adaasn1rtl\.encoding\.acn\.AcnInsertedFieldRef"
+
+
+def ada_params(header):
+    """(name, [parameter names]) of a single-line Ada procedure header, or None."""
+    match = re.match(r"^\s*procedure\s+(\w+)\s*\((.*)\)\s*$", ada_code(header), re.I)
+    if not match:
+        return None
+    names = []
+    for part in match[2].split(";"):
+        names += [n.strip() for n in part.split(":")[0].split(",")]
+    return match[1], names
+
+
+def ada_ref_params(header):
+    """Names of the AcnInsertedFieldRef `in out` parameters of a procedure header."""
+    return re.findall(r"(\w+)\s*:\s*in out " + ADA_REF_TYPE, header, re.I)
+
+
+def ada_procedure_regions(lines):
+    """[(start, end, name)] of the procedure bodies of a source (line numbers of header and `end name;`)."""
+    regions, current = [], None
+    for number, line in enumerate(lines, 1):
+        match = re.match(r"^procedure\s+(\w+)\s*\(.*\)\s*$", line, re.I)
+        if match and number < len(lines) and lines[number].strip().lower() == "is":
+            current = (number, match[1])
+        elif current and re.match(r"^end\s+" + re.escape(current[1]) + r"\s*;", line, re.I):
+            regions.append((current[0], number, current[1]))
+            current = None
+    return regions
+
+
+def ada_call_arguments(text, name):
+    """The arguments of the call of `name` (possibly qualified with a package) on an Ada line, or None."""
+    match = re.search(r"(?<!\w)" + re.escape(name) + r"\s*\(", text, re.I)
+    if not match or re.match(r"^\s*procedure\b", text, re.I):
+        return None
+    depth, start = 1, match.end()
+    for index in range(start, len(text)):
+        depth += {"(": 1, ")": -1}.get(text[index], 0)
+        if depth == 0:
+            return split_args(text[start:index])
+    return None
+
+
+def ada_indent(text):
+    return len(text) - len(text.lstrip())
+
+
+def ada_statements(body):
+    """Statements of an Ada statement list: ("line", text), ("if", [arms], has_else) or ("case", [arms]),
+    each arm a statement list (raw lines); comments and blank lines left out."""
+    lines = [x for x in body if ada_code(x).strip()]
+    out, i = [], 0
+    while i < len(lines):
+        text = ada_code(lines[i]).strip()
+        compound = re.match(r"(if|case)\b", text, re.I) and (text.lower().endswith(" then") or text.lower().endswith(" is"))
+        if not compound:
+            out.append(("line", text))
+            i += 1
+            continue
+        level = ada_indent(lines[i])
+        is_case = text.lower().startswith("case")
+        arms, current, has_else, j = [], None, False, i + 1
+        if not is_case:
+            current = []
+        while j < len(lines):
+            t = ada_code(lines[j]).strip()
+            if ada_indent(lines[j]) <= level + (4 if is_case else 0) and re.match(r"(elsif|else|when|end\s+(if|case)\s*;)", t, re.I):
+                if re.match(r"end\s+(if|case)\s*;", t, re.I) and ada_indent(lines[j]) == level:
+                    if current is not None:
+                        arms.append(current)
+                    j += 1
+                    break
+                if is_case and re.match(r"when\b", t, re.I):
+                    if current is not None:
+                        arms.append(current)
+                    rest = re.sub(r"^when\b.*?=>", "", t, flags=re.I).strip()
+                    current = [rest] if rest else []
+                    j += 1
+                    continue
+                if not is_case and ada_indent(lines[j]) == level and re.match(r"(elsif|else)\b", t, re.I):
+                    arms.append(current)
+                    current = []
+                    has_else = has_else or t.lower() == "else"
+                    j += 1
+                    continue
+            if current is not None:
+                current.append(lines[j])
+            j += 1
+        out.append(("case", arms) if is_case else ("if", arms, has_else))
+        i = j
+    return out
+
+
+def ada_assigns(statements, name):
+    """The statement list assigns `name` on every path (an if needs an else; a case is complete in Ada)."""
+    for statement in statements:
+        if statement[0] == "line":
+            if re.match(r"^" + re.escape(name) + r"\s*:=", statement[1], re.I):
+                return True
+        elif statement[0] == "case" or statement[2]:
+            arms = statement[1]
+            if arms and all(ada_assigns(ada_statements(arm), name) for arm in arms):
+                return True
+    return False
+
+
+def ada_enum_values(specs, type_name):
+    """The representation values of the Ada enumeration type `type_name` (its `for T use (...)` clause, else the
+    positions), from the unit's sources; None when not found."""
+    text = "\n".join("\n".join(lines) for lines in specs)
+    name = re.escape(type_name)
+    rep = re.search(r"\bfor\s+" + name + r"\s+use\s*\((.*?)\)\s*;", text, re.I | re.S)
+    if rep:
+        return {v.strip() for v in re.findall(r"=>\s*(-?\d+)", rep[1])}
+    decl = re.search(r"\btype\s+" + name + r"\s+is\s*\((.*?)\)", text, re.I | re.S)
+    if decl:
+        return {str(i) for i in range(len([x for x in decl[1].split(",") if x.strip()]))}
+    return None
+
+
+def ada_never_writes(bodies, name, index, depth):
+    """The procedure `name` does not write the Value of its parameter number `index` (nor passes it to a
+    procedure that may)."""
+    body = bodies.get(name)
+    params = ada_params(body[0]) if body else None
+    if params is None or index >= len(params[1]) or depth > 8:
+        return False
+    param = params[1][index]
+    for text in body[1:]:
+        code = ada_code(text)
+        if re.search(r"(?<![\w.])" + re.escape(param) + r"\.Value\s*:=", code, re.I):
+            return False
+        if re.search(r"[(,]\s*" + re.escape(param) + r"\.Value\s*[,)]", code, re.I):
+            return False
+        for callee in re.findall(r"(\w+)\s*\(", code):
+            args = ada_call_arguments(code, callee)
+            if args and param in args and not ada_never_writes(bodies, callee, args.index(param), depth + 1):
+                return False
+    return True
+
+
+def ada_ref_holds_labels(sources, specs, bodies, src, call, arg, labels, depth):
+    """At the call on line `call` of source `src`, the ref argument `arg` holds one of `labels` (see above)."""
+    lines = sources[src]
+    region = next(((s, e, n) for s, e, n in ada_procedure_regions(lines) if s < call < e), None)
+    if region is None or depth > 8:
+        return False
+    start, end, caller = region
+    if arg in ada_ref_params(lines[start - 1]):
+        params = ada_params(lines[start - 1])
+        return ada_all_calls_hold_labels(sources, specs, bodies, caller, params[1].index(arg), labels, depth + 1)
+    begin = next((n for n in range(start + 1, end) if lines[n - 1].strip().lower() == "begin"), None)
+    if begin is None or not re.match(r"^\s*\w+\s*$", arg) or not any(
+            re.match(r"^\s*" + re.escape(arg) + r"\s*:\s*" + ADA_REF_TYPE + r"\s*:=\s*\(others => <>\)\s*;", lines[n - 1], re.I)
+            for n in range(start + 1, begin)):
+        return False
+    stores = []
+    for n in range(begin + 1, end):
+        code = ada_code(lines[n - 1])
+        if not re.search(r"(?<![\w.])" + re.escape(arg) + r"\b", code, re.I):
+            continue
+        if re.match(r"^\s*" + re.escape(arg) + r"\.Value\s*:=", code, re.I):
+            stores.append(n)
+            continue
+        # any other use: an argument of a call whose callee does not write its Value
+        callees = [c for c in re.findall(r"([\w.]*\w)\s*\(", code)]
+        used = False
+        for callee in callees:
+            short = callee.split(".")[-1]
+            args = ada_call_arguments(code, short)
+            if args and arg in args:
+                used = True
+                if not ada_never_writes(bodies, short, args.index(arg), 0):
+                    return False
+        if not used:
+            return False
+    if not stores:
+        return False
+    for n in stores:
+        # the stored values: Enum_Rep of an enumeration local, or a case expression over one with literal values
+        text, k = ada_code(lines[n - 1]).strip(), n
+        while not text.endswith(";") and k < end:
+            text += " " + ada_code(lines[k]).strip()
+            k += 1
+        rep = re.fullmatch(re.escape(arg) + r"\.Value := adaasn1rtl\.Asn1UInt\(([\w.]+)'Enum_Rep\((\w+)\)\);", text, re.I)
+        case = re.fullmatch(re.escape(arg) + r"\.Value := \(case (\w+) is (.*)\);", text, re.I)
+        if rep:
+            local, values = rep[2], ada_enum_values(specs + [lines], rep[1].split(".")[-1])
+        elif case:
+            local = case[1]
+            arms = [a.strip() for a in case[2].split(",")]
+            values = set()
+            for a in arms:
+                value = re.fullmatch(r"when [\w.]+ => adaasn1rtl\.Asn1UInt\((\d+)\)", a, re.I)
+                if not value:
+                    return False
+                values.add(value[1])
+        else:
+            return False
+        if values is None or not values or not values <= labels:
+            return False
+        # L is a local of the caller, declared without initializer with a type (an enumeration: Enum_Rep, case)
+        if not any(re.match(r"^\s*" + re.escape(local) + r"\s*:\s*[\w.]+\s*;", lines[m - 1], re.I) for m in range(start + 1, begin)):
+            return False
+        # the store's statement (alone in an `if result.Success then` block, or a plain line), the list holding it
+        indent = ada_indent(lines[n - 1])
+        guard_line = n - 1 if re.match(r"^\s*if result\.Success then\s*$", lines[n - 2], re.I) else None
+        if guard_line is not None:
+            close = next((m for m in range(n + 1, end) if ada_indent(lines[m - 1]) <= indent - 4 and ada_code(lines[m - 1]).strip()), None)
+            if close is None or not re.match(r"^\s*end if;\s*$", lines[close - 1], re.I):
+                return False
+            first_line, last_line, level = guard_line, close, ada_indent(lines[guard_line - 1])
+        else:
+            first_line, last_line, level = n, k if k > n else n, indent
+        # L is assigned before the statement on every path, by the statements before it in the same list
+        list_start = next((m for m in range(first_line - 1, begin, -1)
+                           if ada_code(lines[m - 1]).strip() and ada_indent(lines[m - 1]) < level), begin)
+        if not ada_assigns(ada_statements(lines[list_start:first_line - 1]), local):
+            return False
+        # the call runs only after the store: R1 (guarded store) the call is inside the `if result.Success then`
+        # block that follows the store's block directly; R2 (plain store) the call follows in the same list
+        nxt = next((m for m in range(last_line + 1, end) if ada_code(lines[m - 1]).strip()), None)
+        if nxt is None:
+            return False
+        if guard_line is not None:
+            if not (re.match(r"^\s*if result\.Success then\s*$", lines[nxt - 1], re.I) and ada_indent(lines[nxt - 1]) == level):
+                return False
+            block_end = next((m for m in range(nxt + 1, end) if ada_code(lines[m - 1]).strip() and ada_indent(lines[m - 1]) <= level), None)
+            if block_end is None or not (nxt < call < block_end):
+                return False
+        else:
+            if not (last_line < call and all(ada_indent(lines[m - 1]) >= level or not ada_code(lines[m - 1]).strip()
+                                              for m in range(last_line + 1, call + 1))):
+                return False
+            if any(re.match(r"^\s*(return|exit|goto)\b", ada_code(lines[m - 1]), re.I) for m in range(last_line + 1, call)):
+                return False
+    return True
+
+
+def ada_all_calls_hold_labels(sources, specs, bodies, name, index, labels, depth):
+    """Every call of the procedure `name` in the unit's sources passes, as argument `index`, a ref holding one
+    of `labels`; at least one call."""
+    found = False
+    for src, lines in enumerate(sources):
+        for number, text in enumerate(lines, 1):
+            args = ada_call_arguments(ada_code(text), name)
+            if args is None:
+                continue
+            found = True
+            if index >= len(args):
+                return False
+            if not ada_ref_holds_labels(sources, specs, bodies, src, number, args[index], labels, depth):
+                return False
+    return found
+
+
+def cov009_ada(lines, first, specs=(), sources=()):
+    """ASN1SCC-COV-009 in Ada: the statement is in the `when others` arm of `case P.Value is`, P an
+    AcnInsertedFieldRef parameter of an --acn-v2 specialised decoder with integer labels, and every call of the
+    decoder in the unit passes a ref holding one of the labels (ada_ref_holds_labels)."""
+    others = None
+    for number in range(first, max(first - 3, 0), -1):
+        text = ada_code(lines[number - 1])
+        if re.match(r"^\s*when\s+others\s*=>", text, re.I):
+            others = number
+            break
+        if number != first and ada_code(lines[number - 1]).strip():
+            return False
+    if others is None:
+        return False
+    head, depth, labels = others - 1, 0, set()
+    while head > 0:
+        text = ada_code(lines[head - 1])
+        if re.match(r"^\s*end\s+case\s*;", text, re.I):
+            depth += 1
+        elif re.match(r"^\s*case\b.*\bis\s*$", text, re.I):
+            if depth == 0:
+                break
+            depth -= 1
+        elif depth == 0:
+            arm = re.match(r"^\s*when\s+(.*?)\s*=>", text, re.I)
+            if arm:
+                labels |= {x.strip() for x in arm[1].split("|")}
+        head -= 1
+    selector = re.match(r"^\s*case\s+(\w+)\.Value\s+is\s*$", ada_code(lines[head - 1]), re.I) if head else None
+    region = next(((s, e, n) for s, e, n in ada_procedure_regions(lines) if s < first < e), None)
+    if selector is None or region is None or "_Decode" not in region[2]:
+        return False
+    if not labels or not all(re.fullmatch(r"\d+", label) for label in labels):
+        return False
+    refs = ada_ref_params(lines[region[0] - 1])
+    params = ada_params(lines[region[0] - 1])
+    if selector[1] not in refs or params is None:
+        return False
+    all_sources = [list(lines)] + [list(s) for s in sources]
+    bodies = function_bodies(all_sources, "Ada")
+    return ada_all_calls_hold_labels(all_sources, [list(s) for s in specs], bodies, region[2],
+                                     params[1].index(selector[1]), labels, 0)
+
+
 # RTL decoders whose postcondition bounds the value on success: the uPER
 # constrained whole numbers (Result and IntVal in MinVal .. MaxVal) and the ACN
 # fixed-size integers (Result.Success and IntVal in minVal .. maxVal).
@@ -209,16 +1125,67 @@ ADA_RTL_DECODE = (r"\b(?:UPER_Dec_Constraint(?:Pos)?WholeNumber(?:U?Int(?:8|16|3
                   r"\s*result(?:\.Success)?\s*\)")
 
 
+# Coverage step 14c2a: the RTL _FullRange twins have no Result and cannot fail. UPER_Dec_Constraint[Pos]WholeNumber_FullRange
+# reads nBits bits and returns min + that value (min .. min + 2^nBits - 1); Acn_Dec_Int_PositiveInteger_ConstSize<w>_FullRange
+# reads the w bits of its width (the nBits argument of the form without width) and returns 0 .. 2^w - 1.
+ADA_RTL_FULLRANGE = (r"\b(?:UPER_Dec_Constraint(?:Pos)?WholeNumber_FullRange(?:U?Int(?:8|16|32))?"
+                     r"\s*\(\s*bs\s*,\s*{var}\s*,\s*(?P<min>-?\d+)\s*,\s*(?P<bits>\d+)\s*\)"
+                     r"|Acn_Dec_Int_PositiveInteger_ConstSize(?:_(?P<width>8)|_(?:big|little)_endian_(?P<ewidth>16|32|64))?"
+                     r"_FullRange(?:U?Int(?:8|16|32))?\s*\(\s*bs\s*,\s*{var}\s*(?:,\s*(?P<nbits>\d+)\s*)?\))")
+
+
+def full_range_bounds(found):
+    """min .. max returned by the _FullRange twin call `found` (ADA_RTL_FULLRANGE)."""
+    if found["bits"] is not None:
+        low = int(found["min"])
+        return low, low + 2 ** int(found["bits"]) - 1
+    bits = found["width"] or found["ewidth"] or found["nbits"]
+    return (0, 2 ** int(bits) - 1) if bits is not None else None
+
+
 def ada_code(text):
     """An Ada line without its comment."""
     return re.sub(r"--.*$", "", text)
 
 
+def cov001_ada_absent(lines, first):
+    """ASN1SCC-COV-001 in Ada, ALWAYS ABSENT alternatives (coverage step 14g, K2): the statement is in an arm
+    `when N =>` of `case <index_range>(X) is`, entered only under `if result.Success AND X >= 0 AND X <= M then`
+    on the line above, with N > M."""
+    arm = None
+    for number in range(first, max(first - 3, 0), -1):
+        match = re.match(r"^\s*when\s+(\d+)\s*=>", ada_code(lines[number - 1]), re.I)
+        if match:
+            arm = (number, int(match[1]))
+            break
+        if number != first and ada_code(lines[number - 1]).strip():
+            return False
+    if arm is None:
+        return False
+    head, depth = arm[0] - 1, 0
+    while head > 0:
+        text = ada_code(lines[head - 1])
+        if re.match(r"^\s*end\s+case\s*;", text, re.I):
+            depth += 1
+        elif re.match(r"^\s*case\b.*\bis\s*$", text, re.I):
+            if depth == 0:
+                break
+            depth -= 1
+        head -= 1
+    case = re.match(r"^\s*case\s+\w+\((\w+)\)\s+is\s*$", ada_code(lines[head - 1]), re.I) if head > 1 else None
+    if not case:
+        return False
+    guard = re.match(r"^\s*if\s+result\.Success\s+AND\s+" + re.escape(case[1]) + r"\s*>=\s*0\s+AND\s+" +
+                     re.escape(case[1]) + r"\s*<=\s*(\d+)\s+then\s*$", ada_code(lines[head - 2]), re.I)
+    return bool(guard) and arm[1] > int(guard[1])
+
+
 def cov001_ada(lines, first):
     """ASN1SCC-COV-001 in Ada: the statement is in the `when others` arm of a
     `case X is` whose selector was just decoded by an RTL procedure with the
-    postcondition `Result and X in min .. max`, and whose own choices are
-    exactly min..max."""
+    postcondition `Result and X in min .. max` (the case in its success branch),
+    or by a _FullRange twin that cannot fail and returns min .. max (14c2a),
+    and whose own choices are exactly min..max."""
     others = None
     for number in range(first, max(first - 4, 0), -1):
         text = ada_code(lines[number - 1])
@@ -244,20 +1211,25 @@ def cov001_ada(lines, first):
         return False
     var = match[1]
     decode = re.compile(ADA_RTL_DECODE.format(var=re.escape(var)), re.I)
+    full = re.compile(ADA_RTL_FULLRANGE.format(var=re.escape(var)), re.I)
     assigned = re.compile(r"(?<![\w.])" + re.escape(var) + r"\s*:=", re.I)
-    bounds = None
+    bounds, full_range = None, False
     for number in range(head - 1, max(head - 5, 0), -1):
         text = ada_code(lines[number - 1])
         found = decode.search(text)
         if found:
             bounds = int(found[1]), int(found[2])
             break
+        found = full.search(text)
+        if found:
+            bounds, full_range = full_range_bounds(found), True
+            break
         if assigned.search(text):
             return False
     if bounds is None:
         return False
-    # The case must sit in the success branch of that decode.
-    if not any(re.match(r"^\s*if\s+result\.Success\s+then\s*$", ada_code(lines[n - 1]), re.I)
+    # The case must sit in the success branch of that decode (a _FullRange twin cannot fail).
+    if not full_range and not any(re.match(r"^\s*if\s+result\.Success\s+then\s*$", ada_code(lines[n - 1]), re.I)
                for n in range(number + 1, head)):
         return False
     depth, labels = 0, []
@@ -277,16 +1249,310 @@ def cov001_ada(lines, first):
     return depth == 0 and covers(sorted(labels), bounds)
 
 
-def proven_unreachable(language, lines, first, src):
-    """ID of the documented exemption that proves the statement unreachable, or ''."""
+# ASN1SCC-COV-010 (coverage step 14e, E5 B): the "contents read past the region" check of an --acn-v2
+# OCTET STRING CONTAINING region decoder whose contents end with a 'size deduced' part. The region sets
+# the deduced end of the stream (C unusedTailBits, Ada End_Bit_Pos) around the contents; the contents
+# (inline, or decoders they call, in any source of the unit) contain a deduced decoding that reads it,
+# not inside a nested region. That the deduced part is on every path is the front end's rules R1-R3.
+COV010 = {
+    "c": {
+        "check": re.compile(r"^\s*if \(ret && pBitStrm->currentByte \* 8L \+ pBitStrm->currentBit > "
+                            r"acn_expected_end \* 8L \+ acn_end_bit\) \{"),
+        "set": re.compile(r"^\s*pBitStrm->unusedTailBits = \(8 - acn_end_bit\) % 8;"),
+        "restore": re.compile(r"^\s*pBitStrm->unusedTailBits = acn_saved_tail_bits;"),
+        "deduced": re.compile(r"\bded_(?:avail_bits|budget_end) = \(?pBitStrm->count \* 8L - pBitStrm->unusedTailBits"),
+        # a nested region (OCTET or BIT STRING CONTAINING) limits count and restores it
+        "nest_open": re.compile(r"^\s*pBitStrm->count = acn_(?:expected_end|end_byte) \+"),
+        "nest_close": re.compile(r"^\s*pBitStrm->count = acn_saved_count;"),
+        "call": re.compile(r"\b(\w+_ACN_Decode)\s*\("),
+        "inside": re.compile(r"^\s*(/\*.*\*/|ret = FALSE;.*|\*pErrCode = \w+;.*)$"),
+    },
+    "Ada": {
+        "check": re.compile(r"^\s*if result\.Success and then bs\.Current_Bit_Pos > acn_expected_end then", re.I),
+        "set": re.compile(r"^\s*bs\.End_Bit_Pos := acn_expected_end;"),
+        "restore": re.compile(r"^\s*bs\.End_Bit_Pos := acn_saved_end;"),
+        "deduced": re.compile(r"\bDed_(?:Avail_Bits|Budget_End) : constant Integer := \(?bs\.End_Bit_Pos"),
+        "nest_open": re.compile(r"^\s*bs\.End_Bit_Pos := acn_expected_end;"),
+        "nest_close": re.compile(r"^\s*bs\.End_Bit_Pos := acn_saved_end;"),
+        "call": re.compile(r"\b(\w+_ACN_Decode_aux)\s*\(", re.I),
+        "inside": re.compile(r"^\s*(--.*|pragma Annotate.*|result := \w+\.ASN1_RESULT'\(Success => False.*)$", re.I),
+    },
+}
+
+
+def function_bodies(sources, language):
+    """{name: lines of its body} of the decoders defined in the unit's sources."""
+    bodies = {}
+    for lines in sources:
+        name, start = None, 0
+        for number, line in enumerate(lines):
+            if language == "c":
+                match = re.match(r"^flag (\w+)\(.*\)\s*$", line)
+                if match:
+                    name, start = match[1], number
+                elif name and line.startswith("}"):
+                    bodies[name] = lines[start:number + 1]
+                    name = None
+            else:
+                match = re.match(r"^\s*procedure (\w+)\s*\(.*\)\s*$", line, re.I) or \
+                        re.match(r"^\s*procedure (\w+)\s*\(", line, re.I)
+                if match and not line.rstrip().endswith(";"):
+                    name, start = match[1], number
+                elif name and re.match(r"^\s*end\s+" + re.escape(name) + r"\s*;", line, re.I):
+                    bodies[name] = lines[start:number + 1]
+                    name = None
+    return bodies
+
+
+FAILS = re.compile(r"\bret = FALSE;|Success => [Ff]alse|^\s*\*pErrCode = ERR_\w+;")
+
+
+def c_top_statements(body):
+    """Top-level statements of a C block: ("line", [line]) or ("select", [arm lines, ...]) for an
+    if / else if / else chain with an else part or a switch (the arms' code, labels and braces left out)."""
+    out, i, n = [], 0, len(body)
+
+    def block(start):
+        # lines of the brace block opened on body[start] (or on the next line), and the index after it
+        depth, j, lines = 0, start, []
+        opened = False
+        while j < n:
+            text = body[j]
+            depth += text.count("{") - text.count("}")
+            if text.count("{"):
+                opened = True
+            if j != start:
+                lines.append(text)
+            j += 1
+            if opened and depth <= 0:
+                return lines[:-1] if lines and lines[-1].strip().startswith("}") else lines, j
+        return lines, j
+
+    while i < n:
+        text = body[i].strip()
+        if re.match(r"if\s*\(", text):
+            arms = []
+            lines, i = block(i)
+            arms.append(lines)
+            while i < n and re.match(r"(\}\s*)?else\b", body[i].strip()):
+                lines, i = block(i)
+                arms.append(lines)
+            if len(arms) == 1:
+                out += [("line", [x]) for x in arms[0]]
+            else:
+                out.append(("select", arms))
+        elif re.match(r"switch\s*\(", text):
+            lines, i = block(i)
+            arms, current = [], None
+            for x in lines:
+                if re.match(r"^\s*case\b.*:", x):
+                    current = []
+                    arms.append(current)
+                elif re.match(r"^\s*default\s*:", x):
+                    current = []
+                    arms.append(current)
+                elif current is not None:
+                    current.append(x)
+            out.append(("select", arms))
+        else:
+            out.append(("line", [body[i]]))
+            i += 1
+    return out
+
+
+def ada_top_statements(body):
+    """As c_top_statements for Ada: if / elsif / else chains with an else part and case statements."""
+    out, i, n = [], 0, len(body)
+    opener = re.compile(r"^\s*(if\b|case\b.*\bis\s*$|declare\b|(for|while)\b.*\bloop\s*$|loop\s*$)", re.I)
+    closer = re.compile(r"^\s*end(\s+(if|case|loop))?\s*;", re.I)
+
+    def code(x):
+        return ada_code(x).strip()
+
+    while i < n:
+        text = code(body[i])
+        if re.match(r"(if|case)\b", text, re.I):
+            is_case = text.lower().startswith("case")
+            arms, current, depth, j = [], [], 0, i
+            while j < n:
+                t = code(body[j])
+                if depth == 1 and not is_case and re.match(r"(elsif\b|else\b)", t, re.I):
+                    arms.append(current)
+                    current = []
+                elif depth == 1 and is_case and re.match(r"when\b", t, re.I):
+                    if j != i + 1 or current:
+                        arms.append(current)
+                    current = []
+                elif closer.match(t) and depth == 1:
+                    arms.append(current)
+                    j += 1
+                    break
+                else:
+                    if j != i:
+                        current.append(body[j])
+                    if opener.match(t) and not re.search(r"\bend\b", t, re.I):
+                        depth += 1
+                    elif closer.match(t):
+                        depth -= 1
+                if j == i:
+                    depth = 1
+                j += 1
+            i = j
+            arms = [a for a in arms if a or not is_case]
+            if is_case:
+                out.append(("select", arms[1:] if arms and not arms[0] else arms))
+            elif len(arms) == 1:
+                out += [("line", [x]) for x in arms[0]]
+            else:
+                out.append(("select", arms))
+        else:
+            out.append(("line", [body[i]]))
+            i += 1
+    return out
+
+
+def reads_deduced_end(body, pattern, bodies, depth, seen, language):
+    """A deduced decoding on every path of body that does not fail: in a top-level statement (or a
+    decoder it calls), or in every arm of a selection (CHOICE) that does not fail; code inside the
+    nested regions of body (another CONTAINING) does not count."""
+    nested = 0
+    statements = c_top_statements(body) if language == "c" else ada_top_statements(body)
+    for kind, parts in statements:
+        if kind == "select":
+            if nested == 0:
+                live = [arm for arm in parts if not (arm and all(FAILS.search(x) or not x.strip() or
+                                                                  x.strip().startswith(("/*", "--")) for x in arm))]
+                if live and all(reads_deduced_end(arm, pattern, bodies, depth, set(seen), language) for arm in live):
+                    return True
+            continue
+        line = parts[0]
+        if pattern["nest_open"].match(line):
+            nested += 1
+            continue
+        if pattern["nest_close"].match(line):
+            nested = max(nested - 1, 0)
+            continue
+        if nested:
+            continue
+        if pattern["deduced"].search(line):
+            return True
+        if depth > 0:
+            for callee in pattern["call"].findall(line):
+                if callee in bodies and callee not in seen:
+                    seen.add(callee)
+                    if reads_deduced_end(bodies[callee], pattern, bodies, depth - 1, seen, language):
+                        return True
+    return False
+
+
+def cov010(lines, first, language, sources=()):
+    """ASN1SCC-COV-010: the statement is in the block of the "contents read past the region"
+    check of an --acn-v2 OCTET STRING CONTAINING region decoder that sets the deduced end of the
+    stream around contents which read it (a 'size deduced' decoding, outside nested regions)."""
+    pattern = COV010["c" if language == "c" else "Ada"]
+    head = None
+    for number in range(first - 1, max(first - 5, 0), -1):
+        if pattern["check"].match(lines[number - 1]):
+            head = number
+            break
+        if not pattern["inside"].match(lines[number - 1]):
+            return False
+    if head is None:
+        return False
+    restore = next((n for n in range(head - 1, max(head - 4, 0), -1) if pattern["restore"].match(lines[n - 1])), None)
+    if restore is None:
+        return False
+    start = None
+    for number in range(restore - 1, 0, -1):
+        text = lines[number - 1]
+        if pattern["set"].match(text):
+            start = number
+            break
+        if pattern["restore"].match(text) or (language == "c" and C_FUNCTION.match(text) and not text[:1].isspace()):
+            return False
+    if start is None:
+        return False
+    bodies = function_bodies([list(lines)] + [list(s) for s in sources], "c" if language == "c" else "Ada")
+    # the contents between the set and the restore; a nested region inside them is skipped. Ada: OCTET and BIT
+    # STRING regions alike (both set End_Bit_Pos to the exact end bit of the region, coverage step 14e E5 D)
+    return reads_deduced_end(lines[start:restore - 1], pattern, bodies, 6, set(), "c" if language == "c" else "Ada")
+
+
+# ASN1SCC-COV-011 (coverage step 14e, E5 D, Ada): the "region does not fit the stream" arm of an --acn-v2 OCTET
+# STRING CONTAINING region with an embedded length. The length is decoded right before the check within the SIZE
+# range of the region (UPER_Dec_ConstraintWholeNumberInt fails outside min .. max); that the stream holds the region
+# is the decoder precondition of the type assignment (stream of at least its maximum size, every part before the
+# region read at most its maximum), not checked again on the generated text.
+COV011_READ = re.compile(r"^\s*adaasn1rtl\.encoding\.uper\.UPER_Dec_ConstraintWholeNumberInt\(bs, acn_nCount, "
+                         r"(\d+), (\d+), \d+, result\.Success\);", re.I)
+COV011_FITS = (re.compile(r"^\s*if bs\.Current_Bit_Pos <= bs\.Size_In_Bytes \* 8 and then\s*$", re.I),
+               re.compile(r"^\s*acn_nCount >= 0 and then acn_nCount <= \(bs\.Size_In_Bytes \* 8 - "
+                          r"bs\.Current_Bit_Pos\) / 8\s*$", re.I))
+
+
+def cov011(lines, first):
+    """ASN1SCC-COV-011: the statement is in the else arm of the fits check that directly follows the decoding of
+    an embedded region length (acn_nCount) within min .. max, with nothing else assigning acn_nCount."""
+    indent = lambda text: len(text) - len(text.lstrip())
+    els = None
+    for number in range(first - 1, max(first - 4, 0), -1):
+        text = lines[number - 1]
+        if re.match(r"^\s*else\s*$", text, re.I):
+            els = number
+            break
+        if not re.match(r"^\s*(--.*|pragma Annotate.*)$", text, re.I):
+            return False
+    if els is None:
+        return False
+    level = indent(lines[els - 1])
+    head = None
+    for number in range(els - 1, 0, -1):
+        text = lines[number - 1]
+        if not text.strip():
+            continue
+        if indent(text) < level:
+            return False
+        if indent(text) == level and COV011_FITS[0].match(text):
+            head = number
+            break
+        if indent(text) == level and not re.match(r"^\s*(then|end;.*|declare.*|begin)\s*(--.*)?$", text, re.I):
+            return False
+    if head is None or head + 1 > len(lines) or not COV011_FITS[1].match(lines[head]):
+        return False
+    # `if result.Success then` right above, the read of acn_nCount right above that
+    if head < 3 or not re.match(r"^\s*if result\.Success then\s*$", lines[head - 2], re.I):
+        return False
+    read = COV011_READ.match(lines[head - 3])
+    return bool(read) and int(read[1]) >= 0 and int(read[1]) <= int(read[2])
+
+
+def proven_unreachable(language, lines, first, src, headers=(), sources=()):
+    """ID of the documented exemption that proves the statement unreachable, or ''.
+    sources: the lines of the unit's other source files (ASN1SCC-COV-010 follows calls into them)."""
     if language != "c":
-        return "ASN1SCC-COV-001" if cov001_ada(lines, first) else ""
+        if cov001_ada(lines, first) or cov001_ada_absent(lines, first):
+            return "ASN1SCC-COV-001"
+        if cov011(lines, first):
+            return "ASN1SCC-COV-011"
+        if cov009_ada(lines, first, headers, sources):
+            return "ASN1SCC-COV-009"
+        return "ASN1SCC-COV-010" if cov010(lines, first, "Ada", sources) else ""
     if cov001(lines, first):
         return "ASN1SCC-COV-001"
     if cov002(lines, first, src):
         return "ASN1SCC-COV-002"
     if cov003(lines, first):
         return "ASN1SCC-COV-003"
+    if cov004(lines, first):
+        return "ASN1SCC-COV-004"
+    if cov005(lines, first):
+        return "ASN1SCC-COV-005"
+    if cov008(lines, first):
+        return "ASN1SCC-COV-008"
+    if cov009(lines, first, headers):
+        return "ASN1SCC-COV-009"
+    if cov010(lines, first, "c", sources):
+        return "ASN1SCC-COV-010"
     return ""
 
 
@@ -345,6 +1611,12 @@ def classify(run):
             if not source.is_file():
                 raise SystemExit(f"{run}: missing generated source {source}")
             lines = source.read_text(errors="replace").splitlines()
+            # ASN1SCC-COV-009 reads the values of the enum constants in the unit's C headers
+            # (Ada: the representation clauses of the enumeration types in the unit's specs)
+            headers = [h.read_text(errors="replace").splitlines() for h in sorted(work.glob("*.h" if language == "c" else "*.ads"))]
+            # ASN1SCC-COV-010 follows the contents' decoders into the unit's other sources
+            others = [p.read_text(errors="replace").splitlines()
+                      for p in sorted(work.glob("*.c" if language == "c" else "*.adb")) if p.name != file_name]
             starts = function_starts(lines, "c" if language == "c" else "Ada")
             for obligation in data["obligations"]:
                 if obligation["status"] != "-":
@@ -357,7 +1629,7 @@ def classify(run):
                              "line": first, "function": function,
                              "function_kind": function_kind(function),
                              "statement_kind": statement_kind(src, lines, first, last),
-                             "proven": proven_unreachable(language, lines, first, src),
+                             "proven": proven_unreachable(language, lines, first, src, headers, others),
                              "exempted": obligation.get("exempted"), "src": src[:200]})
         units.append(entry)
     return name, rows, units

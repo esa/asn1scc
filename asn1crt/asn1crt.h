@@ -157,6 +157,11 @@ typedef struct BitStream_t {
 	void* pushDataPrm;
 	//FetchDataFnc fetchData;
 	void* fetchDataPrm;
+	/* Bits of the last byte of the view (buf[count - 1]) that lie outside it, 0..7: the view ends at bit
+	   count * 8 - unusedTailBits. 0 (set when a buffer is attached or initialized) = it ends at a byte
+	   boundary. Only the 'size deduced' decoders read it; an --acn-v2 OCTET STRING CONTAINING region that
+	   does not start at a byte boundary ends inside a byte and sets it while its contents are decoded. */
+	int unusedTailBits;
 } BitStream;
 
 

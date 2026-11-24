@@ -5,7 +5,8 @@ package adaasn1rtl.encoding.test_cases_aux is
    --  Decode fault sweep of the automatic tests (asn1scc -atc, uPER and ACN).
    --  After a successful round trip, each byte of the encoded value
    --  (bytes 1 .. (bs.Current_Bit_Pos + 7) / 8) is set to 16#00#, then to
-   --  16#FF#, decoded, and restored. Decode must not raise an exception; it
+   --  16#FF#, then to itself with each of its 8 bits flipped, decoded, and
+   --  restored. Decode must not raise an exception; it
    --  must fail with a nonzero error code or succeed with a valid value.
    --  At most Sweep_Positions positions at each end of the encoding, and
    --  about Budget decoded bytes (asn1scc -atcSweepBudget); at least 2
@@ -23,5 +24,46 @@ package adaasn1rtl.encoding.test_cases_aux is
          Res   : out ASN1_RESULT;
          Valid : out Boolean);
       Result : out ASN1_RESULT);
+
+   --  'size deduced' PDUs (coverage step 14i): decode with the end of the view
+   --  (End_Bit_Pos) moved back by 1 .. 8 bits, so that the last part of the
+   --  value runs past it; the decoder must fail with an error code or return a
+   --  valid value, never raise.
+   procedure Decode_View_End_Sweep
+     (bs     : in out Bitstream;
+      Name   : String;
+      Decode : not null access procedure
+        (bs    : in out Bitstream;
+         Res   : out ASN1_RESULT;
+         Valid : out Boolean);
+      Result : out ASN1_RESULT);
+
+   --  Bit-offset round trips (coverage step 15b; C since step 14c1): for s
+   --  in 1 .. Last_Offset, the value is encoded into a fresh stream of
+   --  Size_In_Bytes bytes from bit s (Encode calls the encoder that keeps
+   --  the position) and decoded from bit s ('size deduced': the view ends
+   --  with the last byte written). Decode resets its target first. The
+   --  decoder must succeed and stop where the encoder stopped, the decoded
+   --  value must be valid (Valid) and the same as the encoded one (Same).
+   --  Stops at the first violation, prints the stage and the offset, and
+   --  returns the stage as Result.Step (TC_ENCODE, TC_DECODE,
+   --  TC_VALIDATE_DECODED or TC_EQUAL) with Success => False and the codec's
+   --  error code, or 8 (wrong position, invalid, different, or an exception,
+   --  also one raised while the stream is allocated). A stream too large for
+   --  BitStream_init (Size_In_Bytes >= Positive'Last / 8) is not swept.
+   procedure Offset_Round_Trips
+     (Name          : String;
+      Size_In_Bytes : Positive;
+      Last_Offset   : Positive;
+      Deduced       : Boolean;
+      Encode : not null access procedure
+        (bs  : in out Bitstream;
+         Res : out ASN1_RESULT);
+      Decode : not null access procedure
+        (bs  : in out Bitstream;
+         Res : out ASN1_RESULT);
+      Valid  : not null access function return Boolean;
+      Same   : not null access function return Boolean;
+      Result : out TEST_CASE_RESULT);
 
 end adaasn1rtl.encoding.test_cases_aux;

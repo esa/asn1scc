@@ -1,0 +1,5 @@
+-- OuterQ: the narrowed site inside a parameterized type (with --acn-v2 a specialised function)
+ACN-WIRE-SITE-DECODE DEFINITIONS ::= BEGIN
+    Wrap <INTEGER: n> [] { p [], d [size n] }
+    OuterQ [] { n1 INTEGER [size 3, encoding pos-int], n2 INTEGER [size 3, encoding pos-int], w1 <n1> [], w2 <n2> [] }
+END
