@@ -706,6 +706,14 @@ type EncoderValidationModel =
     // keeps the call; primitives skip it as in 12a.
     | EncodersSkipAlwaysValidPrimitives
 
+/// Whether a type's public decoder ends with its IsConstraintValid when that function cannot fail (cycle 15j, stage A):
+/// C returns `ret` with a comment instead of `ret && V(...)`; Ada, Scala, Python and Rust keep the call. A later stage
+/// (a validator whose checks the decoding itself guarantees, or another form of the final check) adds a case here and
+/// an arm in DAstUtilFunctions.decoderSkipsValidation.
+type DecoderValidationModel =
+    | DecodersCallEveryValidation
+    | DecodersSkipAlwaysValid               // C: the final `return ret && V(...)` becomes `return ret;` + comment
+
 type IsValidFunction = {
     errCodes            : ErrorCode list
     funcName            : string option               // the name of the function. Valid only for TASes)

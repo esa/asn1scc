@@ -93,7 +93,7 @@ flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pEr
 
 	<sContent>
 
-    return ret<if(soIValidFuncName)> && <soIValidFuncName>(<sVarName>, pErrCode)<endif>;
+    return ret<if(soIValidFuncName)><if(bValidityCannotFail)>;    /* no validity check: <soIValidFuncName>() cannot fail for any value of this type */<else> && <soIValidFuncName>(<sVarName>, pErrCode);<endif><else>;<endif>
 }
 >>
 

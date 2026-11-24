@@ -898,6 +898,12 @@ type ILangGeneric () =
     abstract member encoderValidationModel : EncoderValidationModel
     default _.encoderValidationModel = EncodersCallEveryValidation
 
+    /// Whether a public decoder calls its type's IsConstraintValid when that function is AlwaysValid (see
+    /// DecoderValidationModel; cycle 15j). Separate from encoderValidationModel: Ada's encoder model must not reach
+    /// its decoders.
+    abstract member decoderValidationModel : DecoderValidationModel
+    default _.decoderValidationModel = DecodersCallEveryValidation
+
     /// What an encode template writes to ret / result and whether it can fail (coverage step 12b, EncodeTemplate).
     /// Unknown everywhere by default: the parts keep their checks (Scala, Python, Rust output unchanged).
     abstract member encodeTemplateOutcome : EncodeTemplate -> EncodeOutcome

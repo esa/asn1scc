@@ -1746,9 +1746,9 @@ let private emitSpecializedFunctionDecl
         | Decode -> DecodeOutcome.valInOut vw soValInitFuncName && not bVarNameIsUnreferenced
         | Encode -> false
 
-    // coverage step 12a / 12b: as AcnFunctionWrapper.createAcnFunction
+    // coverage step 12a / 12b, cycle 15j: as AcnFunctionWrapper.createAcnFunction
     let bodyOutcome = encodeOutcomeOf ctx.codec finalBody.encOutcome
-    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation ctx.lm ctx.codec ctx.emittedValidatorOutcomes ctx.isValidFunc ctx.t bodyOutcome
+    let bValidityCannotFail = DAstUtilFunctions.codecSkipsValidation ctx.lm ctx.codec ctx.emittedValidatorOutcomes ctx.isValidFunc ctx.t bodyOutcome
     let bValidityCalled = isValidFuncName.IsSome && not bValidityCannotFail
     // coverage step 10b: same result initialisation as AcnFunctionWrapper.createAcnFunction (DecodeOutcome.fs)
     let specBodyContent =

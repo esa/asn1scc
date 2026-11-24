@@ -326,8 +326,9 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                     match content with
                     | Some c -> encodeOutcomeOf codec c.encOutcome
                     | None   -> encodeOutcomeOf codec EncodeOutcome.noWrite
-                // coverage step 12a: an encoder does not call a validity function that cannot fail
-                let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation lm codec ns.emittedValidatorOutcomes isValidFunc t bodyOutcome
+                // coverage step 12a: an encoder does not call a validity function that cannot fail; cycle 15j: nor
+                // does the decoder end with one (C)
+                let bValidityCannotFail = DAstUtilFunctions.codecSkipsValidation lm codec ns.emittedValidatorOutcomes isValidFunc t bodyOutcome
                 let bValidityCalled = isValidFuncName.IsSome && not bValidityCannotFail
                 // coverage step 12b: an encoder that cannot fail states result.Success in its contract (Ada)
                 let soSparkAnnotations =
