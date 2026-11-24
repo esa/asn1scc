@@ -763,13 +763,13 @@ end if;
 
 /* Coverage step 14a: T_Equal with two different values (AutomaticTestCase.variants): the test value with one node
    changed must compare unequal, both ways. */
-emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks, bReflexiveChecks) ::= <<
-procedure <sFuncName> ( totalErrors : in out Integer)
+emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks, bReflexiveChecks, bGuarded) ::= <<
+procedure <sFuncName> ( totalErrors : in out Integer<if(bGuarded)>; totalSkips : in out Integer<endif>)
 is
     procedure Put_Line (Item : String) renames Ada.Text_IO.Put_Line;
     ok       : adaasn1rtl.Asn1Boolean := True;   --  references adaasn1rtl (a file may hold only these tests)
     <arrsVars; separator="\n">
-	pragma Warnings (Off, "there are no others");
+<if(bGuarded)>    tc_differs : Boolean;<\n><endif>	pragma Warnings (Off, "there are no others");
     tc_data  : <sModName>.<sTasName>;
     tc_data2 : <sModName>.<sTasName>;
 	pragma Warnings (On, "there are no others");
@@ -811,6 +811,113 @@ if <sModName>.<sEqualFunc> (tc_data, tc_data2) or else <sModName>.<sEqualFunc> (
     ok := False;
     Put_Line ("  equal for: <sWhat>");
 end if;
+>>
+
+/* Coverage cycle 15h (VR, George: Q4 = A): a variant that may write the same value at its node (another automatic
+   value of an inner node lifted to the parent: two notations of one value). sDiff (atcDiff* macros) compares the node's
+   active contents in the value and in the changed copy, exactly and without the Equal functions under test: when they
+   differ, T_Equal must return False both ways; else the check is skipped (atcSkipped). */
+equalityVariantCheckGuarded(sFuncName, sModName, sAmber, sApplyVariant, sWhat, sEqualFunc, sDiff) ::= <<
+--  <sWhat> (checked when the change wrote another value at the node)
+tc_data2 := tc_data;
+<sApplyVariant>
+tc_differs := False;
+<sDiff>
+if tc_differs then
+    if <sModName>.<sEqualFunc> (tc_data, tc_data2) or else <sModName>.<sEqualFunc> (tc_data2, tc_data) then
+        ok := False;
+        Put_Line ("  equal for: <sWhat>");
+    end if;
+else
+    <atcSkipped(sFuncName=sFuncName, sReason="the change wrote the same value at the node", sWhat=sWhat)>
+end if;
+>>
+
+/* Coverage cycle 15h: the exact comparison of a node's active contents (equalityVariantCheckGuarded): each macro sets
+   tc_differs where the value (sV1 / sP1) and its changed copy (sV2 / sP2) differ. */
+atcDiffScalar(sV1, sV2) ::= <<
+if <sV1> /= <sV2> then
+    tc_differs := True;
+end if;
+>>
+
+atcDiffString(sV1, sV2) ::= <<
+<atcDiffScalar(sV1=sV1, sV2=sV2)>
+>>
+
+atcDiffOctets(sP1, sP2, bFixed, nSize) ::= <<
+<if(bFixed)>
+if <sP1>Data (1 .. <nSize>) /= <sP2>Data (1 .. <nSize>) then
+    tc_differs := True;
+end if;
+<else>
+if <sP1>Length /= <sP2>Length or else <sP1>Data (1 .. <sP1>Length) /= <sP2>Data (1 .. <sP2>Length) then
+    tc_differs := True;
+end if;
+<endif>
+>>
+
+/* bit by bit: GNAT 13 compares two slices of a bit-packed array wrongly in the generated test files (09-CHOICE/015:
+   Data (1 .. 1) /= Data (1 .. 1) was False for the bits 0 and 1, while the elements and the whole arrays compared
+   right) */
+atcDiffBits(sP1, sP2, bFixed, nSize, sIdx) ::= <<
+<if(bFixed)>
+for <sIdx> in 1 .. <nSize> loop
+    if <sP1>Data (<sIdx>) /= <sP2>Data (<sIdx>) then
+        tc_differs := True;
+    end if;
+end loop;
+<else>
+if <sP1>Length /= <sP2>Length then
+    tc_differs := True;
+else
+    for <sIdx> in 1 .. <sP1>Length loop
+        if <sP1>Data (<sIdx>) /= <sP2>Data (<sIdx>) then
+            tc_differs := True;
+        end if;
+    end loop;
+end if;
+<endif>
+>>
+
+atcDiffOptional(sP1, sP2, sAcc, sChName, soInner) ::= <<
+if <sP1>.Exist.<sChName> /= <sP2>.Exist.<sChName> then
+    tc_differs := True;
+<if(soInner)>
+elsif <sP1>.Exist.<sChName> = 1 then
+    <soInner>
+<endif>
+end if;
+>>
+
+atcDiffChoice(sP1, sP2, sAcc, arrsAlternatives) ::= <<
+if <sP1>.kind /= <sP2>.kind then
+    tc_differs := True;
+<arrsAlternatives; separator="\n">
+end if;
+>>
+
+atcDiffChoiceAlternative(sP1, sAcc, sPresent, sInner) ::= <<
+elsif <sP1>.kind = <sPresent> then
+    <sInner>
+>>
+
+atcDiffSeqOf(sP1, sP2, sAcc, bFixed, nSize, sIdx, soInner) ::= <<
+<if(bFixed)>
+for <sIdx> in 1 .. <nSize> loop
+    <soInner>
+end loop;
+<else>
+if <sP1>.Length /= <sP2>.Length then
+    tc_differs := True;
+<if(soInner)>
+else
+    for <sIdx> in 1 .. <sP1>.Length loop
+        <soInner>
+    end loop;
+<endif>
+end if;
+<endif>
 >>
 
 /* Coverage cycle 15c (P4): after equalityVariantCheck, the changed value (tc_data2) compared with itself must be equal:

@@ -99,8 +99,26 @@ type ITestCases_rust() =
             test_cases_rust.emitValidityTestCase  sFuncName arrsVars sModName sTasName sAmber bStatic sIsValidFunc arrsValueChecks 
         override this.validityCheck  (sModName:string) (sAmber:string) (sInitializeTcData:string) (sWhat:string) (sIsValidFunc:string) =
             test_cases_rust.validityCheck  sModName sAmber sInitializeTcData sWhat sIsValidFunc 
-        override this.emitEqualityVariantTestCase  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sEqualFunc:string) (arrsVariantChecks:seq<string>) (bReflexiveChecks:bool) =
-            test_cases_rust.emitEqualityVariantTestCase  sFuncName arrsVars sModName sTasName sAmber sInitializeTcData bStatic sEqualFunc arrsVariantChecks bReflexiveChecks 
+        override this.emitEqualityVariantTestCase  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sEqualFunc:string) (arrsVariantChecks:seq<string>) (bReflexiveChecks:bool) (bGuarded:bool) =
+            test_cases_rust.emitEqualityVariantTestCase  sFuncName arrsVars sModName sTasName sAmber sInitializeTcData bStatic sEqualFunc arrsVariantChecks bReflexiveChecks bGuarded 
+        override this.equalityVariantCheckGuarded  (sFuncName:string) (sModName:string) (sAmber:string) (sApplyVariant:string) (sWhat:string) (sEqualFunc:string) (sDiff:string) =
+            test_cases_rust.equalityVariantCheckGuarded  sFuncName sModName sAmber sApplyVariant sWhat sEqualFunc sDiff 
+        override this.atcDiffScalar  (sV1:string) (sV2:string) =
+            test_cases_rust.atcDiffScalar  sV1 sV2 
+        override this.atcDiffString  (sV1:string) (sV2:string) =
+            test_cases_rust.atcDiffString  sV1 sV2 
+        override this.atcDiffOctets  (sP1:string) (sP2:string) (bFixed:bool) (nSize:BigInteger) =
+            test_cases_rust.atcDiffOctets  sP1 sP2 bFixed nSize 
+        override this.atcDiffBits  (sP1:string) (sP2:string) (bFixed:bool) (nSize:BigInteger) (sIdx:string) =
+            test_cases_rust.atcDiffBits  sP1 sP2 bFixed nSize sIdx 
+        override this.atcDiffOptional  (sP1:string) (sP2:string) (sAcc:string) (sChName:string) (soInner:string option) =
+            test_cases_rust.atcDiffOptional  sP1 sP2 sAcc sChName soInner 
+        override this.atcDiffChoice  (sP1:string) (sP2:string) (sAcc:string) (arrsAlternatives:seq<string>) =
+            test_cases_rust.atcDiffChoice  sP1 sP2 sAcc arrsAlternatives 
+        override this.atcDiffChoiceAlternative  (sP1:string) (sAcc:string) (sPresent:string) (sInner:string) =
+            test_cases_rust.atcDiffChoiceAlternative  sP1 sAcc sPresent sInner 
+        override this.atcDiffSeqOf  (sP1:string) (sP2:string) (sAcc:string) (bFixed:bool) (nSize:BigInteger) (sIdx:string) (soInner:string option) =
+            test_cases_rust.atcDiffSeqOf  sP1 sP2 sAcc bFixed nSize sIdx soInner 
         override this.equalityVariantCheck  (sModName:string) (sAmber:string) (sApplyVariant:string) (sWhat:string) (sEqualFunc:string) =
             test_cases_rust.equalityVariantCheck  sModName sAmber sApplyVariant sWhat sEqualFunc 
         override this.equalityReflexiveCheck  (sModName:string) (sAmber:string) (sWhat:string) (sEqualFunc:string) =

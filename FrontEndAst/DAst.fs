@@ -586,6 +586,9 @@ and AtcVariant = {
     replaces    : (ReferenceToType * Map<ReferenceToType, TestCaseValue>) option
     usedBy      : AtcVariantUse                         // which automatic tests may take the variant
     change      : AtcVariantChange                      // what the variant changes
+    // coverage cycle 15h: the scope of the changed node from the value's scope (the scope applyFnc takes), so a test
+    // can compare the node's active contents in the value and in its changed copy
+    nodeScope   : CodegenScope -> CodegenScope
 }
 
 /// Coverage cycle 15c (round 7, George: option A): the variants that are new in the Equal tests since 15c are taken

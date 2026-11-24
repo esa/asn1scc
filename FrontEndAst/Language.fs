@@ -789,6 +789,11 @@ type ILangGeneric () =
     abstract member atcEmitsEqualityVariantTests : bool
     default _.atcEmitsEqualityVariantTests = false
 
+    /// Coverage cycle 15h: the guarded Equal checks can compare the bits of a BIT STRING node (macro atcDiffBits); Ada
+    /// not with -adaBitStringAlignment (the elements are then octets that hold the bits).
+    abstract member atcBitStringDiffSupported : bool
+    default _.atcBitStringDiffSupported = true
+
     /// Automatic tests for a type assignment that has no test of its own (coverage step 14j task 0,
     /// DastTestCaseCreation validityTestCases): IsConstraintValid must accept every automatic test value. C and Ada.
     abstract member atcEmitsValidityTests : bool

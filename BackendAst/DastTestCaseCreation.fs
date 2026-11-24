@@ -1085,7 +1085,7 @@ let private startVariants (t:Asn1Type) (atcs:AutomaticTestCase array) (i:int) (a
         match atcs.Length >= 2 with
         | true  ->
             let other = atcs.[(i + 1) % atcs.Length]
-            [{AtcVariant.nodeId = t.id; what = ": another test value"; applyFnc = other.initTestCaseFunc; replaces = Some (t.id, other.testCaseTypeIDsMap); usedBy = EqualityAndInconsistency; change = ValueChange}]
+            [{AtcVariant.nodeId = t.id; what = ": another test value"; applyFnc = other.initTestCaseFunc; replaces = Some (t.id, other.testCaseTypeIDsMap); usedBy = EqualityAndInconsistency; change = ValueChange; nodeScope = id}]
         | false -> []
     whole @ atc.variants
 
@@ -1123,7 +1123,101 @@ let rec private completeTestValues (lm:LanguageMacros) (t:Asn1Type) : bool =
     | Integer _ | Real _ | IA5String _ | OctetString _ | NullType _ | BitString _ | Boolean _ | Enumerated _
     | ObjectIdentifier _ | TimeType _ -> true
 
-let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) =
+/// Coverage cycle 15h (VR): what an exact comparison of a node's active contents takes.
+type private NodeDiff =
+    | DiffUnsupported           // a REAL (Equal has a tolerance), an OBJECT IDENTIFIER, a TIME: no comparison
+    | DiffNoContent             // nothing to compare (NULL, an empty SEQUENCE)
+    | DiffStatements of string  // statements that set tc_differs when the two values differ there
+
+/// Coverage cycle 15h (VR, George: Q4 = A): statements that set tc_differs when the active contents of a node differ
+/// between the value (p1) and its changed copy (p2): every compared part only where the value holds it (an OPTIONAL
+/// child when present, the selected alternative, the first nCount / Length elements, octets, bits and characters), and
+/// exactly (no tolerance). Written with macros of their own (atcDiff*), not with the Equal functions under test; the
+/// layout choices (fixed or variable size) are the Equal functions'. A REAL, OBJECT IDENTIFIER or TIME anywhere in the
+/// node: no comparison (the variant is not taken).
+let rec private activeDiff (lm:LanguageMacros) (level:int) (t:Asn1Type) (p1:AccessPath) (p2:AccessPath) : NodeDiff =
+    let joined (p:AccessPath) = p.joined lm.lg
+    let withAcc (p:AccessPath) = (p.joined lm.lg) + (lm.lg.getAccess p)
+    let scalar () = DiffStatements (lm.atc.atcDiffScalar (lm.lg.getValue p1) (lm.lg.getValue p2))
+    match t.Kind with
+    | Integer _ | Boolean _ | Enumerated _ -> scalar ()
+    | NullType _                           -> DiffNoContent
+    | Real _ | ObjectIdentifier _ | TimeType _ -> DiffUnsupported
+    | IA5String _                          -> DiffStatements (lm.atc.atcDiffString (joined p1) (joined p2))
+    | OctetString o ->
+        DiffStatements (lm.atc.atcDiffOctets (withAcc p1) (withAcc p2) (o.baseInfo.minSize.uper = o.baseInfo.maxSize.uper) o.baseInfo.maxSize.uper)
+    | BitString o ->
+        match lm.lg.atcBitStringDiffSupported with
+        | false -> DiffUnsupported
+        | true  -> DiffStatements (lm.atc.atcDiffBits (withAcc p1) (withAcc p2) (o.baseInfo.minSize.uper = o.baseInfo.maxSize.uper) o.baseInfo.maxSize.uper (sprintf "tc_b%d" level))
+    | ReferenceType rf -> activeDiff lm level rf.resolvedType p1 p2
+    | SequenceOf o ->
+        let sIdx = sprintf "tc_i%d" level
+        let bFixed = o.baseInfo.minSize.uper = o.baseInfo.maxSize.uper
+        let elem (p:AccessPath) = lm.lg.getArrayItem p sIdx o.childType.isIA5String
+        let seqOf soInner = DiffStatements (lm.atc.atcDiffSeqOf (joined p1) (joined p2) (lm.lg.getAccess p1) bFixed o.baseInfo.maxSize.uper sIdx soInner)
+        match activeDiff lm (level + 1) o.childType (elem p1) (elem p2), bFixed with
+        | DiffUnsupported, _        -> DiffUnsupported
+        | DiffNoContent, true       -> DiffNoContent
+        | DiffNoContent, false      -> seqOf None
+        | DiffStatements s, _       -> seqOf (Some s)
+    | Sequence sq ->
+        let parts =
+            sq.children |>
+            List.choose (fun c ->
+                match c with
+                | AcnChild _   -> None
+                | Asn1Child ch ->
+                    let sName = lm.lg.getAsn1ChildBackendName ch
+                    let chp (p:AccessPath) = lm.lg.getSeqChild p sName ch.Type.isIA5String ch.Optionality.IsSome
+                    let inner = activeDiff lm level ch.Type (chp p1) (chp p2)
+                    match ch.Optionality, inner with
+                    | _, DiffUnsupported                    -> Some DiffUnsupported
+                    | None, DiffNoContent                   -> None
+                    | None, DiffStatements s                -> Some (DiffStatements s)
+                    | Some _, DiffNoContent                 -> Some (DiffStatements (lm.atc.atcDiffOptional (joined p1) (joined p2) (lm.lg.getAccess p1) sName None))
+                    | Some _, DiffStatements s              -> Some (DiffStatements (lm.atc.atcDiffOptional (joined p1) (joined p2) (lm.lg.getAccess p1) sName (Some s))))
+        match parts |> List.exists (fun d -> d = DiffUnsupported), parts |> List.choose (fun d -> match d with DiffStatements s -> Some s | DiffUnsupported | DiffNoContent -> None) with
+        | true, _  -> DiffUnsupported
+        | false, [] -> DiffNoContent
+        | false, ss -> DiffStatements (ss |> String.concat "\n")
+    | Choice ch ->
+        // the alternatives the automatic test values can select (DAstInitialize, CHOICE test cases)
+        let alternatives =
+            ch.children |>
+            List.filter (fun c -> c.Optionality.IsNone || c.Optionality = (Some Asn1AcnAst.Asn1ChoiceOptionality.ChoiceAlwaysPresent) || (lm.lg.decodingKind = Copy && c.Optionality <> Some Asn1AcnAst.Asn1ChoiceOptionality.ChoiceAlwaysAbsent))
+        let arms =
+            alternatives |>
+            List.map (fun c ->
+                let sName = lm.lg.getAsn1ChChildBackendName c
+                let alt (p:AccessPath) = lm.lg.getChChild p sName c.chType.isIA5String
+                let sPresent = lm.lg.qualifyNameWithModule (ToC c.chType.moduleName) (ToC "MainProgram") (lm.lg.presentWhenName (Some t.typeDefinitionOrReference) c)
+                match activeDiff lm level c.chType (alt p1) (alt p2) with
+                | DiffUnsupported   -> Some DiffUnsupported
+                | DiffNoContent     -> None
+                | DiffStatements s  -> Some (DiffStatements (lm.atc.atcDiffChoiceAlternative (joined p1) (lm.lg.getAccess p1) sPresent s)))
+            |> List.choose id
+        match arms |> List.exists (fun d -> d = DiffUnsupported) with
+        | true  -> DiffUnsupported
+        | false ->
+            let sArms = arms |> List.choose (fun d -> match d with DiffStatements s -> Some s | DiffUnsupported | DiffNoContent -> None)
+            DiffStatements (lm.atc.atcDiffChoice (joined p1) (joined p2) (lm.lg.getAccess p1) sArms)
+
+/// Coverage cycle 15h: the node with this id anywhere in the type's tree, through references (a lifted variant's node
+/// id is the referenced type's).
+let rec private findAnyNode (id:ReferenceToType) (t:Asn1Type) : Asn1Type option =
+    match t.id = id with
+    | true  -> Some t
+    | false ->
+        match t.Kind with
+        | Sequence sq -> sq.children |> List.tryPick (fun c -> match c with Asn1Child ch -> findAnyNode id ch.Type | AcnChild _ -> None)
+        | Choice ch -> ch.children |> List.tryPick (fun c -> findAnyNode id c.chType)
+        | SequenceOf o -> findAnyNode id o.childType
+        | ReferenceType rf -> findAnyNode id rf.resolvedType
+        | Integer _ | Real _ | IA5String _ | OctetString _ | NullType _ | BitString _ | Boolean _ | Enumerated _
+        | ObjectIdentifier _ | TimeType _ -> None
+
+let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) : AtcTestFunctor list =
     match lm.lg.atcEmitsEqualityVariantTests, t.equalFunction.isEqualFuncName with
     | true, Some sEqualFunc ->
         let atcs = t.initFunction.automaticTestCases |> List.toArray
@@ -1131,13 +1225,32 @@ let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) =
         // compares it exactly; another value may compare equal, AtcVariantChange) and only on a start value that sets
         // every component (T_Equal reads every flag)
         let complete = lazy (completeTestValues lm t)
+        let p  = {CodegenScope.modName = ToC "MainProgram"; accessPath = AccessPath.valueEmptyPath "tc_data"}
+        let p2 = {CodegenScope.modName = ToC "MainProgram"; accessPath = AccessPath.valueEmptyPath "tc_data2"}
+        // coverage cycle 15h (VR, George: Q4 = A): a lifted "another value" (the variants new in the Equal tests that
+        // change a value, not a presence flag) is taken on a complete start value, as a guarded check: the test compares
+        // the node's active contents in the value and in the changed copy (activeDiff), asserts T_Equal FALSE both ways
+        // when they differ, and skips the check (printed, counted) when the change wrote the same value (two notations
+        // of one value). No comparison (REAL, OBJECT IDENTIFIER, TIME in the node): not taken, as before
+        let guardedDiff (v:AtcVariant) : string option =
+            match v.usedBy, v.change with
+            | (InconsistencyAndEquality | EqualityOnly | EqualityOnlyAndReflexive), ValueChange when complete.Force () ->
+                findAnyNode v.nodeId t |>
+                Option.bind (fun node ->
+                    match activeDiff lm 1 node (v.nodeScope p).accessPath (v.nodeScope p2).accessPath with
+                    | DiffStatements s -> Some s
+                    | DiffNoContent    -> Some ""
+                    | DiffUnsupported  -> None)
+            | (InconsistencyAndEquality | EqualityOnly | EqualityOnlyAndReflexive), ValueChange
+            | _, PresenceFlip
+            | EqualityAndInconsistency, ValueChange -> None
         let variantsOf i atc =
             startVariants t atcs i atc |>
             List.filter (fun v ->
                 match v.usedBy, v.change with
                 | EqualityAndInconsistency, (PresenceFlip | ValueChange)                                 -> true
                 | (InconsistencyAndEquality | EqualityOnly | EqualityOnlyAndReflexive), PresenceFlip -> complete.Force ()
-                | (InconsistencyAndEquality | EqualityOnly | EqualityOnlyAndReflexive), ValueChange  -> false)
+                | (InconsistencyAndEquality | EqualityOnly | EqualityOnlyAndReflexive), ValueChange  -> (guardedDiff v).IsSome)
         let _, starts =
             atcs |> Array.toList |> List.indexed |>
             List.fold (fun (seen:Set<string>, acc) (i, atc) ->
@@ -1149,14 +1262,14 @@ let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) =
         let encAmper, _ = gAmber lm t
         let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
         let sTypeName = t.id.tasInfo |> Option.map (fun ti -> ti.tasName) |> Option.defaultValue td.typeName
-        let p  = {CodegenScope.modName = ToC "MainProgram"; accessPath = AccessPath.valueEmptyPath "tc_data"}
-        let p2 = {CodegenScope.modName = ToC "MainProgram"; accessPath = AccessPath.valueEmptyPath "tc_data2"}
+        let bGuarded = starts |> List.exists (fun (_, variants) -> variants |> List.exists (fun v -> (guardedDiff v).IsSome))
         // one test per type assignment: the start values one after the other in the same tc_data / tc_data2 (a test
         // per start value gave PUS-C S12 > 2 GB of static test data in C)
         match starts with
         | [] -> []
         | _  ->
-            [fun idx ->
+            [{AtcTestFunctor.guarded = bGuarded
+              functor = fun idx ->
                 let sFuncName = sprintf "test_case_unequal_%06d" idx
                 let parts =
                     starts |>
@@ -1167,7 +1280,10 @@ let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) =
                             applied |>
                             List.collect (fun (v, a) ->
                                 let sWhat = variantText t sTypeName v
-                                let check = lm.atc.equalityVariantCheck td.programUnit encAmper a.funcBody sWhat sEqualFunc
+                                let check =
+                                    match guardedDiff v with
+                                    | Some sDiff -> lm.atc.equalityVariantCheckGuarded sFuncName td.programUnit encAmper a.funcBody sWhat sEqualFunc sDiff
+                                    | None       -> lm.atc.equalityVariantCheck td.programUnit encAmper a.funcBody sWhat sEqualFunc
                                 // coverage cycle 15c (P4): T_Equal(v2, v2) with the changed value, right after its check
                                 match v.usedBy with
                                 | EqualityOnlyAndReflexive -> [check; lm.atc.equalityReflexiveCheck td.programUnit encAmper sWhat sEqualFunc]
@@ -1188,8 +1304,8 @@ let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) =
                             | EqualityAndInconsistency
                             | InconsistencyAndEquality
                             | EqualityOnly             -> false))
-                let func_body = lm.atc.emitEqualityVariantTestCase sFuncName arrsVars td.programUnit td.typeName encAmper "" bStatic sEqualFunc blocks bReflexiveChecks
-                (emitTestCaseAsFunc_h lm sFuncName, func_body, invokeTestCaseAsFunc lm sFuncName)]
+                let func_body = lm.atc.emitEqualityVariantTestCase sFuncName arrsVars td.programUnit td.typeName encAmper "" bStatic sEqualFunc blocks bReflexiveChecks bGuarded
+                testFunctionParts lm bGuarded sFuncName func_body}]
     | true, None
     | false, _ -> []
 
@@ -1394,7 +1510,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                 | true  -> yield! constraintViolationTestCases r lm t.Type encoders t.Type.equalFunction.isEqualFuncName OwnSelectorInInvalidValueTests
                 | false -> () ]
     // Equal tests with two different values (coverage step 14a) come after them.
-    let equalityFunctors =
+    let equalityFunctors : AtcTestFunctor list =
         [ for m in r.Files |> List.collect(fun f -> f.Modules) do
             for t in m.TypeAssignments do
                 let tested (e:Asn1Encoding) =
@@ -1421,7 +1537,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
     // Type assignments without a test of their own (coverage step 14j task 0): no encoding is tested (e.g. ACN
     // parameters with -ACN only), so no test calls their validator or Equal. Their validity test, constraint violations
     // (no encoder to check) and Equal variants come after all other tests, so the names of the existing ones do not change.
-    let untestedFunctors =
+    let untestedFunctors : AtcTestFunctor list =
         [ for m in r.Files |> List.collect(fun f -> f.Modules) do
             for t in m.TypeAssignments do
                 let typeAssignmentInfo = t.Type.id.tasInfo.Value
@@ -1432,17 +1548,17 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                 | false ->
                     match emitted IsValidFunctionType with
                     | true  ->
-                        yield! validityTestCases lm t.Type
+                        yield! plainTests (validityTestCases lm t.Type)
                         let soEqualFunc =
                             match r.args.GenerateEqualFunctions && emitted EqualFunctionType with
                             | true  -> t.Type.equalFunction.isEqualFuncName
                             | false -> None
-                        yield! constraintViolationTestCases r lm t.Type [] soEqualFunc OwnSelectorInViolationTests
+                        yield! plainTests (constraintViolationTestCases r lm t.Type [] soEqualFunc OwnSelectorInViolationTests)
                     | false -> ()
                     match r.args.GenerateEqualFunctions && emitted EqualFunctionType with
                     | true  -> yield! equalityVariantTestCases lm t.Type
                     | false -> () ]
-    let allTests = plainTests (validFunctors @ List.ofSeq invalidValueFunctors @ List.ofSeq invalidStreamFunctors @ constraintFunctors @ equalityFunctors) @ inconsistentFunctors @ plainTests untestedFunctors
+    let allTests = plainTests (validFunctors @ List.ofSeq invalidValueFunctors @ List.ofSeq invalidStreamFunctors @ constraintFunctors) @ equalityFunctors @ inconsistentFunctors @ untestedFunctors
     let tcFunctors = allTests |> List.map (fun x -> x.functor)
     let bSkips = allTests |> List.exists (fun x -> x.guarded)
     let invalidStreamFunctorCount = invalidStreamFunctors.Count

@@ -565,6 +565,7 @@ type LangGeneric_a() =
             | EncDeterminantMulti                                                   -> {canFail = true; writes = ReadsFirst; callee = None}
         override _.atcEmitsConstraintViolationTests = true
         override _.atcEmitsEqualityVariantTests = true
+        override _.atcBitStringDiffSupported = not CommonTypes.bitStringAlignment
         override _.atcEmitsValidityTests = true
         // Coverage step 14i: the toggles of 14a where the Ada type holds the changed value. The content of a fixed-size
         // OCTET / BIT STRING (Asn1Byte, BIT: modular, `not` gives another element) and of an IA5String (Character) can

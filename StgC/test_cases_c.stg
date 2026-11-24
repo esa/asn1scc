@@ -1169,13 +1169,13 @@ if (!<sIsValidFunc>(<sAmber>tc_data, &errCode) || errCode != 0) {
 
 /* Coverage step 14a: T_Equal with two different values (AutomaticTestCase.variants): the test value with one node
    changed must compare unequal, both ways. */
-emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks, bReflexiveChecks) ::= <<
-void <sFuncName>(const TestOutput* output, int *totalErrors)
+emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks, bReflexiveChecks, bGuarded) ::= <<
+void <sFuncName>(const TestOutput* output, int *totalErrors<if(bGuarded)>, int *totalSkips<endif>)
 {
     const char* equalFor = NULL;
     <arrsVars; separator="\n">
 
-    output->report_case_begin("<sFuncName>");
+<if(bGuarded)>    flag tc_differs = FALSE;<\n><endif>    output->report_case_begin("<sFuncName>");
     <if(bStatic)>
     <testDataOnHeap(sTasName=sTasName, sVar="tc_data", sFuncName=sFuncName)>
     <else>
@@ -1214,6 +1214,103 @@ memcpy(&tc_data2, &tc_data, sizeof(tc_data));
 if (<sEqualFunc>(<sAmber>tc_data, <sAmber>tc_data2) || <sEqualFunc>(<sAmber>tc_data2, <sAmber>tc_data)) {
     equalFor = "<sWhat>";
 }
+>>
+
+/* Coverage cycle 15h (VR, George: Q4 = A): a variant that may write the same value at its node (another automatic
+   value of an inner node lifted to the parent: two notations of one value). sDiff (atcDiff* macros) compares the node's
+   active contents in the value and in the changed copy, exactly and without the Equal functions under test: when they
+   differ, T_Equal must return FALSE both ways; else the check is skipped (atcSkipped). */
+equalityVariantCheckGuarded(sFuncName, sModName, sAmber, sApplyVariant, sWhat, sEqualFunc, sDiff) ::= <<
+/* <sWhat> (checked when the change wrote another value at the node) */
+memcpy(&tc_data2, &tc_data, sizeof(tc_data));
+<sApplyVariant>
+tc_differs = FALSE;
+<sDiff>
+if (tc_differs) {
+    if (<sEqualFunc>(<sAmber>tc_data, <sAmber>tc_data2) || <sEqualFunc>(<sAmber>tc_data2, <sAmber>tc_data)) {
+        equalFor = "<sWhat>";
+    }
+} else {
+    <atcSkipped(sFuncName=sFuncName, sReason="the change wrote the same value at the node", sWhat=sWhat)>
+}
+>>
+
+/* Coverage cycle 15h: the exact comparison of a node's active contents (equalityVariantCheckGuarded): each macro sets
+   tc_differs where the value (sV1 / sP1) and its changed copy (sV2 / sP2) differ. */
+atcDiffScalar(sV1, sV2) ::= <<
+if (<sV1> != <sV2>) { tc_differs = TRUE; }
+>>
+
+atcDiffString(sV1, sV2) ::= <<
+if (strcmp(<sV1>, <sV2>) != 0) { tc_differs = TRUE; }
+>>
+
+atcDiffOctets(sP1, sP2, bFixed, nSize) ::= <<
+<if(bFixed)>
+if (memcmp(<sP1>arr, <sP2>arr, <nSize>) != 0) { tc_differs = TRUE; }
+<else>
+if (<sP1>nCount != <sP2>nCount || memcmp(<sP1>arr, <sP2>arr, (size_t)<sP1>nCount) != 0) { tc_differs = TRUE; }
+<endif>
+>>
+
+atcDiffBits(sP1, sP2, bFixed, nSize, sIdx) ::= <<
+<if(bFixed)>
+{
+    int <sIdx>;
+    for (<sIdx> = 0; <sIdx> \< <nSize>; <sIdx>++) {
+        if (((<sP1>arr[<sIdx> / 8] \>> (7 - <sIdx> % 8)) & 1) != ((<sP2>arr[<sIdx> / 8] \>> (7 - <sIdx> % 8)) & 1)) { tc_differs = TRUE; }
+    }
+}
+<else>
+if (<sP1>nCount != <sP2>nCount) { tc_differs = TRUE; }
+else {
+    long <sIdx>;
+    for (<sIdx> = 0; <sIdx> \< <sP1>nCount; <sIdx>++) {
+        if (((<sP1>arr[<sIdx> / 8] \>> (7 - <sIdx> % 8)) & 1) != ((<sP2>arr[<sIdx> / 8] \>> (7 - <sIdx> % 8)) & 1)) { tc_differs = TRUE; }
+    }
+}
+<endif>
+>>
+
+atcDiffOptional(sP1, sP2, sAcc, sChName, soInner) ::= <<
+if (<sP1><sAcc>exist.<sChName> != <sP2><sAcc>exist.<sChName>) { tc_differs = TRUE; }
+<if(soInner)>
+else if (<sP1><sAcc>exist.<sChName>) {
+    <soInner>
+}
+<endif>
+>>
+
+atcDiffChoice(sP1, sP2, sAcc, arrsAlternatives) ::= <<
+if (<sP1><sAcc>kind != <sP2><sAcc>kind) { tc_differs = TRUE; }
+<arrsAlternatives; separator="\n">
+>>
+
+atcDiffChoiceAlternative(sP1, sAcc, sPresent, sInner) ::= <<
+else if (<sP1><sAcc>kind == <sPresent>) {
+    <sInner>
+}
+>>
+
+atcDiffSeqOf(sP1, sP2, sAcc, bFixed, nSize, sIdx, soInner) ::= <<
+<if(bFixed)>
+{
+    int <sIdx>;
+    for (<sIdx> = 0; <sIdx> \< <nSize>; <sIdx>++) {
+        <soInner>
+    }
+}
+<else>
+if (<sP1><sAcc>nCount != <sP2><sAcc>nCount) { tc_differs = TRUE; }
+<if(soInner)>
+else {
+    long <sIdx>;
+    for (<sIdx> = 0; <sIdx> \< <sP1><sAcc>nCount; <sIdx>++) {
+        <soInner>
+    }
+}
+<endif>
+<endif>
 >>
 
 /* Coverage cycle 15c (P4): after equalityVariantCheck, the changed value (tc_data2) compared with itself must be equal:

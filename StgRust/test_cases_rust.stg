@@ -374,7 +374,35 @@ emitValidityTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, bStatic, s
 validityCheck(sModName, sAmber, sInitializeTcData, sWhat, sIsValidFunc) ::= <<
 >>
 
-emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks, bReflexiveChecks) ::= <<
+emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks, bReflexiveChecks, bGuarded) ::= <<
+>>
+
+/* Coverage cycle 15h: C and Ada only (guarded Equal checks and the comparison of a node's active contents). */
+equalityVariantCheckGuarded(sFuncName, sModName, sAmber, sApplyVariant, sWhat, sEqualFunc, sDiff) ::= <<
+>>
+
+atcDiffScalar(sV1, sV2) ::= <<
+>>
+
+atcDiffString(sV1, sV2) ::= <<
+>>
+
+atcDiffOctets(sP1, sP2, bFixed, nSize) ::= <<
+>>
+
+atcDiffBits(sP1, sP2, bFixed, nSize, sIdx) ::= <<
+>>
+
+atcDiffOptional(sP1, sP2, sAcc, sChName, soInner) ::= <<
+>>
+
+atcDiffChoice(sP1, sP2, sAcc, arrsAlternatives) ::= <<
+>>
+
+atcDiffChoiceAlternative(sP1, sAcc, sPresent, sInner) ::= <<
+>>
+
+atcDiffSeqOf(sP1, sP2, sAcc, bFixed, nSize, sIdx, soInner) ::= <<
 >>
 
 equalityVariantCheck(sModName, sAmber, sApplyVariant, sWhat, sEqualFunc) ::= <<
