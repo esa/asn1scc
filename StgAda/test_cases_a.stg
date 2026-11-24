@@ -679,6 +679,85 @@ if ok then
 end if;
 >>
 
+/* Coverage cycle 15h (A2): a violation that the 15c P3 relaxation adds (an ALWAYS PRESENT child made absent where it
+   needs no selection, a node inside element 0 of a non-empty SEQUENCE OF), as a guarded test: the start value must be
+   valid (else the check is skipped), the changed value rejected with a nonzero code (an enclosing or a child check may
+   fail first) and every checked encoder must fail with that code; when the validator accepts the changed value,
+   <sEqualFunc> with the start value must hold both ways (the change wrote no live node: skipped), else the test fails. */
+emitGuardedConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, arrsEncodeChecks, sEqualFunc) ::= <<
+procedure <sFuncName> ( totalErrors : in out Integer; totalSkips : in out Integer)
+is
+    procedure Put_Line (Item : String) renames Ada.Text_IO.Put_Line;
+    result        : adaasn1rtl.ASN1_RESULT;
+    ok            : Boolean;
+    validatorCode : Integer;
+    <arrsVars; separator="\n">
+	pragma Warnings (Off, "there are no others");
+    tc_data  : <sModName>.<sTasName>;
+    tc_start : <sModName>.<sTasName>;
+	pragma Warnings (On, "there are no others");
+begin
+	pragma Warnings (Off, "there are no others");
+	pragma Warnings (Off, "condition can only be True if invalid values present");
+	pragma Warnings (Off, "condition can only be False if invalid values present");
+	pragma Warnings (Off, "condition is always False");
+	pragma Warnings (Off, "condition is always True");
+	pragma Warnings (Off, "is always True at this point");
+	pragma Warnings (Off, "is always False at this point");
+    <sInitializeTcData>
+	pragma Warnings (On, "there are no others");
+	pragma Warnings (On, "condition can only be True if invalid values present");
+	pragma Warnings (On, "condition can only be False if invalid values present");
+	pragma Warnings (On, "condition is always False");
+	pragma Warnings (On, "condition is always True");
+	pragma Warnings (On, "is always True at this point");
+	pragma Warnings (On, "is always False at this point");
+    --  the start value must be valid, else the check is skipped
+    result := <sModName>.<sIsValidFunc> (tc_data);
+    ok := result.Success and result.ErrorCode = 0;
+    if not ok then
+        <atcSkipped(sFuncName=sFuncName, sReason="the start value is not valid", sWhat=sWhat)>
+        ok := True;
+    else
+        tc_start := tc_data;
+        --  <sWhat>
+        <sSetInvalidValue>
+        result := <sModName>.<sIsValidFunc> (tc_data);
+        if result.Success then
+            --  accepted: the change must have written no live node, else the test fails
+            ok := <sModName>.<sEqualFunc> (tc_start, tc_data) and then <sModName>.<sEqualFunc> (tc_data, tc_start);
+            if ok then
+                <atcSkipped(sFuncName=sFuncName, sReason="the change wrote no live node", sWhat=sWhat)>
+            end if;
+        else
+            validatorCode := result.ErrorCode;
+            ok := validatorCode /= 0;
+            <arrsEncodeChecks; separator="\n">
+        end if;
+    end if;
+    if ok then
+        Put_Line ("Test case '<sFuncName>' succeeded");
+    else
+        Put_Line ("Test case '<sFuncName>' failed: <sWhat>: not rejected with a nonzero error code (by the validator and every checked encoder alike), and not equal to the starting value.");
+        Put_Line ("========================================");
+        totalErrors := totalErrors + 1;
+    end if;
+end <sFuncName>;
+>>
+
+guardedViolationEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber) ::= <<
+if ok then
+    declare
+        pragma Warnings (Off);
+        bs : <sModName>.<sTasName>_<sEnc>Stream;
+        pragma Warnings (On);
+    begin
+        <sModName>.<sEncFunc> (tc_data, bs, result);
+        ok := not result.Success and result.ErrorCode = validatorCode;
+    end;
+end if;
+>>
+
 /* Coverage step 12d: C only (invalid CHOICE selectors / ENUMERATED values, ILangGeneric.atcEmitsInvalidValueTests). */
 constraintViolationUncheckedEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber) ::= <<
 >>

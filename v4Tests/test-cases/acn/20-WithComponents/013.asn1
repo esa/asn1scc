@@ -1,0 +1,27 @@
+-- C_ADA_ONLY (automatic tests of C and Ada; not run in the experimental Python / Rust legs)
+-- Guarded constraint-violation tests (coverage cycle 15h, A2, test_case_constraint_guarded_*): an ALWAYS PRESENT
+-- child (WITH COMPONENTS ... PRESENT) made absent where master's violation tests need a selection (a referenced type
+-- used at several sites, SEQUENCE OF elements, below an OPTIONAL component or a CHOICE alternative). The start value
+-- must be valid (else the check is skipped), the changed value must be rejected with a nonzero code by the validator
+-- and every checked encoder with the same code. Top: an enclosing WITH COMPONENT check that fails first (another error
+-- code than the child's). Expected: no skip.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+Elem ::= SEQUENCE { x INTEGER(0..10) OPTIONAL, y INTEGER (0..3) }
+TA ::= SEQUENCE (SIZE(1..3)) OF Elem (WITH COMPONENTS {..., x PRESENT})
+Base ::= SEQUENCE { p INTEGER(0..5) OPTIONAL, o BOOLEAN OPTIONAL }
+Inner ::= Base (WITH COMPONENTS {..., o PRESENT})
+OuterB ::= SEQUENCE { i Inner }
+Two ::= SEQUENCE { m Inner, n Inner, k SEQUENCE (SIZE(0..2)) OF Inner }
+E2 ::= SEQUENCE { x INTEGER(0..10) OPTIONAL, y BOOLEAN }
+E2P ::= E2 (WITH COMPONENTS {..., x PRESENT})
+G ::= SEQUENCE { s E2P, z IA5String (SIZE(1..4)) }
+L2 ::= SEQUENCE (SIZE(1..3)) OF SEQUENCE (SIZE(0..2)) OF E2P
+L3 ::= SEQUENCE { a SEQUENCE (SIZE(0..2)) OF E2P OPTIONAL, b CHOICE { p SEQUENCE (SIZE(1..2)) OF E2P, q BOOLEAN } }
+L4 ::= SEQUENCE (SIZE(1..2)) OF L3
+L5 ::= SEQUENCE { g1 G, g2 G, gs SEQUENCE (SIZE(0..2)) OF G }
+L6 ::= SEQUENCE (SIZE(0..2)) OF SEQUENCE { w E2P OPTIONAL, v SEQUENCE (SIZE(0..1)) OF G }
+Shared ::= SEQUENCE { x BOOLEAN OPTIONAL } (WITH COMPONENTS { ..., x PRESENT })
+Top ::= SEQUENCE (SIZE(2) ^ WITH COMPONENT (WITH COMPONENTS { ..., x PRESENT })) OF Shared
+END
+
+--TCLS Elem [] TA [] OuterB [] Two [] G [] L2 [] L4 [] L5 [] L6 [] Top []

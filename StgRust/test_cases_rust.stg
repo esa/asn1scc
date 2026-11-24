@@ -347,6 +347,13 @@ emitConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber,
 constraintViolationEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber, sErrCodeModule, sErrCode) ::= <<
 >>
 
+/* Coverage cycle 15h (A2): C and Ada only. */
+emitGuardedConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, arrsEncodeChecks, sEqualFunc) ::= <<
+>>
+
+guardedViolationEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber) ::= <<
+>>
+
 /* Coverage step 12d: C only (invalid CHOICE selectors / ENUMERATED values, ILangGeneric.atcEmitsInvalidValueTests). */
 constraintViolationUncheckedEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber) ::= <<
 >>

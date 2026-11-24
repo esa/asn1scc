@@ -85,6 +85,10 @@ type ITestCases_rust() =
             test_cases_rust.emitConstraintViolationTestCase  sFuncName arrsVars sModName sTasName sAmber sInitializeTcData bStatic sSetInvalidValue sWhat sIsValidFunc sErrCodeModule sErrCode arrsEncodeChecks soEqualFunc 
         override this.constraintViolationEncodeCheck  (sEncFunc:string) (sModName:string) (sTasName:string) (sEnc:string) (sAmber:string) (sErrCodeModule:string) (sErrCode:string) =
             test_cases_rust.constraintViolationEncodeCheck  sEncFunc sModName sTasName sEnc sAmber sErrCodeModule sErrCode 
+        override this.emitGuardedConstraintViolationTestCase  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sSetInvalidValue:string) (sWhat:string) (sIsValidFunc:string) (arrsEncodeChecks:seq<string>) (sEqualFunc:string) =
+            test_cases_rust.emitGuardedConstraintViolationTestCase  sFuncName arrsVars sModName sTasName sAmber sInitializeTcData bStatic sSetInvalidValue sWhat sIsValidFunc arrsEncodeChecks sEqualFunc 
+        override this.guardedViolationEncodeCheck  (sEncFunc:string) (sModName:string) (sTasName:string) (sEnc:string) (sAmber:string) =
+            test_cases_rust.guardedViolationEncodeCheck  sEncFunc sModName sTasName sEnc sAmber 
         override this.constraintViolationUncheckedEncodeCheck  (sEncFunc:string) (sModName:string) (sTasName:string) (sEnc:string) (sAmber:string) =
             test_cases_rust.constraintViolationUncheckedEncodeCheck  sEncFunc sModName sTasName sEnc sAmber 
         override this.constraintViolationStringChar  (sStr:string) (nIndex:BigInteger) (nChar:BigInteger) =

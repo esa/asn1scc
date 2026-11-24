@@ -1083,6 +1083,81 @@ if (result) {
 }
 >>
 
+/* Coverage cycle 15h (A2): a violation that the 15c P3 relaxation adds (an ALWAYS PRESENT child made absent where it
+   needs no selection, a node inside element 0 of a non-empty SEQUENCE OF), as a guarded test: the start value must be
+   valid (else the check is skipped), the changed value rejected with a nonzero code (an enclosing or a child check may
+   fail first) and every checked encoder must fail with that code; when the validator accepts the changed value,
+   <sEqualFunc> with the start value must hold both ways (the change wrote no live node: skipped), else the test fails. */
+emitGuardedConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, arrsEncodeChecks, sEqualFunc) ::= <<
+void <sFuncName>(const TestOutput* output, int *totalErrors, int *totalSkips)
+{
+    flag result;
+    int errCode = 0;
+    int validatorCode = 0;
+    <arrsVars; separator="\n">
+
+    output->report_case_begin("<sFuncName>");
+    <if(bStatic)>
+    <testDataOnHeap(sTasName=sTasName, sVar="tc_data", sFuncName=sFuncName)>
+    <else>
+    <sTasName> tc_data;
+    <endif>
+    <sInitializeTcData>
+    /* the start value must be valid, else the check is skipped */
+    result = <sIsValidFunc>(<sAmber>tc_data, &errCode) && errCode == 0;
+    if (!result) {
+        <atcSkipped(sFuncName=sFuncName, sReason="the start value is not valid", sWhat=sWhat)>
+        result = TRUE;
+    } else {
+        /* the start value (no macro, and "__" is never in a name generated from an ASN.1 name) */
+        <sTasName>* const tc__start = (<sTasName>*)malloc(sizeof(<sTasName>));
+        result = tc__start != NULL;
+        if (result) {
+            memcpy(tc__start, <sAmber>tc_data, sizeof(<sTasName>));
+            /* <sWhat> */
+            <sSetInvalidValue>
+            errCode = 0;
+            if (<sIsValidFunc>(<sAmber>tc_data, &errCode)) {
+                /* accepted: the change must have written no live node, else the test fails */
+                result = errCode == 0 && <sEqualFunc>(<sAmber>(*tc__start), <sAmber>tc_data) && <sEqualFunc>(<sAmber>tc_data, <sAmber>(*tc__start));
+                if (result) {
+                    <atcSkipped(sFuncName=sFuncName, sReason="the change wrote no live node", sWhat=sWhat)>
+                }
+            } else {
+                validatorCode = errCode;
+                result = validatorCode != 0;
+                <arrsEncodeChecks; separator="\n">
+            }
+            free(tc__start);
+        }
+    }
+    if (result) {
+        output->report_test_case_success("<sTasName>/<sFuncName>", 0);
+    } else {
+        output->report_failure_begin();
+        output->report_failure_message("Test case '<sFuncName>' failed: <sWhat>: not rejected with a nonzero error code (by the validator and every checked encoder alike), and not equal to the starting value.");
+        output->report_failure_message("========================================");
+        *totalErrors = (*totalErrors) + 1;
+        output->report_failure_end();
+    }
+
+    <if(bStatic)>
+    <testDataFree(sVar="tc_data")>
+    <endif>
+    output->report_case_end();
+}
+>>
+
+guardedViolationEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber) ::= <<
+if (result) {
+    static byte encBuff_<sEnc>[<sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING + 1]; /* +1 for zerosized types */
+    BitStream bitStrm;
+    errCode = 0;
+    BitStream_Init(&bitStrm, encBuff_<sEnc>, <sTasName>_REQUIRED_BYTES_FOR_<sEnc>ENCODING);
+    result = !<sEncFunc>(<sAmber>tc_data, &bitStrm, &errCode, TRUE) && errCode == validatorCode;
+}
+>>
+
 /* Coverage step 12d: an invalid CHOICE selector or ENUMERATED value behind a reference or in a SEQUENCE OF element.
    The unchecked encoder must fail too, with any error code: the arm that rejects the value depends on the encoding
    (the parent's inline ENUMERATED map, a determinant switch, the CHOICE's own switch). */
