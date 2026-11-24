@@ -1,0 +1,13 @@
+-- C_ADA_ONLY (automatic tests of C and Ada; not run in the experimental Python / Rust legs)
+-- Step-14d tests of 'size deduced' PDUs (Issue 144): D: two present CHOICEs selected by one determinant k, another
+-- alternative of one of them must be rejected by the encoder. F1: the next value of q1 / q2 is "absent", which the
+-- automatic test map judges as a disagreement of b, but the encoder accepts it: the test must round-trip the value,
+-- decoding from the encoded length (the deduced data takes the rest of the view), and count a skipped check.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+  Kind ::= ENUMERATED { ka(5), kb(9) }
+  Kc ::= CHOICE { ka INTEGER (0..255), kb BOOLEAN }
+  D ::= SEQUENCE { c1 Kc OPTIONAL, c2 Kc OPTIONAL, data OCTET STRING (SIZE(0..10)) }
+  F1 ::= SEQUENCE { q1 SEQUENCE { x INTEGER (0..255) OPTIONAL, y INTEGER (0..255) } OPTIONAL, q2 SEQUENCE { x INTEGER (0..255) OPTIONAL, y INTEGER (0..255) } OPTIONAL, data OCTET STRING (SIZE(0..10)) }
+END
+
+--TCLS Kind [encoding pos-int, size 4, encode-values] Kc <Kind:k> [determinant k] D [] { g1 BOOLEAN [], g2 BOOLEAN [], k Kind [], c1 <k> [present-when g1], c2 <k> [present-when g2], data [size deduced] } F1 [] { g1 BOOLEAN [], g2 BOOLEAN [], b BOOLEAN [true-value '1010'B, false-value '0101'B], q1 [present-when g1] { x [present-when b], y [] }, q2 [present-when g2] { x [present-when b], y [] }, data [size deduced] }

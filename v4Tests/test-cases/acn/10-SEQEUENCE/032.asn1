@@ -1,0 +1,17 @@
+-- C_ADA_ONLY (automatic tests of C and Ada; not run in the experimental Python / Rust legs)
+-- Step-14d tests (test_case_inconsistent_*) whose prediction is checked at run time (Issue 144). F1 / F2: the next
+-- value of q1 / q2 / pl is "absent", which the automatic test map judges as a disagreement of the presence flag b,
+-- but b is then consumed by the other component alone (its x present), so the encoder accepts the value: the test
+-- must take the round-trip fallback (decode, Equal, the same bits again) and count a skipped check, not fail. E1: two
+-- present CHOICEs selected by one determinant k; another alternative of one of them is a real disagreement that the
+-- encoder must reject (no fallback).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+  Kind ::= ENUMERATED { ka(5), kb(9) }
+  Kc ::= CHOICE { ka INTEGER (0..255), kb BOOLEAN }
+  E1 ::= SEQUENCE { c1 Kc OPTIONAL, c2 Kc OPTIONAL, tail INTEGER (0..255) }
+  F1 ::= SEQUENCE { q1 SEQUENCE { x INTEGER (0..255) OPTIONAL, y INTEGER (0..255) } OPTIONAL, q2 SEQUENCE { x INTEGER (0..255) OPTIONAL, y INTEGER (0..255) } OPTIONAL, tail INTEGER (0..255) }
+  PB ::= SEQUENCE { x INTEGER (0..255) OPTIONAL, y INTEGER (0..255) }
+  F2 ::= SEQUENCE { pl PB OPTIONAL, q SEQUENCE { x INTEGER (0..255) OPTIONAL, y INTEGER (0..255) } OPTIONAL, tail INTEGER (0..255) }
+END
+
+--TCLS Kind [encoding pos-int, size 4, encode-values] Kc <Kind:k> [determinant k] E1 [] { g1 BOOLEAN [], g2 BOOLEAN [], k Kind [], c1 <k> [present-when g1], c2 <k> [present-when g2], tail [] } F1 [] { g1 BOOLEAN [], g2 BOOLEAN [], b BOOLEAN [true-value '1010'B, false-value '0101'B], q1 [present-when g1] { x [present-when b], y [] }, q2 [present-when g2] { x [present-when b], y [] }, tail [] } PB <BOOLEAN:pb> [] { x [present-when pb], y [] } F2 [] { g1 BOOLEAN [], g2 BOOLEAN [], b BOOLEAN [true-value '1010'B, false-value '0101'B], pl <b> [present-when g1], q [present-when g2] { x [present-when b], y [] }, tail [] }

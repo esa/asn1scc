@@ -180,7 +180,7 @@ PrintSuite_call_codec_generate_dat_file(sModName, sTasName, sAmber, sEnc, sStrea
 PrintATCRunnerDefinition() ::= <<
 >>
 
-PrintATCRunner(sTestSuiteFilename, arrsIncludedModules, arrsVars, arrsTestFunctions, arrsUsedPackages, arrsInitCalls, bGenerateDatFile) ::= <<
+PrintATCRunner(sTestSuiteFilename, arrsIncludedModules, arrsVars, arrsTestFunctions, arrsUsedPackages, arrsInitCalls, bGenerateDatFile, bSkips) ::= <<
 >>
 
 
@@ -188,6 +188,13 @@ PrintATCRunner(sTestSuiteFilename, arrsIncludedModules, arrsVars, arrsTestFuncti
 invokeTestCaseAsFunc(sFuncName) ::= <<
 >>
 
+
+/* Coverage cycle 15h: C and Ada only (guarded checks of the automatic tests). */
+invokeGuardedTestCaseAsFunc(sFuncName) ::= <<
+>>
+
+emitGuardedTestCaseAsFunc_h(sFuncName) ::= <<
+>>
 
 emitTestCaseAsFunc_h(sFuncName) ::= <<
 >>
@@ -291,5 +298,5 @@ equalityReflexiveCheck(sModName, sAmber, sWhat, sEqualFunc) ::= <<
 >>
 
 /* Coverage step 14d: C and Ada only (ILangGeneric.atcEmitsConstraintViolationTests). */
-emitInconsistentValueTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sChange, sWhat, sEncFunc, sEnc) ::= <<
+emitInconsistentValueTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sChange, sWhat, sEncFunc, sEnc, soDecFunc, sEqualFunc, bDeduced) ::= <<
 >>

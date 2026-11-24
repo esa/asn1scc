@@ -53,10 +53,14 @@ type ITestCases_rust() =
             test_cases_rust.PrintSuite_call_codec_generate_dat_file  sModName sTasName sAmber sEnc sStreamName 
         override this.PrintATCRunnerDefinition  () =
             test_cases_rust.PrintATCRunnerDefinition  () 
-        override this.PrintATCRunner  (sTestSuiteFilename:string) (arrsIncludedModules:seq<string>) (arrsVars:seq<string>) (arrsTestFunctions:seq<string>) (arrsUsedPackages:seq<string>) (arrsInitCalls:seq<string>) (bGenerateDatFile:bool) =
-            test_cases_rust.PrintATCRunner  sTestSuiteFilename arrsIncludedModules arrsVars arrsTestFunctions arrsUsedPackages arrsInitCalls bGenerateDatFile 
+        override this.PrintATCRunner  (sTestSuiteFilename:string) (arrsIncludedModules:seq<string>) (arrsVars:seq<string>) (arrsTestFunctions:seq<string>) (arrsUsedPackages:seq<string>) (arrsInitCalls:seq<string>) (bGenerateDatFile:bool) (bSkips:bool) =
+            test_cases_rust.PrintATCRunner  sTestSuiteFilename arrsIncludedModules arrsVars arrsTestFunctions arrsUsedPackages arrsInitCalls bGenerateDatFile bSkips 
         override this.invokeTestCaseAsFunc  (sFuncName:string) =
             test_cases_rust.invokeTestCaseAsFunc  sFuncName 
+        override this.invokeGuardedTestCaseAsFunc  (sFuncName:string) =
+            test_cases_rust.invokeGuardedTestCaseAsFunc  sFuncName 
+        override this.emitGuardedTestCaseAsFunc_h  (sFuncName:string) =
+            test_cases_rust.emitGuardedTestCaseAsFunc_h  sFuncName 
         override this.emitTestCaseAsFunc_h  (sFuncName:string) =
             test_cases_rust.emitTestCaseAsFunc_h  sFuncName 
         override this.emitTestCaseAsFunc_dummy_init  (sTypeName:string) (sFuncName:string) (sDummyVarname:string) =
@@ -101,5 +105,5 @@ type ITestCases_rust() =
             test_cases_rust.equalityVariantCheck  sModName sAmber sApplyVariant sWhat sEqualFunc 
         override this.equalityReflexiveCheck  (sModName:string) (sAmber:string) (sWhat:string) (sEqualFunc:string) =
             test_cases_rust.equalityReflexiveCheck  sModName sAmber sWhat sEqualFunc 
-        override this.emitInconsistentValueTestCase  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sChange:string) (sWhat:string) (sEncFunc:string) (sEnc:string) =
-            test_cases_rust.emitInconsistentValueTestCase  sFuncName arrsVars sModName sTasName sAmber sInitializeTcData bStatic sChange sWhat sEncFunc sEnc 
+        override this.emitInconsistentValueTestCase  (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sChange:string) (sWhat:string) (sEncFunc:string) (sEnc:string) (soDecFunc:string option) (sEqualFunc:string) (bDeduced:bool) =
+            test_cases_rust.emitInconsistentValueTestCase  sFuncName arrsVars sModName sTasName sAmber sInitializeTcData bStatic sChange sWhat sEncFunc sEnc soDecFunc sEqualFunc bDeduced 

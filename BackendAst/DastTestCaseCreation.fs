@@ -43,6 +43,23 @@ let rec gAmber (lm:LanguageMacros) (t:Asn1Type) =
 let emitTestCaseAsFunc                      (lm:LanguageMacros) = lm.atc.emitTestCaseAsFunc
 let emitTestCaseAsFunc_h                    (lm:LanguageMacros) = lm.atc.emitTestCaseAsFunc_h
 let invokeTestCaseAsFunc                    (lm:LanguageMacros) = lm.atc.invokeTestCaseAsFunc
+
+/// Coverage cycle 15h: an automatic test, and whether it has guarded checks (a check whose precondition is checked at
+/// run time and that is skipped, printed and counted, when it does not hold: macro atcSkipped). A guarded test takes
+/// the runner's skip counter (emitGuardedTestCaseAsFunc_h / invokeGuardedTestCaseAsFunc); the runner declares it and
+/// prints the count as its last line only when the suite holds a guarded test, so every other output is unchanged.
+type AtcTestFunctor = {
+    functor : int -> string * string * string
+    guarded : bool
+}
+
+let private plainTests (fs:(int -> string * string * string) list) = fs |> List.map (fun f -> {AtcTestFunctor.functor = f; guarded = false})
+
+/// The header declaration, body and invocation of a test function (guarded: with the skip counter).
+let private testFunctionParts (lm:LanguageMacros) (guarded:bool) (sFuncName:string) (func_body:string) =
+    match guarded with
+    | true  -> (lm.atc.emitGuardedTestCaseAsFunc_h sFuncName, func_body, lm.atc.invokeGuardedTestCaseAsFunc sFuncName)
+    | false -> (emitTestCaseAsFunc_h lm sFuncName, func_body, invokeTestCaseAsFunc lm sFuncName)
 let emitTestCaseAsFunc_dummy_init           (lm:LanguageMacros) = lm.atc.emitTestCaseAsFunc_dummy_init
 let emitTestCaseAsFunc_dummy_init_function  (lm:LanguageMacros) = lm.atc.emitTestCaseAsFunc_dummy_init_function
 
@@ -1207,9 +1224,21 @@ let validityTestCases (lm:LanguageMacros) (t:Asn1Type) =
 /// (isTestVaseValid: the consumers of an ACN field disagree, e.g. CHOICEs sharing a determinant select different
 /// alternatives, or sizes / presences differ), must be rejected by the ACN encoder with a nonzero error code. One test
 /// per such variant (each description once).
-let inconsistentValueTestCases (lm:LanguageMacros) (t:Asn1Type) (sEncFunc:string) (sEnc:string) =
+/// Coverage cycle 15h (Issue 144, George: Q2 = A): every such test checks its prediction at run time. When the encoder
+/// accepts the value, the value must round-trip (decode, Equal both ways, the same bits when encoded again): then the
+/// fields agreed after all (a decoded value is consistent, and Equal compares every presence flag, size and alternative),
+/// so the test misjudged the value and its check is skipped (printed, counted); any other outcome fails as before. No
+/// test that passes on master can fail. Needs the ACN decoder and Equal (-atc implies -equal); without them, master's
+/// test.
+let inconsistentValueTestCases (lm:LanguageMacros) (t:Asn1Type) (sEncFunc:string) (sEnc:string) : AtcTestFunctor list =
     match lm.lg.atcEmitsConstraintViolationTests, t.acnEncFunction with
     | true, Some acnEnc ->
+        let soDecFunc, sEqualFunc =
+            match t.acnDecFunction |> Option.bind (fun f -> f.funcName), t.equalFunction.isEqualFuncName with
+            | Some sDec, Some sEq -> Some sDec, sEq
+            | Some _, None
+            | None, _             -> None, ""
+        let bDeduced = Asn1AcnAstUtilFunctions.isLiveDeduced t.toAsn1AcnAst
         let atcs = t.initFunction.automaticTestCases |> List.toArray
         let under (node:ReferenceToType) (id:ReferenceToType) =
             let a, b = node.ToScopeNodeList, id.ToScopeNodeList
@@ -1240,15 +1269,16 @@ let inconsistentValueTestCases (lm:LanguageMacros) (t:Asn1Type) (sEncFunc:string
                     | false -> Some (atc, v)))) |>
         List.distinctBy (fun (_, v) -> v.what) |>
         List.map (fun (atc, v) ->
-            fun idx ->
+            {AtcTestFunctor.guarded = soDecFunc.IsSome
+             functor = fun idx ->
                 let sFuncName = sprintf "test_case_inconsistent_%06d" idx
                 let initStatement = atc.initTestCaseFunc p
                 let change = v.applyFnc p
                 let arrsVars =
                     initStatement.localVariables @ change.localVariables |>
                     List.map lm.lg.getLocalVariableDeclaration |> Seq.distinct |> Seq.toList
-                let func_body = lm.atc.emitInconsistentValueTestCase sFuncName arrsVars td.programUnit td.typeName encAmper initStatement.funcBody bStatic change.funcBody (variantText t sTypeName v) sEncFunc sEnc
-                (emitTestCaseAsFunc_h lm sFuncName, func_body, invokeTestCaseAsFunc lm sFuncName))
+                let func_body = lm.atc.emitInconsistentValueTestCase sFuncName arrsVars td.programUnit td.typeName encAmper initStatement.funcBody bStatic change.funcBody (variantText t sTypeName v) sEncFunc sEnc soDecFunc sEqualFunc bDeduced
+                testFunctionParts lm soDecFunc.IsSome sFuncName func_body})
     | true, None
     | false, _ -> []
 
@@ -1412,7 +1442,9 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                     match r.args.GenerateEqualFunctions && emitted EqualFunctionType with
                     | true  -> yield! equalityVariantTestCases lm t.Type
                     | false -> () ]
-    let tcFunctors = validFunctors @ List.ofSeq invalidValueFunctors @ List.ofSeq invalidStreamFunctors @ constraintFunctors @ equalityFunctors @ inconsistentFunctors @ untestedFunctors
+    let allTests = plainTests (validFunctors @ List.ofSeq invalidValueFunctors @ List.ofSeq invalidStreamFunctors @ constraintFunctors @ equalityFunctors) @ inconsistentFunctors @ plainTests untestedFunctors
+    let tcFunctors = allTests |> List.map (fun x -> x.functor)
+    let bSkips = allTests |> List.exists (fun x -> x.guarded)
     let invalidStreamFunctorCount = invalidStreamFunctors.Count
     let maxTestCasesPerFile = 100.0
     let nMaxTestCasesPerFile = int maxTestCasesPerFile
@@ -1476,7 +1508,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
     let contentH = lm.atc.PrintATCRunnerDefinition()
     let hasTestSuiteRunner = not (String.IsNullOrWhiteSpace contentH)
 
-    let contentC = lm.atc.PrintATCRunner TestSuiteFileName atcIncludedPackages [] func_invocations [] [] false
+    let contentC = lm.atc.PrintATCRunner TestSuiteFileName atcIncludedPackages [] func_invocations [] [] false bSkips
     let outCFileName =
         match hasTestSuiteRunner with
         | true  -> Path.Combine(outDir, TestSuiteFileName + "." + lm.lg.BodyExtension)

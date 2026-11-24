@@ -99,13 +99,21 @@ let PrintATCRunnerDefinition () =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "test_cases_rust" "PrintATCRunnerDefinition" []
 
-let PrintATCRunner (sTestSuiteFilename:string) (arrsIncludedModules:seq<string>) (arrsVars:seq<string>) (arrsTestFunctions:seq<string>) (arrsUsedPackages:seq<string>) (arrsInitCalls:seq<string>) (bGenerateDatFile:bool) =
+let PrintATCRunner (sTestSuiteFilename:string) (arrsIncludedModules:seq<string>) (arrsVars:seq<string>) (arrsTestFunctions:seq<string>) (arrsUsedPackages:seq<string>) (arrsInitCalls:seq<string>) (bGenerateDatFile:bool) (bSkips:bool) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "test_cases_rust" "PrintATCRunner" [("sTestSuiteFilename",(if sTestSuiteFilename = null then null else ST.StrHelper sTestSuiteFilename:>Object) );("arrsIncludedModules",(arrsIncludedModules|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("arrsVars",(arrsVars|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("arrsTestFunctions",(arrsTestFunctions|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("arrsUsedPackages",(arrsUsedPackages|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("arrsInitCalls",(arrsInitCalls|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("bGenerateDatFile",bGenerateDatFile :>Object)]
+    ST.call "test_cases_rust" "PrintATCRunner" [("sTestSuiteFilename",(if sTestSuiteFilename = null then null else ST.StrHelper sTestSuiteFilename:>Object) );("arrsIncludedModules",(arrsIncludedModules|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("arrsVars",(arrsVars|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("arrsTestFunctions",(arrsTestFunctions|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("arrsUsedPackages",(arrsUsedPackages|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("arrsInitCalls",(arrsInitCalls|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("bGenerateDatFile",bGenerateDatFile :>Object);("bSkips",bSkips :>Object)]
 
 let invokeTestCaseAsFunc (sFuncName:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "test_cases_rust" "invokeTestCaseAsFunc" [("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) )]
+
+let invokeGuardedTestCaseAsFunc (sFuncName:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "invokeGuardedTestCaseAsFunc" [("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) )]
+
+let emitGuardedTestCaseAsFunc_h (sFuncName:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "emitGuardedTestCaseAsFunc_h" [("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) )]
 
 let emitTestCaseAsFunc_h (sFuncName:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
@@ -195,7 +203,7 @@ let equalityReflexiveCheck (sModName:string) (sAmber:string) (sWhat:string) (sEq
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "test_cases_rust" "equalityReflexiveCheck" [("sModName",(if sModName = null then null else ST.StrHelper sModName:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) );("sWhat",(if sWhat = null then null else ST.StrHelper sWhat:>Object) );("sEqualFunc",(if sEqualFunc = null then null else ST.StrHelper sEqualFunc:>Object) )]
 
-let emitInconsistentValueTestCase (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sChange:string) (sWhat:string) (sEncFunc:string) (sEnc:string) =
+let emitInconsistentValueTestCase (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sChange:string) (sWhat:string) (sEncFunc:string) (sEnc:string) (soDecFunc:string option) (sEqualFunc:string) (bDeduced:bool) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "test_cases_rust" "emitInconsistentValueTestCase" [("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("arrsVars",(arrsVars|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sModName",(if sModName = null then null else ST.StrHelper sModName:>Object) );("sTasName",(if sTasName = null then null else ST.StrHelper sTasName:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) );("sInitializeTcData",(if sInitializeTcData = null then null else ST.StrHelper sInitializeTcData:>Object) );("bStatic",bStatic :>Object);("sChange",(if sChange = null then null else ST.StrHelper sChange:>Object) );("sWhat",(if sWhat = null then null else ST.StrHelper sWhat:>Object) );("sEncFunc",(if sEncFunc = null then null else ST.StrHelper sEncFunc:>Object) );("sEnc",(if sEnc = null then null else ST.StrHelper sEnc:>Object) )]
+    ST.call "test_cases_rust" "emitInconsistentValueTestCase" [("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("arrsVars",(arrsVars|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sModName",(if sModName = null then null else ST.StrHelper sModName:>Object) );("sTasName",(if sTasName = null then null else ST.StrHelper sTasName:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) );("sInitializeTcData",(if sInitializeTcData = null then null else ST.StrHelper sInitializeTcData:>Object) );("bStatic",bStatic :>Object);("sChange",(if sChange = null then null else ST.StrHelper sChange:>Object) );("sWhat",(if sWhat = null then null else ST.StrHelper sWhat:>Object) );("sEncFunc",(if sEncFunc = null then null else ST.StrHelper sEncFunc:>Object) );("sEnc",(if sEnc = null then null else ST.StrHelper sEnc:>Object) );("soDecFunc",(if soDecFunc.IsNone then null else ST.StrHelper soDecFunc.Value:>Object) );("sEqualFunc",(if sEqualFunc = null then null else ST.StrHelper sEqualFunc:>Object) );("bDeduced",bDeduced :>Object)]
 
