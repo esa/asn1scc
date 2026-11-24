@@ -989,7 +989,11 @@ end if;
    Coverage cycle 15h (soDecFunc, Issue 144): when the encoder accepts the value, it must round-trip: decode (from the
    encoded length for a 'size deduced' PDU, bDeduced), <sEqualFunc> with the value, and the decoded value encoded again
    to the same bits; then the fields agreed after all and the check is skipped (atcSkipped). Anything else fails. The
-   test's own state lives in a package named after the file's package (atcSkipCounterDecl): expanded names only. */
+   test's own state lives in a package named after the file's package (atcSkipCounterDecl): expanded names only.
+   Limit (George, Q5 = A+): the round trip cannot tell a value whose fields agree from one that a coordinated encoder +
+   decoder fault writes and reads back alike (e.g. an illegal determinant code for two disagreeing CHOICEs); such a
+   fault shows only as a skip count other than the one the test file states (first-line marker ATC_SKIPS, checked by
+   runTests.py, the regression tool and the PUS-C script). */
 emitInconsistentValueTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sChange, sWhat, sEncFunc, sEnc, soDecFunc, sEqualFunc, bDeduced, sFilePkg) ::= <<
 procedure <sFuncName> ( totalErrors : in out Integer)
 is

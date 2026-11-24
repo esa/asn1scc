@@ -1,4 +1,4 @@
--- C_ADA_ONLY (automatic tests of C and Ada; not run in the experimental Python / Rust legs)
+-- C_ADA_ONLY ATC_SKIPS(c=4,Ada=4) (automatic tests of C and Ada; the four 14d tests of F1 / F2 take the round trip)
 -- Step-14d tests (test_case_inconsistent_*) whose prediction is checked at run time (Issue 144). F1 / F2: the next
 -- value of q1 / q2 / pl is "absent", which the automatic test map judges as a disagreement of the presence flag b,
 -- but b is then consumed by the other component alone (its x present), so the encoder accepts the value: the test

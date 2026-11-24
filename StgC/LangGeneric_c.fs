@@ -950,6 +950,7 @@ type LangGeneric_c() =
         override _.acnDeterminantFlagModel = FlagMaybeUninitialized
         override _.atcEmitsConstraintViolationTests = true
         override _.atcEmitsEqualityVariantTests = true
+        override _.atcEmitsGuardedValueReplacements = true
         override _.atcEmitsValidityTests = true
         override this.atcEqualityToggle (toggle:EqualityToggle) (path:AccessPath) =
             let v = this.getValue path

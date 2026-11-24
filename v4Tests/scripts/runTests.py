@@ -217,6 +217,52 @@ def knownFailureMarker(cfg: TestConfig, asn1file: str) -> Optional[str]:
     return None
 
 
+# ATC_SKIPS(<n>) or ATC_SKIPS(<lang>=<n>[,<lang>=<n>...]) on the first line (same rules in regression/Program.fs and
+# the PUS-C script step09/try_pusc_group.py): the number of guarded checks of the automatic tests that the run skips
+# (coverage cycle 15h: the executable prints "Guarded checks skipped (counted as passed): <n>" as its last line when
+# it has guarded checks), 0 when the marker or the language is absent. A run that prints another number fails: a skip
+# is counted as passed, so a change in the number shows a misjudged test value or a coordinated encoder + decoder
+# fault that the round trip of a 14d test cannot see (George, Q5 = A+).
+SKIP_LINE = "Guarded checks skipped (counted as passed):"
+
+
+def expectedSkips(language: str, asn1file: str) -> int:
+    import re
+    m = re.search(r"ATC_SKIPS\(([^)]*)\)", firstLineMarkers(asn1file))
+    if m is None:
+        return 0
+    body = m.group(1).strip()
+    if re.fullmatch(r"\d+", body):
+        return int(body)
+    for tok in [t.strip() for t in body.split(",") if t.strip() != ""]:
+        lang, _, n = tok.partition("=")
+        if not n.strip().isdigit():
+            raise ValueError(f"{asn1file}: bad ATC_SKIPS entry '{tok}' (<n> or <lang>=<n>, ...)")
+        if lang.strip() == language:
+            return int(n)
+    return 0
+
+
+def printedSkips(text: str) -> int:
+    """The skip total the test executable printed (its last such line; 0 when it has no guarded checks)."""
+    import re
+    found = re.findall(re.escape(SKIP_LINE) + r"\s*(\d+)", text)
+    return int(found[-1]) if found else 0
+
+
+def checkSkips(cfg: TestConfig, targetDir: str, asn1: str, acn: str):
+    try:
+        text = open(os.path.join(targetDir, "covlog.txt"), errors="replace").read()
+    except OSError:
+        text = ""
+    expected = expectedSkips(cfg.language, os.path.join(targetDir, "sample1.asn1"))
+    got = printedSkips(text)
+    if got != expected:
+        PrintFailed(f"skipped guarded checks: {got}, the file states ATC_SKIPS {expected}")
+        results.add_error(f'Failed {asn1} {acn} in {cfg.language}')
+        raise Exception('TestFailed')
+
+
 def extraFlags(cfg: TestConfig, asn1file: str) -> str:
     """Compiler options requested by first-line markers (same rules in regression/Program.fs):
     ADA_BITSTRING_ALIGNMENT adds -adaBitStringAlignment to the Ada runs."""
@@ -354,7 +400,9 @@ def RunTestCase(cfg: TestConfig, item: WorkItem):
 
     if language == "c":
         try:
-            res = mysystem(cfg, targetDir, "CC=gcc make coverage", False, asn1, acn)
+            # the output also goes to covlog.txt: the skip total (ATC_SKIPS)
+            res = mysystem(cfg, targetDir, "CC=gcc make coverage >covlog.txt 2>&1; rc=$?; cat covlog.txt; exit $rc", False, asn1, acn)
+            checkSkips(cfg, targetDir, asn1, acn)
             with open(os.path.join(targetDir, "sample1.c.gcov"), 'r') as f:
                 lines = f.readlines()
             lines = filter(lambda x : "####" in x, lines)
@@ -440,6 +488,7 @@ def RunTestCase(cfg: TestConfig, item: WorkItem):
             results.add_error(f'Failed {asn1} {acn} in {language}')
             raise Exception('TestFailed')
         elif behavior == 0 and res == 0:
+            checkSkips(cfg, targetDir, asn1, acn)
             # the RUN_SPARK proof runs without -slim only, as in the regression tool
             runSpark = "RUN_SPARK" in open(os.path.join(targetDir, "sample1.asn1"), 'r').readlines()[0] and cfg.slim == "" \
                 and not cfg.adaAssertions

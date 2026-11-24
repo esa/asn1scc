@@ -1318,7 +1318,7 @@ let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) : AtcTestFunctor l
         // of one value). No comparison (REAL, OBJECT IDENTIFIER, TIME in the node): not taken, as before
         let guardedDiff (v:AtcVariant) : string option =
             match v.usedBy, v.change with
-            | (InconsistencyAndEquality | EqualityOnly | EqualityOnlyAndReflexive), ValueChange when complete.Force () ->
+            | (InconsistencyAndEquality | EqualityOnly | EqualityOnlyAndReflexive), ValueChange when lm.lg.atcEmitsGuardedValueReplacements && complete.Force () ->
                 findAnyNode v.nodeId t |>
                 Option.bind (fun node ->
                     match activeDiff lm 1 node (v.nodeScope p).accessPath (v.nodeScope p2).accessPath with

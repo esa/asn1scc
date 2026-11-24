@@ -1414,7 +1414,11 @@ if (!<sEqualFunc>(<sAmber>tc_data2, <sAmber>tc_data2)) {
    encoded length for a 'size deduced' PDU, bDeduced), <sEqualFunc> with the value, and the decoded value encoded again
    to the same bits. A decoded value is consistent (every consumer reads the same field) and Equal compares every
    presence flag, size and alternative, so then the fields agreed after all: the check is skipped (atcSkipped). Any
-   other outcome fails, as before. */
+   other outcome fails, as before.
+   Limit (George, Q5 = A+): the round trip cannot tell a value whose fields agree from one that a coordinated encoder +
+   decoder fault writes and reads back alike (e.g. an illegal determinant code for two disagreeing CHOICEs); such a
+   fault shows only as a skip count other than the one the test file states (first-line marker ATC_SKIPS, checked by
+   runTests.py, the regression tool and the PUS-C script). */
 emitInconsistentValueTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sChange, sWhat, sEncFunc, sEnc, soDecFunc, sEqualFunc, bDeduced, sFilePkg) ::= <<
 void <sFuncName>(const TestOutput* output, int *totalErrors<if(soDecFunc)>, int *tc__skips<endif>)
 {

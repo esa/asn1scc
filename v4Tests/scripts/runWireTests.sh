@@ -398,12 +398,12 @@ echo "uper-wire 009 rejections OK"
 
 # Names starting with tc__ are reserved for the locals of the generated automatic tests (coverage cycle 15h: "--"
 # cannot occur in an ASN.1 name, so only a type prefix could make a generated name start so): -typePrefix tc__...
-# (any case) is rejected; tc_ is accepted.
+# (any case, also after the normalisation of identifiers: tc--, tc-_, tc._) is rejected; tc_ is accepted.
 out=$work/typeprefix
 mkdir "$out"
 printf '%s\n' 'R DEFINITIONS AUTOMATIC TAGS ::= BEGIN' '    T ::= SEQUENCE { e ENUMERATED { other(0), skips(1) } }' 'END' \
     > "$out/r.asn1"
-for p in tc__ TC__X Tc__Y; do
+for p in tc__ TC__X Tc__Y tc-- tc-_ tc._ Tc.-Z; do
     if run_compiler -c -uPER -ACN -atc -equal -typePrefix "$p" -renamePolicy 0 -o "$out" "$out/r.asn1" > "$out/$p.log" 2>&1; then
         echo "-typePrefix $p was accepted"
         exit 1

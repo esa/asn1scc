@@ -794,6 +794,13 @@ type ILangGeneric () =
     abstract member atcBitStringDiffSupported : bool
     default _.atcBitStringDiffSupported = true
 
+    /// Coverage cycle 15h (VR): the Equal tests take the lifted "another value" variants as guarded checks (a
+    /// comparison of the changed node, macro equalityVariantCheckGuarded). C only: the Ada comparison had to name the
+    /// selector literals of CHOICEs reached through references and CONTAINING by their declaring package, which failed
+    /// for a subtype of an imported CHOICE (code review r3); Ada VR is left to a later cycle.
+    abstract member atcEmitsGuardedValueReplacements : bool
+    default _.atcEmitsGuardedValueReplacements = false
+
     /// Automatic tests for a type assignment that has no test of its own (coverage step 14j task 0,
     /// DastTestCaseCreation validityTestCases): IsConstraintValid must accept every automatic test value. C and Ada.
     abstract member atcEmitsValidityTests : bool

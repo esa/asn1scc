@@ -311,7 +311,8 @@ let checkArgument (cliArgs : CliArguments list) arg =
     | Type_Prefix vl   ->
         // coverage cycle 15h: the automatic tests name their own C locals tc__... ("--" cannot occur in an ASN.1 name);
         // a type prefix is the one way a generated name could start so
-        match vl.StartsWith ("tc__", StringComparison.OrdinalIgnoreCase) with
+        // (checked after the normalisation the identifiers get, FsUtils.ToC: tc--, tc-_, tc._ give tc__ too)
+        match (ToC vl).StartsWith ("tc__", StringComparison.OrdinalIgnoreCase) with
         | true  -> raise (UserException ("invalid value for argument -typePrefix: names starting with tc__ are reserved for the generated automatic tests"))
         | false -> ()
     | Rename_Policy rp   ->
