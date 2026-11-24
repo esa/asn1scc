@@ -396,6 +396,27 @@ done
 run_compiler -c -uPER -o "$out" "$out/ok.asn1"
 echo "uper-wire 009 rejections OK"
 
+# Names starting with tc__ are reserved for the locals of the generated automatic tests (coverage cycle 15h: "--"
+# cannot occur in an ASN.1 name, so only a type prefix could make a generated name start so): -typePrefix tc__...
+# (any case) is rejected; tc_ is accepted.
+out=$work/typeprefix
+mkdir "$out"
+printf '%s\n' 'R DEFINITIONS AUTOMATIC TAGS ::= BEGIN' '    T ::= SEQUENCE { e ENUMERATED { other(0), skips(1) } }' 'END' \
+    > "$out/r.asn1"
+for p in tc__ TC__X Tc__Y; do
+    if run_compiler -c -uPER -ACN -atc -equal -typePrefix "$p" -renamePolicy 0 -o "$out" "$out/r.asn1" > "$out/$p.log" 2>&1; then
+        echo "-typePrefix $p was accepted"
+        exit 1
+    fi
+    grep -q "invalid value for argument -typePrefix: names starting with tc__ are reserved for the generated automatic tests" "$out/$p.log" || {
+        cat "$out/$p.log"
+        echo "-typePrefix $p not rejected with the expected message"
+        exit 1
+    }
+done
+run_compiler -c -uPER -ACN -atc -equal -typePrefix tc_ -renamePolicy 0 -o "$out" "$out/r.asn1"
+echo "reserved -typePrefix OK"
+
 # ACN INTEGER as ASCII digits with a terminator: a value outside the range of the type, or a digit string beyond the
 # integer type, is an error code (Ada used to raise Constraint_Error, and accepted digit strings that wrapped around);
 # C, Ada x86 and Ada msp430 (-gnata: the RTL contracts are checked too).

@@ -1372,7 +1372,7 @@ if (<sP1><sAcc>kind != <sP2><sAcc>kind) { tc__differs = TRUE; }
 <arrsAlternatives; separator="\n">
 >>
 
-atcDiffChoiceAlternative(sP1, sAcc, sPresent, sInner) ::= <<
+atcDiffChoiceAlternative(sP1, sAcc, sPresentPkg, sPresent, sInner) ::= <<
 else if (<sP1><sAcc>kind == <sPresent>) {
     <sInner>
 }

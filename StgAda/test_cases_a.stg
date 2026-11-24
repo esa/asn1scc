@@ -364,7 +364,7 @@ is
     end;
 
 <endif>
-begin
+begin<if(bSkips)><\n>    --  the skip counters start from 0 at every run of the suite<\n>    <arrsSkipCounters:{f|Standard.<f>.<f>.Skipped := 0;}; separator="\n    "><endif>
 
     <arrsTestFunctions;separator="\n\n">
 
@@ -706,7 +706,7 @@ is
     ok      : Boolean;
     <arrsVars; separator="\n">
 	pragma Warnings (Off, "there are no others");
-    tc_data : <sModName>.<sTasName>;
+    tc_data : Standard.<sModName>.<sTasName>;
 	pragma Warnings (On, "there are no others");
     --  the test's own state, named by the file's package (atcSkipCounterDecl): expanded names only; the types by
     --  Standard.<module> (a component of the package may have a module's name) (GNAT 13 says
@@ -735,7 +735,7 @@ begin
 	pragma Warnings (On, "is always True at this point");
 	pragma Warnings (On, "is always False at this point");
     --  the start value must be valid, else the check is skipped
-    result := <sModName>.<sIsValidFunc> (tc_data);
+    result := Standard.<sModName>.<sIsValidFunc> (tc_data);
     ok := result.Success and result.ErrorCode = 0;
     if not ok then
         <atcSkipped(sFuncName=sFuncName, sReason="the start value is not valid", sWhat=sWhat, sFilePkg=sFilePkg)>
@@ -744,10 +744,10 @@ begin
         <sFilePkg>.Start := tc_data;
         --  <sWhat>
         <sSetInvalidValue>
-        result := <sModName>.<sIsValidFunc> (tc_data);
+        result := Standard.<sModName>.<sIsValidFunc> (tc_data);
         if result.Success then
             --  accepted: the change must have written no live node, else the test fails
-            ok := <sModName>.<sEqualFunc> (<sFilePkg>.Start, tc_data) and then <sModName>.<sEqualFunc> (tc_data, <sFilePkg>.Start);
+            ok := Standard.<sModName>.<sEqualFunc> (<sFilePkg>.Start, tc_data) and then Standard.<sModName>.<sEqualFunc> (tc_data, <sFilePkg>.Start);
             if ok then
                 <atcSkipped(sFuncName=sFuncName, sReason="the change wrote no live node", sWhat=sWhat, sFilePkg=sFilePkg)>
             end if;
@@ -771,10 +771,10 @@ guardedViolationEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber, sFilePkg
 if ok then
     declare
         pragma Warnings (Off);
-        bs : <sModName>.<sTasName>_<sEnc>Stream;
+        bs : Standard.<sModName>.<sTasName>_<sEnc>Stream;
         pragma Warnings (On);
     begin
-        <sModName>.<sEncFunc> (tc_data, bs, result);
+        Standard.<sModName>.<sEncFunc> (tc_data, bs, result);
         ok := not result.Success and result.ErrorCode = <sFilePkg>.ValidatorCode;
     end;
 end if;
@@ -925,7 +925,7 @@ tc_data2 := tc_data;
 <sApplyVariant>
 if <sDiff> then
     <atcSkipped(sFuncName=sFuncName, sReason="the change wrote the same value at the node", sWhat=sWhat, sFilePkg=sFilePkg)>
-elsif <sModName>.<sEqualFunc> (tc_data, tc_data2) or else <sModName>.<sEqualFunc> (tc_data2, tc_data) then
+elsif Standard.<sModName>.<sEqualFunc> (tc_data, tc_data2) or else Standard.<sModName>.<sEqualFunc> (tc_data2, tc_data) then
     ok := False;
     Put_Line ("  equal for: <sWhat>");
 end if;
@@ -967,8 +967,8 @@ atcDiffChoice(sP1, sP2, sAcc, arrsAlternatives) ::= <<
 <if(arrsAlternatives)>(<sP1>.kind = <sP2>.kind and then (if <arrsAlternatives; separator="\nelsif "> else True))<else><sP1>.kind = <sP2>.kind<endif>
 >>
 
-atcDiffChoiceAlternative(sP1, sAcc, sPresent, sInner) ::= <<
-<sP1>.kind = <sPresent> then (<sInner>)
+atcDiffChoiceAlternative(sP1, sAcc, sPresentPkg, sPresent, sInner) ::= <<
+<sP1>.kind = Standard.<sPresentPkg>.<sPresent> then (<sInner>)
 >>
 
 atcDiffSeqOf(sP1, sP2, sAcc, bFixed, nSize, sIdx, soInner) ::= <<
@@ -1057,14 +1057,14 @@ if result.Success then
     <if(bDeduced)>
     --  'size deduced' PDU: the decoder takes the element counts from the end of the encoded length
     bs.End_Bit_Pos := ((<sFilePkg>.NBits + 7) / 8) * 8;
-    <sModName>.<sDecFunc>_aux (<sFilePkg>.Dec, bs, result);
+    Standard.<sModName>.<sDecFunc>_aux (<sFilePkg>.Dec, bs, result);
     <else>
-    <sModName>.<sDecFunc> (<sFilePkg>.Dec, bs, result);
+    Standard.<sModName>.<sDecFunc> (<sFilePkg>.Dec, bs, result);
     <endif>
     <sFilePkg>.Ok := result.Success and then
-          <sModName>.<sEqualFunc> (tc_data, <sFilePkg>.Dec) and then <sModName>.<sEqualFunc> (<sFilePkg>.Dec, tc_data);
+          Standard.<sModName>.<sEqualFunc> (tc_data, <sFilePkg>.Dec) and then Standard.<sModName>.<sEqualFunc> (<sFilePkg>.Dec, tc_data);
     if <sFilePkg>.Ok then
-        <sModName>.<sEncFunc> (<sFilePkg>.Dec, <sFilePkg>.Bs2, result);
+        Standard.<sModName>.<sEncFunc> (<sFilePkg>.Dec, <sFilePkg>.Bs2, result);
         <sFilePkg>.Ok := result.Success and then
               <sFilePkg>.Bs2.Current_Bit_Pos = <sFilePkg>.NBits and then <sFilePkg>.Bs2.Buffer = bs.Buffer;
     end if;

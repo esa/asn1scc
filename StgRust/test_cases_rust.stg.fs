@@ -243,9 +243,9 @@ let atcDiffChoice (sP1:string) (sP2:string) (sAcc:string) (arrsAlternatives:seq<
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "test_cases_rust" "atcDiffChoice" [("sP1",(if sP1 = null then null else ST.StrHelper sP1:>Object) );("sP2",(if sP2 = null then null else ST.StrHelper sP2:>Object) );("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("arrsAlternatives",(arrsAlternatives|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object)]
 
-let atcDiffChoiceAlternative (sP1:string) (sAcc:string) (sPresent:string) (sInner:string) =
+let atcDiffChoiceAlternative (sP1:string) (sAcc:string) (sPresentPkg:string) (sPresent:string) (sInner:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "test_cases_rust" "atcDiffChoiceAlternative" [("sP1",(if sP1 = null then null else ST.StrHelper sP1:>Object) );("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("sPresent",(if sPresent = null then null else ST.StrHelper sPresent:>Object) );("sInner",(if sInner = null then null else ST.StrHelper sInner:>Object) )]
+    ST.call "test_cases_rust" "atcDiffChoiceAlternative" [("sP1",(if sP1 = null then null else ST.StrHelper sP1:>Object) );("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("sPresentPkg",(if sPresentPkg = null then null else ST.StrHelper sPresentPkg:>Object) );("sPresent",(if sPresent = null then null else ST.StrHelper sPresent:>Object) );("sInner",(if sInner = null then null else ST.StrHelper sInner:>Object) )]
 
 let atcDiffSeqOf (sP1:string) (sP2:string) (sAcc:string) (bFixed:bool) (nSize:BigInteger) (sIdx:string) (soInner:string option) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true

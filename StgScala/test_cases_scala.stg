@@ -526,7 +526,7 @@ atcDiffOptional(sP1, sP2, sAcc, sChName, soInner) ::= <<
 atcDiffChoice(sP1, sP2, sAcc, arrsAlternatives) ::= <<
 >>
 
-atcDiffChoiceAlternative(sP1, sAcc, sPresent, sInner) ::= <<
+atcDiffChoiceAlternative(sP1, sAcc, sPresentPkg, sPresent, sInner) ::= <<
 >>
 
 atcDiffSeqOf(sP1, sP2, sAcc, bFixed, nSize, sIdx, soInner) ::= <<

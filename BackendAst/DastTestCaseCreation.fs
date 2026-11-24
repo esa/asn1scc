@@ -1216,11 +1216,14 @@ let rec private activeDiff (lm:LanguageMacros) (level:int) (t:Asn1Type) (p1:Acce
             List.map (fun c ->
                 let sName = lm.lg.getAsn1ChChildBackendName c
                 let alt (p:AccessPath) = lm.lg.getChChild p sName c.chType.isIA5String
-                let sPresent = lm.lg.qualifyNameWithModule (ToC c.chType.moduleName) (ToC "MainProgram") (lm.lg.presentWhenName (Some t.typeDefinitionOrReference) c)
+                // the selector literal with the package that declares it (Ada writes Standard.<package>.<literal>: no
+                // name of the test, e.g. a quantified index, can hide the package; C: the literal alone)
+                let sPresentPkg = (lm.lg.getTypeDefinition t.FT_TypeDefinition).programUnit
+                let sPresent = lm.lg.presentWhenName None c
                 match activeDiff lm level c.chType (alt p1) (alt p2) with
                 | DiffUnsupported   -> Some DiffUnsupported
                 | DiffNoContent     -> None
-                | DiffStatements s  -> Some (DiffStatements (lm.atc.atcDiffChoiceAlternative (joined p1) (lm.lg.getAccess p1) sPresent s)))
+                | DiffStatements s  -> Some (DiffStatements (lm.atc.atcDiffChoiceAlternative (joined p1) (lm.lg.getAccess p1) sPresentPkg sPresent s)))
             |> List.choose id
         match arms |> List.exists (fun d -> d = DiffUnsupported) with
         | true  -> DiffUnsupported

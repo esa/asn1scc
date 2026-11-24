@@ -125,8 +125,8 @@ type ITestCases_rust() =
             test_cases_rust.atcDiffOptional  sP1 sP2 sAcc sChName soInner 
         override this.atcDiffChoice  (sP1:string) (sP2:string) (sAcc:string) (arrsAlternatives:seq<string>) =
             test_cases_rust.atcDiffChoice  sP1 sP2 sAcc arrsAlternatives 
-        override this.atcDiffChoiceAlternative  (sP1:string) (sAcc:string) (sPresent:string) (sInner:string) =
-            test_cases_rust.atcDiffChoiceAlternative  sP1 sAcc sPresent sInner 
+        override this.atcDiffChoiceAlternative  (sP1:string) (sAcc:string) (sPresentPkg:string) (sPresent:string) (sInner:string) =
+            test_cases_rust.atcDiffChoiceAlternative  sP1 sAcc sPresentPkg sPresent sInner 
         override this.atcDiffSeqOf  (sP1:string) (sP2:string) (sAcc:string) (bFixed:bool) (nSize:BigInteger) (sIdx:string) (soInner:string option) =
             test_cases_rust.atcDiffSeqOf  sP1 sP2 sAcc bFixed nSize sIdx soInner 
         override this.equalityVariantCheck  (sModName:string) (sAmber:string) (sApplyVariant:string) (sWhat:string) (sEqualFunc:string) =
