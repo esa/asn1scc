@@ -1,0 +1,15 @@
+TEST-CASE DEFINITIONS ::= BEGIN
+   MyPDU [] { a [], b [], c [] }
+END
+
+Tc-differs DEFINITIONS ::= BEGIN
+END
+
+TotalSkips DEFINITIONS ::= BEGIN
+   Kind [encoding pos-int, size 4, encode-values]
+   Pick <Kind:k> [determinant k]
+   M14 [] { k Kind [], lhs <k> [], rhs <k> [], marker [] }
+END
+
+ValidatorCode DEFINITIONS ::= BEGIN
+END

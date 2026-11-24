@@ -1,0 +1,31 @@
+-- C_ADA_ONLY (automatic tests of C and Ada; not run in the experimental Python / Rust legs)
+-- Names of the generated tests' own state (coverage cycle 15h): the guarded tests (Equal checks with a comparison of
+-- the changed node, 14d round trips, guarded violation tests) must declare no name that a name built from ASN.1 can
+-- meet. Ada calls the functions of another module through its package name, so a module named like a local of a test
+-- (Tc-differs, TotalSkips, ValidatorCode were the first names chosen) would be hidden by it: Tc-differs gets value
+-- replacements in Msg (Equal), TotalSkips a 14d test in M14 (two CHOICEs selected by one determinant), ValidatorCode
+-- guarded violation tests in MA2 (an ALWAYS PRESENT child at two reference sites). The enumeration items carry the
+-- same names (C: no clash with the test's locals, which start with "tc__").
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   IMPORTS Msg FROM Tc-differs M14 FROM TotalSkips MA2 FROM ValidatorCode;
+   MyPDU ::= SEQUENCE { a Msg, b M14, c MA2 }
+END
+
+Tc-differs DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   Names ::= ENUMERATED { other(0), totalSkips(1), tc-differs(2), validatorCode(3), skipped(4), start(5) }
+   Inner ::= SEQUENCE { n INTEGER (0..10), e Names, b BOOLEAN }
+   Msg ::= SEQUENCE { x Inner }
+END
+
+TotalSkips DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   Kind ::= ENUMERATED { first(5), second(9) }
+   Pick ::= CHOICE { first INTEGER (0..3), second BOOLEAN }
+   M14 ::= SEQUENCE { lhs Pick, rhs Pick, marker ENUMERATED { totalSkips(0), ordinary(1) } }
+END
+
+ValidatorCode DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   Shared ::= SEQUENCE { x BOOLEAN OPTIONAL, marker ENUMERATED { validatorCode(0), ordinary(1) } } (WITH COMPONENTS { ..., x PRESENT })
+   MA2 ::= SEQUENCE { lhs Shared, rhs Shared }
+END
+
+--TCFS     013.acn

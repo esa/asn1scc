@@ -53,6 +53,12 @@ type AtcTestFunctor = {
     guarded : bool
 }
 
+/// The automatic tests are written 100 per file (test_case_001, ...): the file (and Ada package) of the test with
+/// index idx (1-based). Coverage cycle 15h: the Ada state of a guarded test is reached through its file's package.
+let atcTestsPerFile = 100
+let testCaseFileName (fileIndex:int) = sprintf "test_case_%03d" fileIndex
+let testCaseFileOfIndex (idx:int) = testCaseFileName ((idx - 1) / atcTestsPerFile + 1)
+
 let private plainTests (fs:(int -> string * string * string) list) = fs |> List.map (fun f -> {AtcTestFunctor.functor = f; guarded = false})
 
 /// The header declaration, body and invocation of a test function (guarded: with the skip counter).
@@ -1168,10 +1174,10 @@ let rec private activeDiff (lm:LanguageMacros) (level:int) (t:Asn1Type) (p1:Acce
     | BitString o ->
         match lm.lg.atcBitStringDiffSupported with
         | false -> DiffUnsupported
-        | true  -> DiffStatements (lm.atc.atcDiffBits (withAcc p1) (withAcc p2) (o.baseInfo.minSize.uper = o.baseInfo.maxSize.uper) o.baseInfo.maxSize.uper (sprintf "tc_b%d" level))
+        | true  -> DiffStatements (lm.atc.atcDiffBits (withAcc p1) (withAcc p2) (o.baseInfo.minSize.uper = o.baseInfo.maxSize.uper) o.baseInfo.maxSize.uper (lm.atc.atcDiffIndexName "b" (BigInteger level)))
     | ReferenceType rf -> activeDiff lm level rf.resolvedType p1 p2
     | SequenceOf o ->
-        let sIdx = sprintf "tc_i%d" level
+        let sIdx = lm.atc.atcDiffIndexName "i" (BigInteger level)
         let bFixed = o.baseInfo.minSize.uper = o.baseInfo.maxSize.uper
         let elem (p:AccessPath) = lm.lg.getArrayItem p sIdx o.childType.isIA5String
         let seqOf soInner = DiffStatements (lm.atc.atcDiffSeqOf (joined p1) (joined p2) (lm.lg.getAccess p1) bFixed o.baseInfo.maxSize.uper sIdx soInner)
@@ -1199,7 +1205,7 @@ let rec private activeDiff (lm:LanguageMacros) (level:int) (t:Asn1Type) (p1:Acce
         match parts |> List.exists (fun d -> d = DiffUnsupported), parts |> List.choose (fun d -> match d with DiffStatements s -> Some s | DiffUnsupported | DiffNoContent -> None) with
         | true, _  -> DiffUnsupported
         | false, [] -> DiffNoContent
-        | false, ss -> DiffStatements (ss |> String.concat "\n")
+        | false, ss -> DiffStatements (lm.atc.atcDiffJoin ss)
     | Choice ch ->
         // the alternatives the automatic test values can select (DAstInitialize, CHOICE test cases)
         let alternatives =
@@ -1282,10 +1288,10 @@ let guardedConstraintViolationTestCases (r:DAst.AstRoot) (lm:LanguageMacros) (t:
                     let encAmper, _ = gAmber lm t
                     let bStatic = match t.ActualType.Kind with Integer _ | Enumerated(_) -> false | _ -> true
                     let td = lm.lg.getTypeDefinition t.FT_TypeDefinition
-                    let checkedEncodes = encoders |> List.map (fun (sEncFunc, sEnc) -> lm.atc.guardedViolationEncodeCheck sEncFunc td.programUnit td.typeName sEnc encAmper)
+                    let checkedEncodes = encoders |> List.map (fun (sEncFunc, sEnc) -> lm.atc.guardedViolationEncodeCheck sEncFunc td.programUnit td.typeName sEnc encAmper (testCaseFileOfIndex idx))
                     // the text goes into a comment and a string literal
                     let sWhat = v.what.Replace("\"", "'").Replace("\\", "/").Replace("*/", "* /")
-                    let func_body = lm.atc.emitGuardedConstraintViolationTestCase sFuncName arrsVars td.programUnit td.typeName encAmper initStatement.funcBody bStatic v.setInvalid sWhat sIsValidFunc checkedEncodes sEqualFunc
+                    let func_body = lm.atc.emitGuardedConstraintViolationTestCase sFuncName arrsVars td.programUnit td.typeName encAmper initStatement.funcBody bStatic v.setInvalid sWhat sIsValidFunc checkedEncodes sEqualFunc (testCaseFileOfIndex idx)
                     testFunctionParts lm true sFuncName func_body}))
     | true, Some _, Some _
     | true, Some _, None
@@ -1357,7 +1363,7 @@ let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) : AtcTestFunctor l
                                 let sWhat = variantText t sTypeName v
                                 let check =
                                     match guardedDiff v with
-                                    | Some sDiff -> lm.atc.equalityVariantCheckGuarded sFuncName td.programUnit encAmper a.funcBody sWhat sEqualFunc sDiff
+                                    | Some sDiff -> lm.atc.equalityVariantCheckGuarded sFuncName td.programUnit encAmper a.funcBody sWhat sEqualFunc sDiff (testCaseFileOfIndex idx)
                                     | None       -> lm.atc.equalityVariantCheck td.programUnit encAmper a.funcBody sWhat sEqualFunc
                                 // coverage cycle 15c (P4): T_Equal(v2, v2) with the changed value, right after its check
                                 match v.usedBy with
@@ -1468,7 +1474,7 @@ let inconsistentValueTestCases (lm:LanguageMacros) (t:Asn1Type) (sEncFunc:string
                 let arrsVars =
                     initStatement.localVariables @ change.localVariables |>
                     List.map lm.lg.getLocalVariableDeclaration |> Seq.distinct |> Seq.toList
-                let func_body = lm.atc.emitInconsistentValueTestCase sFuncName arrsVars td.programUnit td.typeName encAmper initStatement.funcBody bStatic change.funcBody (variantText t sTypeName v) sEncFunc sEnc soDecFunc sEqualFunc bDeduced
+                let func_body = lm.atc.emitInconsistentValueTestCase sFuncName arrsVars td.programUnit td.typeName encAmper initStatement.funcBody bStatic change.funcBody (variantText t sTypeName v) sEncFunc sEnc soDecFunc sEqualFunc bDeduced (testCaseFileOfIndex idx)
                 testFunctionParts lm soDecFunc.IsSome sFuncName func_body})
     | true, None
     | false, _ -> []
@@ -1643,7 +1649,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
     let tcFunctors = allTests |> List.map (fun x -> x.functor)
     let bSkips = allTests |> List.exists (fun x -> x.guarded)
     let invalidStreamFunctorCount = invalidStreamFunctors.Count
-    let maxTestCasesPerFile = 100.0
+    let maxTestCasesPerFile = double atcTestsPerFile
     let nMaxTestCasesPerFile = int maxTestCasesPerFile
 
     let nFiles = int (Math.Ceiling( (double tcFunctors.Length) / maxTestCasesPerFile))
@@ -1657,6 +1663,9 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
             let testCaseFileName = sprintf "test_case_%03d" fileIndex
             testCaseFileName + "." + lm.lg.BodyExtension, testCaseFileName + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtension) |>
         List.unzip
+
+    let fileHasGuardedTests (fileIndex:int) =
+        allTests |> List.indexed |> List.exists (fun (i, x) -> x.guarded && (i / atcTestsPerFile) + 1 = fileIndex)
 
     [1 .. nFiles] |>
     List.iter (fun fileIndex ->
@@ -1679,7 +1688,12 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
         let outCFileName = Path.Combine(outDir, testCaseFileName + "." + lm.lg.BodyExtension)
         File.WriteAllText(outCFileName, contentC.Replace("\r",""))
 
-        let contentH = printTestCaseFileDef testCaseFileName (includedPackages r lm) arrsTestFunctionDefs
+        // coverage cycle 15h: the skip counter of a file with guarded tests (Ada; C counts in the runner)
+        let skipCounterDecl =
+            match fileHasGuardedTests fileIndex, lm.atc.atcSkipCounterDecl testCaseFileName with
+            | true, sDecl when sDecl <> "" -> [sDecl]
+            | true, _ | false, _           -> []
+        let contentH = printTestCaseFileDef testCaseFileName (includedPackages r lm) (skipCounterDecl @ arrsTestFunctionDefs)
         let outHFileName = Path.Combine(outDir, testCaseFileName + lm.lg.SpecNameSuffix + "." + lm.lg.SpecExtension)
         if lm.lg.shouldAppendTestCaseFile then
             File.AppendAllText(outHFileName, contentH.Replace("\r",""))
@@ -1705,7 +1719,8 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
     let contentH = lm.atc.PrintATCRunnerDefinition()
     let hasTestSuiteRunner = not (String.IsNullOrWhiteSpace contentH)
 
-    let contentC = lm.atc.PrintATCRunner TestSuiteFileName atcIncludedPackages [] func_invocations [] [] false bSkips
+    let skipCounters = [1 .. nFiles] |> List.filter fileHasGuardedTests |> List.map testCaseFileName
+    let contentC = lm.atc.PrintATCRunner TestSuiteFileName atcIncludedPackages [] func_invocations [] [] false bSkips skipCounters
     let outCFileName =
         match hasTestSuiteRunner with
         | true  -> Path.Combine(outDir, TestSuiteFileName + "." + lm.lg.BodyExtension)

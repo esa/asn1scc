@@ -180,7 +180,7 @@ PrintSuite_call_codec_generate_dat_file(sModName, sTasName, sAmber, sEnc, sStrea
 PrintATCRunnerDefinition() ::= <<
 >>
 
-PrintATCRunner(sTestSuiteFilename, arrsIncludedModules, arrsVars, arrsTestFunctions, arrsUsedPackages, arrsInitCalls, bGenerateDatFile, bSkips) ::= <<
+PrintATCRunner(sTestSuiteFilename, arrsIncludedModules, arrsVars, arrsTestFunctions, arrsUsedPackages, arrsInitCalls, bGenerateDatFile, bSkips, arrsSkipCounters) ::= <<
 >>
 
 
@@ -261,10 +261,10 @@ constraintViolationEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber, sErrC
 >>
 
 /* Coverage cycle 15h (A2): C and Ada only. */
-emitGuardedConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, arrsEncodeChecks, sEqualFunc) ::= <<
+emitGuardedConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, arrsEncodeChecks, sEqualFunc, sFilePkg) ::= <<
 >>
 
-guardedViolationEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber) ::= <<
+guardedViolationEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber, sFilePkg) ::= <<
 >>
 
 /* Coverage step 12d: C only (invalid CHOICE selectors / ENUMERATED values, ILangGeneric.atcEmitsInvalidValueTests). */
@@ -298,7 +298,17 @@ emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sIn
 >>
 
 /* Coverage cycle 15h: C and Ada only (guarded Equal checks and the comparison of a node's active contents). */
-equalityVariantCheckGuarded(sFuncName, sModName, sAmber, sApplyVariant, sWhat, sEqualFunc, sDiff) ::= <<
+equalityVariantCheckGuarded(sFuncName, sModName, sAmber, sApplyVariant, sWhat, sEqualFunc, sDiff, sFilePkg) ::= <<
+>>
+
+/* Coverage cycle 15h: C and Ada only. */
+atcSkipCounterDecl(sFilePkg) ::= <<
+>>
+
+atcDiffIndexName(sKind, nLevel) ::= <<
+>>
+
+atcDiffJoin(arrsParts) ::= <<
 >>
 
 atcDiffScalar(sV1, sV2) ::= <<
@@ -333,5 +343,5 @@ equalityReflexiveCheck(sModName, sAmber, sWhat, sEqualFunc) ::= <<
 >>
 
 /* Coverage step 14d: C and Ada only (ILangGeneric.atcEmitsConstraintViolationTests). */
-emitInconsistentValueTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sChange, sWhat, sEncFunc, sEnc, soDecFunc, sEqualFunc, bDeduced) ::= <<
+emitInconsistentValueTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sChange, sWhat, sEncFunc, sEnc, soDecFunc, sEqualFunc, bDeduced, sFilePkg) ::= <<
 >>
