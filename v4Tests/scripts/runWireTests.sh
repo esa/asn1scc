@@ -1054,8 +1054,10 @@ done
 
 # The final validity check of a C decoder rejects a value the decoding accepts (cycle 15j): a null-terminated ACN
 # IA5String with SIZE (3 .. 8) whose terminator comes after fewer than 3 characters decodes without error, and the
-# validator called at the end of Name_ACN_Decode (and of Rec_ACN_Decode) returns FALSE with ERR_NAME; legacy and
-# --acn-v2, ASan / UBSan.
+# validator called at the end of the decoder returns FALSE with the constraint's code (Name_ACN_Decode: ERR_NAME; Msg,
+# an inline component that only Msg_ACN_Decode's own check rejects: ERR_MSG_TEXT); a decode that fails keeps its own
+# code (the validator runs only after a successful decode). Result, error code and stream position pinned per row;
+# legacy and --acn-v2, ASan / UBSan.
 for mode in "" "--acn-v2"; do
     out=$work/acn020$mode
     mkdir "$out"
