@@ -1170,11 +1170,27 @@ let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (emitte
 /// an IsConstraintValid that cannot fail for any value; the template returns `ret` with a comment naming the function.
 /// The decision is the encoders' (12a / 15a2: the outcome of the function emitted under the name the decoder calls,
 /// calledValidatorCannotFail); the decoded value itself is not looked at. Kept separate from encoderSkipsValidation
-/// so that the encoder models (Ada EncodersSkipAlwaysValidPrimitives) never reach the decoders.
+/// so that the encoder models (Ada EncodersSkipAlwaysValidPrimitives) never reach the decoders. The skipped C validator
+/// also wrote `*pErrCode = 0`: without it a successful decode leaves the code its body wrote last, which must be 0 (the
+/// templates write the code on their failure paths only; the C `-atc` tests check `*pErrCode == 0` after every decode).
 let decoderSkipsValidation (lm:LanguageMacros) (emitted: Map<string, ValidationOutcome>) (isValidFunc: IsValidFunction option) (t:Asn1AcnAst.Asn1Type) : bool =
     match lm.lg.decoderValidationModel with
     | DecodersSkipAlwaysValid      -> calledValidatorCannotFail lm emitted isValidFunc t
     | DecodersCallEveryValidation  -> false
+
+/// Cycle 15j round 2: whether the generated code of a decoder body (its statements and local declarations) names the
+/// decoder's value parameter. Used only where a decoder omits its final validity call (decoderSkipsValidation): that
+/// call was the template's only use of the parameter, so a body that does not name it needs `(void)<param>;` (C
+/// `-Wextra -Werror`: unused parameter; an ACN SEQUENCE of NULLs with a pattern or an alignment). Read from the text,
+/// not from the bodies' bValIsUnReferenced: the decode producers do not compute it (an ACN SEQUENCE reports it only for
+/// Encode, coverage step 14p). Comments are removed first; a false "named" here would be a compile error, a false
+/// "not named" only a redundant `(void)`.
+let decoderBodyNamesValue (varName:string) (code: string seq) : bool =
+    let noComments (s:string) =
+        let s = Text.RegularExpressions.Regex.Replace (s, @"/\*.*?\*/", " ", Text.RegularExpressions.RegexOptions.Singleline)
+        Text.RegularExpressions.Regex.Replace (s, @"//[^\n]*", " ")
+    let rx = Text.RegularExpressions.Regex (@"(?<!->)(?<![\w.])" + Text.RegularExpressions.Regex.Escape varName + @"(?!\w)")
+    code |> Seq.exists (fun c -> rx.IsMatch (noComments c))
 
 /// Whether the encoder (12a) or the public decoder (15j) of a type omits its validity call; bValidityCannotFail of the
 /// type-assignment templates.

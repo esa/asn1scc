@@ -181,6 +181,14 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                             | Encode, _                 -> withEncodeResultInit bodyResult.funcBody
                         // an encoder's val is referenced by its validity call when it makes one (coverage step 12a)
                         let bValIsUnReferenced = bodyResult.bValIsUnReferenced && not (codec = Encode && isValidFuncName.IsSome && not bValidityCannotFail)
+                        // cycle 15j: a decoder without its final validity call (C) references val only in its body
+                        let bValIsUnReferenced =
+                            match codec, bValidityCannotFail && isValidFuncName.IsSome with
+                            | Decode, true  ->
+                                bValIsUnReferenced ||
+                                    not (DAstUtilFunctions.decoderBodyNamesValue varName (body :: (bodyResult.localVariables |> List.map lm.lg.getLocalVariableDeclaration)))
+                            | Decode, false
+                            | Encode, _     -> bValIsUnReferenced
                         body, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bValIsUnReferenced, bodyResult.auxiliaries
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
                 let precondAnnots = lm.lg.generatePrecond r UPER t codec
