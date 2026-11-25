@@ -1174,8 +1174,26 @@ let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (emitte
 /// also wrote `*pErrCode = 0`: without it a successful decode leaves the code its body wrote last, which must be 0 (the
 /// templates write the code on their failure paths only; the C `-atc` tests check `*pErrCode == 0` after every decode).
 let decoderSkipsValidation (lm:LanguageMacros) (emitted: Map<string, ValidationOutcome>) (isValidFunc: IsValidFunction option) (t:Asn1AcnAst.Asn1Type) : bool =
+    // Cycle 15j round 3: a user `post-decoding-validator` (ACN property of a SEQUENCE, PreDecodingFunction) may write a
+    // nonzero *pErrCode and still return TRUE; master's final validity call then reset the code to 0. A decoder whose
+    // type, or any type below it (an inline child's callback runs in this decoder's body; a referenced one may be
+    // inlined), has such a callback keeps the call, so its success code stays 0 whatever the callback writes.
+    let rec hasPostDecodingValidator (t:Asn1AcnAst.Asn1Type) : bool =
+        match t.Kind with
+        | Asn1AcnAst.Sequence sq ->
+            sq.acnProperties.preDecodingFunction.IsSome ||
+                sq.children |> List.exists (fun c ->
+                    match c with
+                    | Asn1AcnAst.Asn1Child ch -> hasPostDecodingValidator ch.Type
+                    | Asn1AcnAst.AcnChild _   -> false)
+        | Asn1AcnAst.Choice ch          -> ch.children |> List.exists (fun c -> hasPostDecodingValidator c.Type)
+        | Asn1AcnAst.SequenceOf so      -> hasPostDecodingValidator so.child
+        | Asn1AcnAst.ReferenceType r    -> hasPostDecodingValidator r.resolvedType
+        | Asn1AcnAst.Integer _ | Asn1AcnAst.Real _ | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _
+        | Asn1AcnAst.OctetString _ | Asn1AcnAst.NullType _ | Asn1AcnAst.BitString _ | Asn1AcnAst.Boolean _
+        | Asn1AcnAst.Enumerated _ | Asn1AcnAst.ObjectIdentifier _ | Asn1AcnAst.TimeType _ -> false
     match lm.lg.decoderValidationModel with
-    | DecodersSkipAlwaysValid      -> calledValidatorCannotFail lm emitted isValidFunc t
+    | DecodersSkipAlwaysValid      -> calledValidatorCannotFail lm emitted isValidFunc t && not (hasPostDecodingValidator t)
     | DecodersCallEveryValidation  -> false
 
 /// Cycle 15j round 2: whether the generated code of a decoder body (its statements and local declarations) names the

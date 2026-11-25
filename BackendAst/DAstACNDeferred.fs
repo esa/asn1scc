@@ -1750,6 +1750,15 @@ let private emitSpecializedFunctionDecl
     let bodyOutcome = encodeOutcomeOf ctx.codec finalBody.encOutcome
     let bValidityCannotFail = DAstUtilFunctions.codecSkipsValidation ctx.lm ctx.codec ctx.emittedValidatorOutcomes ctx.isValidFunc ctx.t bodyOutcome
     let bValidityCalled = isValidFuncName.IsSome && not bValidityCannotFail
+    // cycle 15j round 3: a specialised decoder that has a validator name (a CONTAINING type assignment's
+    // <T>_Containing_ACN_Decode) and omits the call references val only in its body (as createAcnFunction)
+    let bVarNameIsUnreferenced =
+        match ctx.codec, bValidityCannotFail && isValidFuncName.IsSome with
+        | Decode, true  ->
+            bVarNameIsUnreferenced ||
+                not (DAstUtilFunctions.decoderBodyNamesValue varName (finalBody.funcBody :: (finalBody.localVariables |> List.map ctx.lm.lg.getLocalVariableDeclaration)))
+        | Decode, false
+        | Encode, _     -> bVarNameIsUnreferenced
     // coverage step 10b: same result initialisation as AcnFunctionWrapper.createAcnFunction (DecodeOutcome.fs)
     let specBodyContent =
         match ctx.codec, ctx.lm.lg.decodeReadFailureModel with
