@@ -902,8 +902,9 @@ type LangGeneric_c() =
         override _.atcEmitsInvalidValueTests = true
         // An encoder does not call an IsConstraintValid that cannot fail (coverage step 12a).
         override _.encoderValidationModel = EncodersSkipAlwaysValid
-        // A public decoder does not end with an IsConstraintValid that cannot fail (cycle 15j, stage A).
-        override _.decoderValidationModel = DecodersSkipAlwaysValid
+        // A public decoder does not call an IsConstraintValid that cannot fail and calls any other one as a statement
+        // after a successful decode (cycle 15j).
+        override _.decoderValidationModel = DecodersSkipAlwaysValidGuardOthers
         // coverage step 14q (Q6 b): the determinant of several sources from one that is always set
         override _.multiAcnUpdateFromAlwaysSetSource = true
         // Issue 105: the determinant of several sources takes its default value when no source is set

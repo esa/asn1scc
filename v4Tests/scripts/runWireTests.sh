@@ -1052,4 +1052,18 @@ for mode in "" "--acn-v2"; do
     done
 done
 
+# The final validity check of a C decoder rejects a value the decoding accepts (cycle 15j): a null-terminated ACN
+# IA5String with SIZE (3 .. 8) whose terminator comes after fewer than 3 characters decodes without error, and the
+# validator called at the end of Name_ACN_Decode (and of Rec_ACN_Decode) returns FALSE with ERR_NAME; legacy and
+# --acn-v2, ASan / UBSan.
+for mode in "" "--acn-v2"; do
+    out=$work/acn020$mode
+    mkdir "$out"
+    run_compiler -c -ACN $mode -o "$out" "$root/test-cases/acn-wire/020.asn1" "$root/test-cases/acn-wire/020.acn"
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -fsanitize=address,undefined -fno-sanitize-recover=undefined \
+        -I "$out" "$out"/*.c "$root/test-cases/acn-wire/020_wire_test.c" -o "$out/wire_test"
+    "$out/wire_test"
+    echo "acn-wire 020 $mode OK"
+done
+
 echo "acn-v2 wire checks passed"

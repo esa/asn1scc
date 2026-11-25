@@ -1193,8 +1193,25 @@ let decoderSkipsValidation (lm:LanguageMacros) (emitted: Map<string, ValidationO
         | Asn1AcnAst.OctetString _ | Asn1AcnAst.NullType _ | Asn1AcnAst.BitString _ | Asn1AcnAst.Boolean _
         | Asn1AcnAst.Enumerated _ | Asn1AcnAst.ObjectIdentifier _ | Asn1AcnAst.TimeType _ -> false
     match lm.lg.decoderValidationModel with
-    | DecodersSkipAlwaysValid      -> calledValidatorCannotFail lm emitted isValidFunc t && not (hasPostDecodingValidator t)
-    | DecodersCallEveryValidation  -> false
+    | DecodersSkipAlwaysValidGuardOthers -> calledValidatorCannotFail lm emitted isValidFunc t && not (hasPostDecodingValidator t)
+    | DecodersCallEveryValidation        -> false
+
+/// Cycle 15j round 4 (Q1 = b): whether the emitted body of a C decoder leaves `ret` TRUE on every path, so that the
+/// decoder ends with `(void)ret; return V(...);` instead of `if (ret) { ret = V(...); }` (whose FALSE outcome no input
+/// could take). Decided from the code text, because no decode-outcome fact exists for C (DecodeOutcome answers MayFail
+/// for every C type, ReadsCanFail): the body (comments removed) has no `return` / `goto` and every mention of `ret` is an
+/// assignment `ret = TRUE;` (the template declares `flag ret = TRUE;`). A one-value type assigned without a read
+/// (decodeOneValueWithoutRead, IntNoneRequired) and an empty body qualify. A wrong TRUE would change behaviour; the
+/// rule only accepts the text in which ret cannot become FALSE.
+let decoderBodyCannotFail (lm:LanguageMacros) (body: string) : bool =
+    match lm.lg.decoderValidationModel with
+    | DecodersSkipAlwaysValidGuardOthers ->
+        let s = Text.RegularExpressions.Regex.Replace (body, @"/\*.*?\*/", " ", Text.RegularExpressions.RegexOptions.Singleline)
+        let s = Text.RegularExpressions.Regex.Replace (s, @"//[^\n]*", " ")
+        let mentions = Text.RegularExpressions.Regex.Matches(s, @"(?<![\w.>])ret(?!\w)").Count
+        let trueAssigns = Text.RegularExpressions.Regex.Matches(s, @"(?<![\w.>])ret\s*=\s*TRUE\s*;").Count
+        not (Text.RegularExpressions.Regex.IsMatch (s, @"\b(return|goto)\b")) && mentions = trueAssigns
+    | DecodersCallEveryValidation        -> false
 
 /// Cycle 15j round 2: whether the generated code of a decoder body (its statements and local declarations) names the
 /// decoder's value parameter. Used only where a decoder omits its final validity call (decoderSkipsValidation): that

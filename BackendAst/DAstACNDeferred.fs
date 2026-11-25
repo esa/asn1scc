@@ -1780,7 +1780,12 @@ let private emitSpecializedFunctionDecl
             false
             soValInitFuncName [] [] []  // funcDefAnnots, precondAnnots, postcondAnnots
             true  // bDeferredSpecialization: callers use the specialized body directly
-            false // bAlwaysSucceeds: a type with deferred determinants is MayFail (DecodeOutcome.acn)
+            // bAlwaysSucceeds: a type with deferred determinants is MayFail (DecodeOutcome.acn); cycle 15j round 4: a C
+            // decoder whose body cannot fail calls its validator directly (as createAcnFunction)
+            (match ctx.codec, isValidFuncName.IsSome && not bValidityCannotFail with
+             | Decode, true  -> DAstUtilFunctions.decoderBodyCannotFail ctx.lm specBodyContent
+             | Decode, false
+             | Encode, _     -> false)
             bValInOut
             bValidityCannotFail // coverage step 12a
             ctx.codec

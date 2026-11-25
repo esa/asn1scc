@@ -190,6 +190,13 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                             | Decode, false
                             | Encode, _     -> bValIsUnReferenced
                         body, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bValIsUnReferenced, bodyResult.auxiliaries
+                // cycle 15j round 4: a C decoder whose body cannot fail calls its validator directly (bAlwaysSucceeds of
+                // the C decode templates; for C DecodeOutcome is always MayFail, so this is the only way it becomes true)
+                let bAlwaysSucceedsT =
+                    match codec, isValidFuncName.IsSome && not bValidityCannotFail with
+                    | Decode, true  -> bAlwaysSucceeds || DAstUtilFunctions.decoderBodyCannotFail lm bodyResult_funcBody
+                    | Decode, false
+                    | Encode, _     -> bAlwaysSucceeds
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
                 let precondAnnots = lm.lg.generatePrecond r UPER t codec
                 let postcondAnnots = lm.lg.generatePostcond r UPER p t codec
@@ -206,7 +213,7 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                         let aux = EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) Seq.empty callBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) false false soValInitFuncName funcDefAnnots precondAnnots postcondAnnots bAlwaysSucceeds false bValidityCannotFail codec
                         Some (body + "\n\n" + aux)
                     | _, _ ->
-                        Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) lvars  bodyResult_funcBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soValInitFuncName funcDefAnnots precondAnnots postcondAnnots bAlwaysSucceeds (bValInOut && not bVarNameIsUnreferenced) bValidityCannotFail codec)
+                        Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) lvars  bodyResult_funcBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soValInitFuncName funcDefAnnots precondAnnots postcondAnnots bAlwaysSucceedsT (bValInOut && not bVarNameIsUnreferenced) bValidityCannotFail codec)
 
                 let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue) x.fieldPath)
                 // coverage step 14c2a: a full-index CHOICE writes all of its `in out` val (DecodeOutcome.uperValInitUnused)
