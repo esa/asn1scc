@@ -8,8 +8,9 @@
 --       (16 + 8 n: never padded). Legacy pads, --acn-v2 does not.
 --   M1: Tm has 8 + 8 bits (never padded), the site makes it 6 + 4 bits (always padded, 2 octets of which the second
 --       is partly padding). --acn-v2 pads, legacy does not.
--- The analysis of the padding must not take the merged contents alone (cycle 15e review): legacy keeps the padding
--- test at both sites, --acn-v2 drops it with the right claim.
+-- The analysis of the padding must take the encoding that is written, not the merged contents (cycle 15e review):
+-- legacy claims the residues of Tc / Tm's own encodings (2 / 0 bits modulo 8), --acn-v2 those of the merged contents
+-- (0 bits at c1; at m1 the 10 bits always need padding in the fixed 2-octet region).
 TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 
     Tc ::= SEQUENCE { a INTEGER (0..255), v OCTET STRING (SIZE (0..3)) }

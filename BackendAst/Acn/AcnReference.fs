@@ -297,9 +297,9 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
             // the template does not check its result before the length and the contents
             let callTarget, callOutcome = encodeCallTarget lm t.id.ModName us codec t.id baseFncName
             let soNoCheckNote = encodeNoCheckNote lm codec callOutcome
-            // cycle 15e: the residues of the sizes the called encoder writes into the temporary stream decide the
-            // rounding of its length to octets (RegionPadding; the merged contents and the callee, united)
-            let padResidues = RegionPadding.padResidues (RegionPadding.regionPadding r o None)
+            // cycle 15e: the residues of the sizes the called encoder (callTarget: the referenced type assignment's)
+            // writes into the temporary stream decide the rounding of its length to octets (RegionPadding)
+            let padResidues = RegionPadding.padResidues (RegionPadding.legacyCalledRegionPadding r o)
             let funcBodyContent, errCodes, localVariables, userDefinedFunctions, ns2, partOutcome =
                 match encOptions.acnEncodingClass, encOptions.octOrBitStr with
                 | SZ_EC_ExternalField    relPath    , ContainedInOctString  ->

@@ -119,7 +119,7 @@ let private intResidues (ec: IntEncodingClass) (mn: BigInteger) (mx: BigInteger)
         | TwosComplement_ConstSize_big_endian_64 | TwosComplement_ConstSize_little_endian_64 | TwosComplement_ConstSize _
         | ASCII_ConstSize _ | ASCII_UINT_ConstSize _ | BCD_ConstSize _ -> ResiduesUnknown
 
-/// the largest size whose ACN encoding never uses uPER fragmentation (16K blocks from 64K units on)
+/// the smallest SIZE maximum whose uPER-like encoding fragments (blocks of 16K units with headers, uPER.getSizeableTypeSize)
 let private fragmentationFrom = 65536I
 
 /// IA5String / NumericString: a length field (or terminator) of fixed width + characters of charSizeInBits each
@@ -150,9 +150,26 @@ let private sizeableStringResidues (mn: BigInteger) (mx: BigInteger) (maxSize: S
     | false, true  -> ResiduesUnknown
     | false, false -> stepped mn mx unit
 
-/// The type assignment a reference names (its own encoding, without the site's specification).
-let private referencedTasType (r: AstRoot) (rf: ReferenceType) : Asn1Type =
-    ((r.GetModuleByName rf.modName).GetTypeAssignmentByName rf.tasName r).Type
+/// The alternatives of a CHOICE that its encoding can select (an ALWAYS ABSENT alternative is not encoded, AcnChoice
+/// isAcnChild; all of them when every one is ALWAYS ABSENT, as AcnEncodingClasses.GetChoiceEncodingClass counts).
+let private encodedAlternatives (ch: Choice) : ChChildInfo list =
+    let isEncoded (c: ChChildInfo) =
+        match c.Optionality with
+        | Some ChoiceAlwaysAbsent -> false
+        | Some ChoiceAlwaysPresent | None -> true
+    match ch.children |> List.filter isEncoded with
+    | []      -> ch.children
+    | encoded -> encoded
+
+/// A CHOICE alternative that is a CONTAINING sized by the region parameter of its CHOICE: it writes only its contents,
+/// the wrapper around the CHOICE measures / pads the region (DAstACNDeferred, Choice.containingRegion).
+let private sizedByRegion (regionPrm: string option) (rf: ReferenceType) : bool =
+    match rf.encodingOptions, regionPrm with
+    | None, _ | Some _, None -> false
+    | Some eo, Some prm ->
+        match eo.acnEncodingClass with
+        | SZ_EC_ExternalField rp -> rp.asStringList = [prm]
+        | SZ_EC_FIXED_SIZE | SZ_EC_LENGTH_EMBEDDED _ | SZ_EC_TerminationPattern _ | SZ_EC_Deduced -> false
 
 let rec private typeResidues (r: AstRoot) (t: Asn1Type) : Residues =
     alignedOrNot t.acnAlignment (fun () ->
@@ -223,10 +240,7 @@ let rec private typeResidues (r: AstRoot) (t: Asn1Type) : Residues =
 /// The body of a CHOICE (index + one alternative). In the region of a parameterised CHOICE (regionPrm), an alternative
 /// that is a CONTAINING sized by that parameter writes only its contents (the wrapper around the CHOICE measures / pads).
 and private choiceBodyResiduesOf (r: AstRoot) (ch: Choice) (regionPrm: string option) : Residues =
-    let encoded =
-        match ch.children |> List.filter (fun c -> c.Optionality <> Some ChoiceAlwaysAbsent) with
-        | []      -> ch.children
-        | encoded -> encoded
+    let encoded = encodedAlternatives ch
     // the index the CHOICE writes (AcnEncodingClasses.GetChoiceEncodingClass, AcnChoice nIndexSizeInBits)
     let indexBits =
         match ch.acnProperties.enumDeterminant, encoded |> List.exists (fun c -> not c.acnPresentWhenConditions.IsEmpty) with
@@ -235,10 +249,9 @@ and private choiceBodyResiduesOf (r: AstRoot) (ch: Choice) (regionPrm: string op
     let alternative (c: ChChildInfo) : Residues =
         match c.Type.Kind with
         | ReferenceType rf ->
-            match rf.encodingOptions, regionPrm with
-            | Some ({acnEncodingClass = SZ_EC_ExternalField rp}), Some prm when rp.asStringList = [prm] ->
-                alignedOrNot c.Type.acnAlignment (fun () -> calledContentsResidues r rf)
-            | Some _, _ | None, _ -> typeResidues r c.Type
+            match sizedByRegion regionPrm rf with
+            | true  -> alignedOrNot c.Type.acnAlignment (fun () -> calledContentsResidues r rf)
+            | false -> typeResidues r c.Type
         | Integer _ | Real _ | IA5String _ | NumericString _ | OctetString _ | NullType _ | BitString _ | Boolean _
         | Enumerated _ | ObjectIdentifier _ | SequenceOf _ | Sequence _ | Choice _ | TimeType _ -> typeResidues r c.Type
     add (ofSize indexBits) (encoded |> List.map alternative |> List.fold union (Residues Set.empty))
@@ -303,6 +316,15 @@ let private siteContents (r: AstRoot) (o: ReferenceType) : Asn1Type list =
 let regionPadding (r: AstRoot) (o: ReferenceType) (fixedOctets: BigInteger option) : RegionPadding =
     decide fixedOctets (unionOf r (siteContents r o))
 
+/// The legacy embedded-length / fixed-size region (AcnReference, octet_string_containing_func): the contents are
+/// encoded into the temporary stream by the function the site calls, which is always the referenced type assignment's
+/// (DAstUtilFunctions.getReferenceCallFuncName → containedCalleeTas for a site with encoding options; --acn-v2 never
+/// reaches this template for these classes, DAstACNDeferred has its own arms), whatever the site's specification says:
+/// its residues are those of containedCalleeType alone (cycle 15e review r1, P3-2: the union with the merged contents
+/// made no claim at a site with a child override although only one encoding is ever written).
+let legacyCalledRegionPadding (r: AstRoot) (o: ReferenceType) : RegionPadding =
+    decide None (unionOf r [DAstUtilFunctions.containedCalleeType r o])
+
 /// The legacy size update of an OCTET STRING CONTAINING with an external size (AcnDependencies
 /// handleSizeDeterminantContaining): it encodes the inline body of o.resolvedType.ActualType.
 let legacySizeUpdatePadding (r: AstRoot) (o: ReferenceType) : RegionPadding =
@@ -310,20 +332,23 @@ let legacySizeUpdatePadding (r: AstRoot) (o: ReferenceType) : RegionPadding =
 
 /// The region of a parameterised CHOICE (the CHOICE wrapper of DAstACNDeferred): it holds the CHOICE body; an alignment
 /// of the CHOICE is inside the region. Each alternative sized by the region writes only its contents, which must pass
-/// the cross-check of contentsResidues (the CHOICE's own sizes count the padding, Issue 141, so they cannot be used).
+/// the cross-check of contentsResidues (the CHOICE's own sizes count the padding, Issue 141, so they cannot be used);
+/// every other encoded alternative must pass it with its own sizes.
 let choiceRegionPadding (r: AstRoot) (choiceType: Asn1Type) (ch: Choice) (regionPrm: string) (fixedOctets: BigInteger option) : RegionPadding =
+    let passes (residues: Residues) =
+        match residues with
+        | Residues _      -> true
+        | ResiduesUnknown -> false
     let alternativesPassCrossCheck =
-        ch.children |> List.forall (fun c ->
+        encodedAlternatives ch |> List.forall (fun c ->
             match c.Type.Kind with
             | ReferenceType rf ->
-                match rf.encodingOptions with
-                | Some _ ->
-                    match unionOf r (siteContents r rf) with
-                    | Residues _      -> true
-                    | ResiduesUnknown -> false
-                | None -> true
+                match sizedByRegion (Some regionPrm) rf with
+                | true  -> passes (unionOf r (siteContents r rf))
+                | false -> passes (contentsResidues r c.Type)
             | Integer _ | Real _ | IA5String _ | NumericString _ | OctetString _ | NullType _ | BitString _ | Boolean _
-            | Enumerated _ | ObjectIdentifier _ | SequenceOf _ | Sequence _ | Choice _ | TimeType _ -> true)
+            | Enumerated _ | ObjectIdentifier _ | SequenceOf _ | Sequence _ | Choice _ | TimeType _ ->
+                passes (contentsResidues r c.Type))
     let residues =
         match choiceType.maxAlignment, alternativesPassCrossCheck with
         | None, true -> choiceBodyResiduesOf r ch (Some regionPrm)
