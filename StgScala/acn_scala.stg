@@ -1128,7 +1128,7 @@ val <v> =
 >>
 
 
-SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner, sLocalVarType, bSetInitFlag, soNoCheckNote) ::= <<
+SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner, sLocalVarType, bSetInitFlag, soNoCheckNote, arrnPadResidues) ::= <<
 {
     /*first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string*/
     val pBitStrm_save: BitStream = pBitStrm
@@ -1165,35 +1165,35 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 >>
 
 /* CONTAINING with deferred patching — TODO Scala implementation */
-octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion, arrnPadResidues) ::= <<
 // TODO: Scala deferred CONTAINING encode
 >>
 
-octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion, arrnPadResidues) ::= <<
 // TODO: Scala deferred CONTAINING decode
 >>
 
-octet_string_containing_deferred_fixed_func_encode(p, sFuncName, nOctets, sErrCode, soFixedOctets, soNoCheckNote) ::= <<
+octet_string_containing_deferred_fixed_func_encode(p, sFuncName, nOctets, sErrCode, soFixedOctets, soNoCheckNote, noContentsMaxBits) ::= <<
 // TODO: Scala deferred CONTAINING fixed encode
 >>
 
-octet_string_containing_deferred_fixed_func_decode(p, sFuncName, nOctets, sErrCode, soFixedOctets, soNoCheckNote) ::= <<
+octet_string_containing_deferred_fixed_func_decode(p, sFuncName, nOctets, sErrCode, soFixedOctets, soNoCheckNote, noContentsMaxBits) ::= <<
 // TODO: Scala deferred CONTAINING fixed decode
 >>
 
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits, soNoCheckNote) ::= <<
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits, soNoCheckNote, arrnPadResidues) ::= <<
 // TODO: Scala deferred CONTAINING embedded encode
 >>
 
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits, soNoCheckNote) ::= <<
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits, soNoCheckNote, arrnPadResidues) ::= <<
 // TODO: Scala deferred CONTAINING embedded decode
 >>
 
-octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion, arrnPadResidues) ::= <<
 // TODO: Scala deferred CONTAINING wrapper encode
 >>
 
-octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion, arrnPadResidues) ::= <<
 // TODO: Scala deferred CONTAINING wrapper decode
 >>
 
@@ -1256,7 +1256,7 @@ sparkAnnotations_encode(sTypeDefName) ::= ""
 sparkAnnotations_decode(sTypeDefName) ::= ""
 sparkAnnotations_deducedFixed(sTypeDefName) ::= ""
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent, soNoCheckNote) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent, soNoCheckNote, arrnPadResidues) ::= <<
 /*open new scope to declare some variables*/
 {
     /* encode to a temporary bitstream */
@@ -1277,7 +1277,7 @@ octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAc
 }
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent, soNoCheckNote) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent, soNoCheckNote, arrnPadResidues) ::= <<
 /*open new scope to declare some variables*/
 {
     /* decode to a temporary bitstream */

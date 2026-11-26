@@ -29,6 +29,10 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     embOdd EmbeddedPdu ::= { prefix 17, payload { 42 }, tail 165 }
     pairOdd PairPdu ::= { first { 42 }, second { 3000 }, tail 165 }
     pairEmpty PairPdu ::= { first {}, second { 42 }, tail 165 }
+    -- cycle 15e: an even number of 12-bit items is a whole number of octets: no padding
+    extEven ExternalPdu ::= { prefix 17, payload { 42, 43 }, tail 165 }
+    embEven EmbeddedPdu ::= { prefix 17, payload { 42, 43 }, tail 165 }
+    pairEven PairPdu ::= { first { 42 }, second { 3000, 1 }, tail 165 }
 END
 
 --TCLS Item [encoding pos-int, size 12] Items [size deduced] ExternalPdu [] { prefix [encoding pos-int, size 8], len INTEGER [encoding pos-int, size 16], payload [size len], tail [encoding pos-int, size 8] } EmbeddedPdu [] { prefix [encoding pos-int, size 8], payload [], tail [encoding pos-int, size 8] } PairPdu [] { first [], second [], tail [encoding pos-int, size 8] }

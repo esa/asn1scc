@@ -12,6 +12,8 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
         z   BOOLEAN
     }
 
+    -- cycle 15e: an inline region of a whole number of octets (Var of 8 + 5 + 3 bits): no padding
+    pdu3 MyPDU ::= { so { TRUE }, inl { a 6, s { TRUE, FALSE, TRUE } }, bin { a 7, s { } }, z FALSE }
 END
 
 --TCLS     MyPDU[]

@@ -44,5 +44,10 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
     emb9 EmbPdu9 ::= { hdr 5, payload { 300 }, tail 165 }
     emb9three EmbPdu9 ::= { hdr 10, payload { 1, 500, 257 }, tail 0 }
     msg9 Msg ::= b : { 300 }
+    -- cycle 15e: eight 9-bit items are a whole number of octets: no padding
+    ext9eight ExtPdu9 ::= { hdr 5, payload { 1, 2, 3, 4, 5, 6, 7, 8 }, tail 165 }
+    ext9seight ExtPdu9s ::= { hdr 5, payload { 1, 2, 3, 4, 5, 6, 7, 8 }, tail 165 }
+    emb9eight EmbPdu9 ::= { hdr 5, payload { 1, 2, 3, 4, 5, 6, 7, 8 }, tail 165 }
+    msg9eight Msg ::= b : { 1, 2, 3, 4, 5, 6, 7, 8 }
 END
 --TCLS Item12 [encoding pos-int, size 12] Item9 [encoding pos-int, size 9] List12 [size deduced] List9 [size deduced] ExtPdu12 [] { hdr [encoding pos-int, size 4], len INTEGER [encoding pos-int, size 16], payload [size len], tail [encoding pos-int, size 8] } ExtPdu9 [] { hdr [encoding pos-int, size 4], len INTEGER [encoding pos-int, size 16], payload [size len], tail [encoding pos-int, size 8] } ExtPdu9s [] { hdr [encoding pos-int, size 4], len INTEGER [encoding pos-int, size 7], payload [size len], tail [encoding pos-int, size 8] } EmbPdu9 [] { hdr [encoding pos-int, size 4], payload [], tail [encoding pos-int, size 8] } Msg [] { a [], b [], c [] }

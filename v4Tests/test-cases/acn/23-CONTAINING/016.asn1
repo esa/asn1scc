@@ -15,6 +15,8 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
         z  BOOLEAN
     }
 
+    -- cycle 15e: two BCD digits + terminator (12 bits, 4 bits of padding) and one digit (8 bits, none)
+    twoDigits MyPDU ::= { b { a 42 }, o { a 42 }, cb p : 1, co q : 7, z TRUE }
 END
 
 --TCLS     X[] { a [encoding BCD, size null-terminated] } Ch[] { p [encoding pos-int, size 8], q [] } MyPDU[]

@@ -354,7 +354,16 @@ and private handleSizeDeterminantContaining (ctx: DepContext) (o: Asn1AcnAst.Ref
         let sLocalVarType = child.typeDefinitionBodyWithinSeq
         let soDefault = defaultWhenAbsent r lm m bForceInitFlag child.Type
         let bSetInitFlag = setsInitFlag lm bForceInitFlag (initOfUpdate checkPath soDefault)
-        let updateStatement = lm.acn.SizeDependency_oct_str_containing (lm.lg.getParamValue o.resolvedType pSizeable.accessPath Encode) baseFncName sReqBytesForUperEncoding v (match o.encodingOptions with Some eo -> eo.octOrBitStr = ContainedInOctString | None -> false) sInner sLocalVarType bSetInitFlag soNoCheckNote
+        // cycle 15e: an OCTET STRING region rounds the temporary encoding up to octets without a test when the residues
+        // of the sizes the inline body writes decide it (RegionPadding)
+        let padResidues =
+            match o.encodingOptions with
+            | Some eo ->
+                match eo.octOrBitStr with
+                | ContainedInOctString -> RegionPadding.padResidues (RegionPadding.legacySizeUpdatePadding r o)
+                | ContainedInBitString -> []
+            | None -> []
+        let updateStatement = lm.acn.SizeDependency_oct_str_containing (lm.lg.getParamValue o.resolvedType pSizeable.accessPath Encode) baseFncName sReqBytesForUperEncoding v (match o.encodingOptions with Some eo -> eo.octOrBitStr = ContainedInOctString | None -> false) sInner sLocalVarType bSetInitFlag soNoCheckNote padResidues
         // sets the determinant only when the temporary encoding succeeded, else the check after the update stops the
         // encoding
         let updOutcome = EncodeOutcome.sequence [innerOutcome; lm.lg.encodeTemplateOutcome EncDeterminantAssign]

@@ -1435,7 +1435,7 @@ if (<arrsCheckPaths; separator=" && ">) {
 >>
 
 
-SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner, sLocalVarType, bSetInitFlag, soNoCheckNote) ::= <<
+SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner, sLocalVarType, bSetInitFlag, soNoCheckNote, arrnPadResidues) ::= <<
 {
     /*first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string*/
     BitStream_Init(&bitStrm, arr, sizeof(arr));
@@ -1446,10 +1446,10 @@ SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIs
 }
 <if(soNoCheckNote)>
 <soNoCheckNote>
-<v> = <if(bIsOctet)>bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1)<else>bitStrm.currentByte*8+bitStrm.currentBit<endif>;<if(bSetInitFlag)><\n><v>_is_initialized = TRUE;<endif><\n>
+<v> = <if(bIsOctet)><if(arrnPadResidues)>bitStrm.currentByte + (bitStrm.currentBit + 7) / 8<else>bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1)<endif><else>bitStrm.currentByte*8+bitStrm.currentBit<endif>;<if(arrnPadResidues)> /*no test whether padding is needed: every ACN encoding of the contents has a size of <arrnPadResidues; separator=" or "> bit(s) modulo 8; the count rounds up (a whole number of octets adds 0)*/<endif><if(bSetInitFlag)><\n><v>_is_initialized = TRUE;<endif><\n>
 <else>
 if (ret) {
-	<v> = <if(bIsOctet)>bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1)<else>bitStrm.currentByte*8+bitStrm.currentBit<endif>;<if(bSetInitFlag)><\n>	<v>_is_initialized = TRUE;<endif>
+	<v> = <if(bIsOctet)><if(arrnPadResidues)>bitStrm.currentByte + (bitStrm.currentBit + 7) / 8<else>bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1)<endif><else>bitStrm.currentByte*8+bitStrm.currentBit<endif>;<if(arrnPadResidues)> /*no test whether padding is needed: every ACN encoding of the contents has a size of <arrnPadResidues; separator=" or "> bit(s) modulo 8; the count rounds up (a whole number of octets adds 0)*/<endif><if(bSetInitFlag)><\n>	<v>_is_initialized = TRUE;<endif>
 }<\n>
 <endif>
 
@@ -1489,17 +1489,17 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 /* CONTAINING with deferred patching: encode directly, PatchDet with measured distance.
    soFixedOctets (also in the _embedded_ and _wrapper_ variants): every encoding of the contents takes that many whole
    octets, so the zero padding to whole octets is never needed and is omitted (coverage step 14e, E3). */
-octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion, arrnPadResidues) ::= <<
 {
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
 <if(soNoCheckNote)>
-    <soNoCheckNote><if(soFixedOctets)><\n>    /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>    /*pad the contained encoding to a whole number of octets from its start: the<\n>      region is measured in octets (as legacy writes it), also when it does not<\n>      start at a byte boundary*/<\n>    if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>        BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>    }<endif>
+    <soNoCheckNote><if(soFixedOctets)><\n>    /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>    /*pad the contained encoding to a whole number of octets from its start: the<\n>      region is measured in octets (as legacy writes it), also when it does not<\n>      start at a byte boundary*/<if(arrnPadResidues)><\n>    /*no test whether padding is needed: every ACN encoding of the contents has a size of <arrnPadResidues; separator=" or "> bit(s) modulo 8, so the answer never changes; the amount is computed (0 bits for a whole number of octets)*/<\n>    BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8);<else><\n>    if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>        BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>    }<endif><endif>
     AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
     asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
     ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <if(soNBits)><soNBits>, <endif><sDetParamName>, pErrCode);<if(bCannotFail)> /* cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value) */<else><\n>    if (!ret) {<\n>        *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<\n>        return FALSE; /*COVERAGE_IGNORE*/<\n>    }<endif><\n>
 <else>
-    if (ret) {<if(soFixedOctets)><\n>        /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>        /*pad the contained encoding to a whole number of octets from its start: the<\n>          region is measured in octets (as legacy writes it), also when it does not<\n>          start at a byte boundary*/<\n>        if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>            BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>        }<endif>
+    if (ret) {<if(soFixedOctets)><\n>        /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>        /*pad the contained encoding to a whole number of octets from its start: the<\n>          region is measured in octets (as legacy writes it), also when it does not<\n>          start at a byte boundary*/<if(arrnPadResidues)><\n>        /*no test whether padding is needed: every ACN encoding of the contents has a size of <arrnPadResidues; separator=" or "> bit(s) modulo 8, so the answer never changes; the amount is computed (0 bits for a whole number of octets)*/<\n>        BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8);<else><\n>        if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>            BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>        }<endif><endif>
         AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
         asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
         ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <if(soNBits)><soNBits>, <endif><sDetParamName>, pErrCode);<if(bCannotFail)> /* cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value) */<else><\n>        if (!ret) {<\n>            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<\n>            return FALSE; /*COVERAGE_IGNORE*/<\n>        }<endif>
@@ -1509,7 +1509,7 @@ octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatch
 >>
 
 /* CONTAINING with deferred patching: limit stream view, decode directly */
-octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion, arrnPadResidues) ::= <<
 {
     long acn_saved_count = pBitStrm->count;
     /*the region is <sDetParamName>->value octets from the current bit (at most <nMaxRegion>, the largest encoding of its contents); off a byte boundary it ends inside one more byte*/
@@ -1531,32 +1531,32 @@ octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatch
 
 /* CONTAINING with deferred patching, FIXED_SIZE: just call directly, no temp buffer */
 /* soFixedOctets: every encoding of the contents takes all nOctets octets, so there is never padding (coverage step 14e, E3) */
-octet_string_containing_deferred_fixed_func_encode(p, sFuncName, nOctets, sErrCode, soFixedOctets, soNoCheckNote) ::= <<
-{<if(soFixedOctets)><\n>    /*no zero padding: every encoding of the contents fills all <nOctets> octet(s) of the OCTET STRING*/<\n>    ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);<else><\n>    AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);<\n>    ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);<if(soNoCheckNote)><\n>    <soNoCheckNote><\n>    /*the OCTET STRING holds <nOctets> whole octets: pad the contained encoding with zeros up to them*/<\n>    long acn_nPad = acn_data_start.currentByte * 8L + acn_data_start.currentBit + <nOctets> * 8L - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);<\n>    if (acn_nPad \> 0) {<\n>        BitStream_AppendNBitZero(pBitStrm, (int)acn_nPad); /*COVERAGE_IGNORE*/<\n>    }<else><\n>    if (ret) {<\n>        /*the OCTET STRING holds <nOctets> whole octets: pad the contained encoding with zeros up to them*/<\n>        long acn_nPad = acn_data_start.currentByte * 8L + acn_data_start.currentBit + <nOctets> * 8L - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);<\n>        if (acn_nPad \> 0) {<\n>            BitStream_AppendNBitZero(pBitStrm, (int)acn_nPad); /*COVERAGE_IGNORE*/<\n>        }<\n>    }<endif><endif>
+octet_string_containing_deferred_fixed_func_encode(p, sFuncName, nOctets, sErrCode, soFixedOctets, soNoCheckNote, noContentsMaxBits) ::= <<
+{<if(soFixedOctets)><\n>    /*no zero padding: every encoding of the contents fills all <nOctets> octet(s) of the OCTET STRING*/<\n>    ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);<else><\n>    AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);<\n>    ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);<if(soNoCheckNote)><\n>    <soNoCheckNote><\n>    /*the OCTET STRING holds <nOctets> whole octets: pad the contained encoding with zeros up to them*/<\n>    long acn_nPad = acn_data_start.currentByte * 8L + acn_data_start.currentBit + <nOctets> * 8L - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);<if(noContentsMaxBits)><\n>    /*no test whether padding is needed: every ACN encoding of the contents takes at most <noContentsMaxBits> bits, fewer than the <nOctets> octet(s), so acn_nPad is always positive*/<\n>    BitStream_AppendNBitZero(pBitStrm, (int)acn_nPad);<else><\n>    if (acn_nPad \> 0) {<\n>        BitStream_AppendNBitZero(pBitStrm, (int)acn_nPad); /*COVERAGE_IGNORE*/<\n>    }<endif><else><\n>    if (ret) {<\n>        /*the OCTET STRING holds <nOctets> whole octets: pad the contained encoding with zeros up to them*/<\n>        long acn_nPad = acn_data_start.currentByte * 8L + acn_data_start.currentBit + <nOctets> * 8L - (pBitStrm->currentByte * 8L + pBitStrm->currentBit);<if(noContentsMaxBits)><\n>        /*no test whether padding is needed: every ACN encoding of the contents takes at most <noContentsMaxBits> bits, fewer than the <nOctets> octet(s), so acn_nPad is always positive*/<\n>        BitStream_AppendNBitZero(pBitStrm, (int)acn_nPad);<else><\n>        if (acn_nPad \> 0) {<\n>            BitStream_AppendNBitZero(pBitStrm, (int)acn_nPad); /*COVERAGE_IGNORE*/<\n>        }<endif><\n>    }<endif><endif>
 }
 >>
 
-octet_string_containing_deferred_fixed_func_decode(p, sFuncName, nOctets, sErrCode, soFixedOctets, soNoCheckNote) ::= <<
+octet_string_containing_deferred_fixed_func_decode(p, sFuncName, nOctets, sErrCode, soFixedOctets, soNoCheckNote, noContentsMaxBits) ::= <<
 {<if(soFixedOctets)><\n>    /*no padding to skip: every encoding of the contents fills all <nOctets> octet(s) of the OCTET STRING, so after a successful read the stream is at its end (coverage step 14e, E5)*/<\n>    ret = <sFuncName>(<p>, pBitStrm, pErrCode);<else><\n>    AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);<\n>    ret = <sFuncName>(<p>, pBitStrm, pErrCode);<\n>    if (ret) {<\n>        /*skip the padding: the OCTET STRING holds <nOctets> whole octets from its first bit*/<\n>        long acn_end = acn_data_start.currentByte * 8L + acn_data_start.currentBit + <nOctets> * 8L;<\n>        if (acn_end \> pBitStrm->count * 8L) {<\n>            ret = FALSE; /*COVERAGE_IGNORE*/<\n>            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<\n>        } else {<\n>            pBitStrm->currentByte = acn_end / 8;<\n>            pBitStrm->currentBit = (int)(acn_end % 8);<\n>        }<\n>    }<endif>
 }
 >>
 
 /* CONTAINING with deferred patching, LENGTH_EMBEDDED: save_pos + placeholder + direct encode + measure + patch */
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits, soNoCheckNote) ::= <<
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits, soNoCheckNote, arrnPadResidues) ::= <<
 {
     AcnBitStreamPos acn_len_pos = Acn_BitStream_GetPos(pBitStrm);
     BitStream_EncodeConstraintWholeNumber(pBitStrm, <nMinSize>, <nMinSize>, <nMaxSize>);
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     ret = <sFuncName>(<p>, pBitStrm, pErrCode, FALSE);
 <if(soNoCheckNote)>
-    <soNoCheckNote><if(soFixedOctets)><\n>    /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>    /*pad the contained encoding to a whole number of octets from its start<\n>      (see the ext-field variant above)*/<\n>    if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>        BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>    }<endif>
+    <soNoCheckNote><if(soFixedOctets)><\n>    /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>    /*pad the contained encoding to a whole number of octets from its start<\n>      (see the ext-field variant above)*/<if(arrnPadResidues)><\n>    /*no test whether padding is needed: every ACN encoding of the contents has a size of <arrnPadResidues; separator=" or "> bit(s) modulo 8, so the answer never changes; the amount is computed (0 bits for a whole number of octets)*/<\n>    BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8);<else><\n>    if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>        BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>    }<endif><endif>
     AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
     asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
     Acn_BitStream_SetPos(pBitStrm, acn_len_pos);
     BitStream_EncodeConstraintWholeNumber(pBitStrm, acn_nCount, <nMinSize>, <nMaxSize>);
     Acn_BitStream_SetPos(pBitStrm, acn_data_end);<\n>
 <else>
-    if (ret) {<if(soFixedOctets)><\n>        /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>        /*pad the contained encoding to a whole number of octets from its start<\n>          (see the ext-field variant above)*/<\n>        if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>            BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>        }<endif>
+    if (ret) {<if(soFixedOctets)><\n>        /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>        /*pad the contained encoding to a whole number of octets from its start<\n>          (see the ext-field variant above)*/<if(arrnPadResidues)><\n>        /*no test whether padding is needed: every ACN encoding of the contents has a size of <arrnPadResidues; separator=" or "> bit(s) modulo 8, so the answer never changes; the amount is computed (0 bits for a whole number of octets)*/<\n>        BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8);<else><\n>        if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>            BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>        }<endif><endif>
         AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
         asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
         Acn_BitStream_SetPos(pBitStrm, acn_len_pos);
@@ -1567,7 +1567,7 @@ octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nM
 }
 >>
 
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits, soNoCheckNote) ::= <<
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits, soNoCheckNote, arrnPadResidues) ::= <<
 {
     asn1SccSint acn_nCount;
     ret = BitStream_DecodeConstraintWholeNumber(pBitStrm, &acn_nCount, <nMinSize>, <nMaxSize>);
@@ -1594,17 +1594,17 @@ octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nM
 
 /* CONTAINING ExternalField wrapper: wraps an inline body with save-pos/measure/PatchDet
    Used when the contained type has ACN parameters (no standalone ACN function). */
-octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion, arrnPadResidues) ::= <<
 {
     AcnBitStreamPos acn_data_start = Acn_BitStream_GetPos(pBitStrm);
     <sBody>
 <if(soNoCheckNote)>
-    <soNoCheckNote><if(soFixedOctets)><\n>    /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>    /*pad the contained encoding to a whole number of octets from its start<\n>      (see the ext-field variant above)*/<\n>    if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>        BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>    }<endif>
+    <soNoCheckNote><if(soFixedOctets)><\n>    /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>    /*pad the contained encoding to a whole number of octets from its start<\n>      (see the ext-field variant above)*/<if(arrnPadResidues)><\n>    /*no test whether padding is needed: every ACN encoding of the contents has a size of <arrnPadResidues; separator=" or "> bit(s) modulo 8, so the answer never changes; the amount is computed (0 bits for a whole number of octets)*/<\n>    BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8);<else><\n>    if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>        BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>    }<endif><endif>
     AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
     asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
     ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <if(soNBits)><soNBits>, <endif><sDetParamName>, pErrCode);<if(bCannotFail)> /* cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value) */<else><\n>    if (!ret) {<\n>        *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<\n>        return FALSE; /*COVERAGE_IGNORE*/<\n>    }<endif><\n>
 <else>
-    if (ret) {<if(soFixedOctets)><\n>        /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>        /*pad the contained encoding to a whole number of octets from its start<\n>          (see the ext-field variant above)*/<\n>        if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>            BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>        }<endif>
+    if (ret) {<if(soFixedOctets)><\n>        /*no zero padding: every encoding of the contents has the same size, <soFixedOctets> whole octet(s)*/<else><\n>        /*pad the contained encoding to a whole number of octets from its start<\n>          (see the ext-field variant above)*/<if(arrnPadResidues)><\n>        /*no test whether padding is needed: every ACN encoding of the contents has a size of <arrnPadResidues; separator=" or "> bit(s) modulo 8, so the answer never changes; the amount is computed (0 bits for a whole number of octets)*/<\n>        BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8);<else><\n>        if (pBitStrm->currentBit != acn_data_start.currentBit) {<\n>            BitStream_AppendNBitZero(pBitStrm, (acn_data_start.currentBit - pBitStrm->currentBit + 8) % 8); /*COVERAGE_IGNORE*/<\n>        }<endif><endif>
         AcnBitStreamPos acn_data_end = Acn_BitStream_GetPos(pBitStrm);
         asn1SccUint acn_nCount = Acn_BitStream_DistanceInBytes(acn_data_start, acn_data_end);
         ret = <sPatchFuncName>((asn1SccUint)<sValue>, pBitStrm, <if(soNBits)><soNBits>, <endif><sDetParamName>, pErrCode);<if(bCannotFail)> /* cannot fail: the first patch of <sDetParamName> since its InitDet (an unset ref takes any value) */<else><\n>        if (!ret) {<\n>            *pErrCode = <sErrCode>; /*COVERAGE_IGNORE*/<\n>            return FALSE; /*COVERAGE_IGNORE*/<\n>        }<endif>
@@ -1613,7 +1613,7 @@ octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFunc
 }
 >>
 
-octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion, arrnPadResidues) ::= <<
 {
     long acn_saved_count = pBitStrm->count;
     /*the region is <sDetParamName>->value octets from the current bit (at most <nMaxRegion>, the largest encoding of its contents); off a byte boundary it ends inside one more byte*/
@@ -1830,7 +1830,7 @@ sparkAnnotations_deducedFixed(sTypeDefName) ::= ""
 
 
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent, soNoCheckNote) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent, soNoCheckNote, arrnPadResidues) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*encode to a temporary bitstream*/
@@ -1841,11 +1841,11 @@ octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAc
 	ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
 <if(soNoCheckNote)>
 	<soNoCheckNote>
-	int nCount = bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1);<if(bFixedSize)><else><\n>	BitStream_EncodeConstraintWholeNumber(pBitStrm, nCount, <nMinSize>, <nMaxSize>);<endif>
+	int nCount = <if(arrnPadResidues)>bitStrm.currentByte + (bitStrm.currentBit + 7) / 8; /*no test whether padding is needed: every ACN encoding of the contents has a size of <arrnPadResidues; separator=" or "> bit(s) modulo 8; the count rounds up (a whole number of octets adds 0)*/<else>bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1);<endif><if(bFixedSize)><else><\n>	BitStream_EncodeConstraintWholeNumber(pBitStrm, nCount, <nMinSize>, <nMaxSize>);<endif>
 	ret = BitStream_EncodeOctetString_no_length(pBitStrm, arr, nCount);<\n>
 <else>
 	if (ret) {
-		int nCount = bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1);
+		int nCount = <if(arrnPadResidues)>bitStrm.currentByte + (bitStrm.currentBit + 7) / 8; /*no test whether padding is needed: every ACN encoding of the contents has a size of <arrnPadResidues; separator=" or "> bit(s) modulo 8; the count rounds up (a whole number of octets adds 0)*/<else>bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1);<endif>
 		<if(bFixedSize)>
 		ret = BitStream_EncodeOctetString_no_length(pBitStrm, arr, nCount);
 
@@ -1859,7 +1859,7 @@ octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAc
 }
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent, soNoCheckNote) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent, soNoCheckNote, arrnPadResidues) ::= <<
 /*open new scope to declare some variables*/
 {
 	/*decode to a temporary bitstream whose view is limited to the actual

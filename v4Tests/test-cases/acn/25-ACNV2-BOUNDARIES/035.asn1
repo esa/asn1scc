@@ -15,5 +15,8 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
         payload OCTET STRING (CONTAINING List9),
         tail    INTEGER (0..255)
     }
+    -- cycle 15e: eight 9-bit items are a whole number of octets: no padding
+    extEight ExtPdu ::= { hdr 5, payload { 1, 2, 3, 4, 5, 6, 7, 8 }, tail 165 }
+    embEight EmbPdu ::= { hdr 5, payload { 1, 2, 3, 4, 5, 6, 7, 8 }, tail 165 }
 END
 --TCFS 035.acn

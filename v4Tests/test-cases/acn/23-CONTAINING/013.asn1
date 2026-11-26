@@ -27,6 +27,10 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
         z   BOOLEAN
     }
 
+    -- cycle 15e: values whose CONTAINING regions are a whole number of octets (Var of 8 + 5 + 3 bits), so the encoders
+    -- also run without padding
+    vb3 VarBox ::= { a 1, s { TRUE, FALSE, TRUE } }
+    pdu3 MyPDU ::= { f { a 1, b TRUE }, v { a 2, s { TRUE } }, bv { a 3, s { } }, al { a 4, s { } }, ch n : TRUE, so { { a 5, s { } } }, inl { a 6, s { TRUE, FALSE, TRUE } }, z FALSE }
 END
 
 --TCLS     MyPDU[]

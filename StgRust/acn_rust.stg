@@ -1472,7 +1472,7 @@ if <arrsCheckPaths; separator=" && "> {
 >>
 
 
-SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner, sLocalVarType, bSetInitFlag, soNoCheckNote) ::= <<
+SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIsOctet, sInner, sLocalVarType, bSetInitFlag, soNoCheckNote, arrnPadResidues) ::= <<
 {
     /*first encode containing type to a temporary bitstream. That's the only way to learn in advance the size of the encoding octet string*/
     arr = [0u8; <sReqBytesForUperEncoding>];
@@ -1516,7 +1516,7 @@ octet_string_containing_ext_field_func_decode(p, sFuncName, sReqBytesForUperEnco
 >>
 
 /* CONTAINING with deferred patching: encode directly, PatchDet with measured distance */
-octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
+octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion, arrnPadResidues) ::= <<
 {
     let acn_data_start = acn::acn_bit_stream_get_pos(pBitStrm);
     ret = <sFuncName>(&<p>, pBitStrm, pErrCode, false);
@@ -1538,7 +1538,7 @@ octet_string_containing_deferred_func_encode(p, sFuncName, sDetParamName, sPatch
 >>
 
 /* CONTAINING with deferred patching: limit stream view, decode directly */
-octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
+octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion, arrnPadResidues) ::= <<
 {
     if !pBitStrm.has_n_bytes(<sDetParamName>.value) {
         ret = false;
@@ -1556,16 +1556,16 @@ octet_string_containing_deferred_func_decode(p, sFuncName, sDetParamName, sPatch
 >>
 
 /* CONTAINING with deferred patching, FIXED_SIZE: just call directly, no temp buffer */
-octet_string_containing_deferred_fixed_func_encode(p, sFuncName, nOctets, sErrCode, soFixedOctets, soNoCheckNote) ::= <<
+octet_string_containing_deferred_fixed_func_encode(p, sFuncName, nOctets, sErrCode, soFixedOctets, soNoCheckNote, noContentsMaxBits) ::= <<
 ret = <sFuncName>(&<p>, pBitStrm, pErrCode, false);
 >>
 
-octet_string_containing_deferred_fixed_func_decode(p, sFuncName, nOctets, sErrCode, soFixedOctets, soNoCheckNote) ::= <<
+octet_string_containing_deferred_fixed_func_decode(p, sFuncName, nOctets, sErrCode, soFixedOctets, soNoCheckNote, noContentsMaxBits) ::= <<
 ret = <sFuncName>(&mut <p>, pBitStrm, pErrCode);
 >>
 
 /* CONTAINING with deferred patching, LENGTH_EMBEDDED: save_pos + placeholder + direct encode + measure + patch */
-octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits, soNoCheckNote) ::= <<
+octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits, soNoCheckNote, arrnPadResidues) ::= <<
 {
     let acn_len_pos = acn::acn_bit_stream_get_pos(pBitStrm);
     pBitStrm.encode_constraint_whole_number(<nMinSize> as i64, <nMinSize> as i64, <nMaxSize> as i64);
@@ -1586,7 +1586,7 @@ octet_string_containing_deferred_embedded_func_encode(p, sFuncName, nMinSize, nM
 }
 >>
 
-octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits, soNoCheckNote) ::= <<
+octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nMaxSize, nBits, sErrCode, bDeducedContent, soFixedOctets, soCovExempt, soCovExemptFits, soNoCheckNote, arrnPadResidues) ::= <<
 {
     let (acn_nCount, ok) = pBitStrm.decode_constraint_whole_number(<nMinSize> as i64, <nMaxSize> as i64);
     ret = ok;
@@ -1609,7 +1609,7 @@ octet_string_containing_deferred_embedded_func_decode(p, sFuncName, nMinSize, nM
 
 /* CONTAINING ExternalField wrapper: wraps an inline body with save-pos/measure/PatchDet
    Used when the contained type has ACN parameters (no standalone ACN function). */
-octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
+octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion, arrnPadResidues) ::= <<
 {
     let acn_data_start = acn::acn_bit_stream_get_pos(pBitStrm);
     <sBody>
@@ -1630,7 +1630,7 @@ octet_string_containing_deferred_wrapper_encode(sBody, sDetParamName, sPatchFunc
 }
 >>
 
-octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion) ::= <<
+octet_string_containing_deferred_wrapper_decode(sBody, sDetParamName, sPatchFuncName, sValue, soNBits, sErrCode, bDeducedContent, bCannotFail, soFixedOctets, soCovExempt, soNoCheckNote, nMaxRegion, arrnPadResidues) ::= <<
 {
     if !pBitStrm.has_n_bytes(<sDetParamName>.value) {
         ret = false;
@@ -1803,7 +1803,7 @@ sparkAnnotations_deducedFixed(sTypeDefName) ::= ""
 
 
 
-octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent, soNoCheckNote) ::= <<
+octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent, soNoCheckNote, arrnPadResidues) ::= <<
 /*open new scope to declare some variables*/
 {
     /*encode to a temporary bitstream*/
@@ -1825,7 +1825,7 @@ octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAc
 }
 >>
 
-octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent, soNoCheckNote) ::= <<
+octet_string_containing_func_decode(p, sFuncName, sContainedType, sReqBytesForAcnEncoding, nBits, nMinSize, nMaxSize, bFixedSize, sErrCode, bDeducedContent, soNoCheckNote, arrnPadResidues) ::= <<
 /*open new scope to declare some variables*/
 {
     /*decode to a temporary bitstream whose view is limited to the actual

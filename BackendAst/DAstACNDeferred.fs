@@ -1391,7 +1391,9 @@ let private buildContainingClosureBody
                     containingSizePatchDet ctx.r ctx.lm ctx.deps ctx.codec sizePrm.id (fun () -> "")
                 match ctx.o.encodingOptions.Value.octOrBitStr with
                 | CommonTypes.ContainedInOctString ->
-                    ctx.lm.acn.octet_string_containing_deferred_wrapper br.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) (containingSizePatchCannotFail ctx sizePrm) (containingFixedOctets ctx.o.resolvedType |> Option.map string) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote (containingRegionMax ctx.o) ctx.codec
+                    // cycle 15e: the padding decided by the residues of the contents (RegionPadding)
+                    let padding = RegionPadding.regionPadding ctx.r ctx.o (containingFixedOctets ctx.o.resolvedType)
+                    ctx.lm.acn.octet_string_containing_deferred_wrapper br.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) (containingSizePatchCannotFail ctx sizePrm) (RegionPadding.padFixedOctets padding) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote (containingRegionMax ctx.o) (RegionPadding.padResidues padding) ctx.codec
                 | CommonTypes.ContainedInBitString ->
                     ctx.lm.acn.bit_string_containing_deferred_wrapper br.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote (containingRegionMax ctx.o) ctx.codec
             | None ->
@@ -1440,7 +1442,9 @@ let private buildContainingStandaloneBody
     let fncBody =
         match ctx.o.encodingOptions.Value.octOrBitStr with
         | CommonTypes.ContainedInOctString ->
-            ctx.lm.acn.octet_string_containing_deferred_func pp callTarget detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) (containingSizePatchCannotFail ctx sizePrm) (containingFixedOctets ctx.o.resolvedType |> Option.map string) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote (containingRegionMax ctx.o) ctx.codec
+            // cycle 15e: the padding decided by the residues of the contents (RegionPadding)
+            let padding = RegionPadding.regionPadding ctx.r ctx.o (containingFixedOctets ctx.o.resolvedType)
+            ctx.lm.acn.octet_string_containing_deferred_func pp callTarget detParamName patchFnName sValue soNBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType) (containingSizePatchCannotFail ctx sizePrm) (RegionPadding.padFixedOctets padding) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote (containingRegionMax ctx.o) (RegionPadding.padResidues padding) ctx.codec
         | CommonTypes.ContainedInBitString ->
             ctx.lm.acn.bit_string_containing_deferred_func pp callTarget detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced ctx.o.resolvedType)) soNoCheckNote (containingRegionMax ctx.o) ctx.codec
     { emptyBody ctx.lm with
@@ -2011,16 +2015,24 @@ let private createDeferredReferenceFunction
                 Some (makeContainingFuncBody (fun callOutcome pp fncName errCode ->
                     // the region is maxSize whole octets (Issue 23): the contained encoding is padded to them
                     // E3 padding: no padding when the contents always fill the maxSize octets
-                    let soFixedOctets = containingFixedOctets o.resolvedType |> Option.filter (fun n -> n = encOptions.maxSize.acn) |> Option.map string
+                    // cycle 15e: no padding test when the contents take fewer bits than the region at most (RegionPadding)
+                    let padding = RegionPadding.fixedRegionPadding r o encOptions.maxSize.acn (containingFixedOctets o.resolvedType |> Option.filter (fun n -> n = encOptions.maxSize.acn))
+                    let soFixedOctets, noContentsMaxBits =
+                        match padding with
+                        | RegionPadding.FixedFilled n       -> Some (n.ToString()), None
+                        | RegionPadding.FixedPadAlways bits -> None, Some bits
+                        | RegionPadding.FixedPadChecked     -> None, None
                     // coverage step 14q: the call, then the padding (C: checked unless the call cannot fail; Ada: not checked)
-                    let fncBody = lm.acn.octet_string_containing_deferred_fixed_func pp fncName encOptions.maxSize.acn errCode.errCodeName soFixedOctets (encodeNoCheckNote lm codec callOutcome) codec
+                    let fncBody = lm.acn.octet_string_containing_deferred_fixed_func pp fncName encOptions.maxSize.acn errCode.errCodeName soFixedOctets (encodeNoCheckNote lm codec callOutcome) noContentsMaxBits codec
                     let encOutcome = encodeOutcomeOf codec (EncodeOutcome.sequence [callOutcome; lm.lg.encodeTemplateOutcome EncRtlWritesOnly])
                     Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd; encOutcome = encOutcome}), us))
             | Asn1AcnAst.SZ_EC_LENGTH_EMBEDDED _, CommonTypes.ContainedInOctString ->
                 Some (makeContainingFuncBody (fun callOutcome pp fncName errCode ->
                     let nBits = GetNumberOfBitsForNonNegativeInteger (encOptions.maxSize.acn - encOptions.minSize.acn)
                     // coverage step 14q: the call, then the padding and the length (RTL writes), checked unless the call cannot fail
-                    let fncBody = lm.acn.octet_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn nBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced o.resolvedType) (containingFixedOctets o.resolvedType |> Option.map string) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced o.resolvedType)) (Some cov011Justification) (encodeNoCheckNote lm codec callOutcome) codec
+                    // cycle 15e: the padding decided by the residues of the contents (RegionPadding)
+                    let padding = RegionPadding.regionPadding r o (containingFixedOctets o.resolvedType)
+                    let fncBody = lm.acn.octet_string_containing_deferred_embedded_func pp fncName encOptions.minSize.acn encOptions.maxSize.acn nBits errCode.errCodeName (Asn1AcnAstUtilFunctions.isLiveDeduced o.resolvedType) (RegionPadding.padFixedOctets padding) (pastRegionExemption (Asn1AcnAstUtilFunctions.isLiveDeduced o.resolvedType)) (Some cov011Justification) (encodeNoCheckNote lm codec callOutcome) (RegionPadding.padResidues padding) codec
                     let encOutcome = encodeOutcomeOf codec (EncodeOutcome.sequence [callOutcome; lm.lg.encodeTemplateOutcome EncRtlWritesOnly])
                     Some ({AcnFuncBodyResult.funcBody = fncBody; errCodes = [errCode]; localVariables = []; userDefinedFunctions=[]; bValIsUnReferenced= false; bBsIsUnReferenced=false; resultExpr=None; auxiliaries=[]; icdResult = refIcd; encOutcome = encOutcome}), us))
             | Asn1AcnAst.SZ_EC_FIXED_SIZE, CommonTypes.ContainedInBitString ->
@@ -2158,10 +2170,12 @@ let private createDeferredReferenceFunction
                     let wrappedBody =
                         match regionKind with
                         | CommonTypes.ContainedInOctString ->
+                            // cycle 15e: the padding decided by the residues of the CHOICE body (RegionPadding)
+                            let padding = RegionPadding.choiceRegionPadding ctx.r ctx.o.resolvedType ch sizePrm.name (choiceRegionFixedOctets ctx.o.resolvedType ch)
                             ctx.lm.acn.octet_string_containing_deferred_wrapper
                                 bodyResult.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName bDeducedContent (containingSizePatchCannotFail ctx sizePrm)
-                                (choiceRegionFixedOctets ctx.o.resolvedType ch |> Option.map string)
-                                (pastRegionExemption bDeducedEveryAlternative) soNoCheckNote (choiceRegionMax ctx.o.resolvedType regionKind) ctx.codec
+                                (RegionPadding.padFixedOctets padding)
+                                (pastRegionExemption bDeducedEveryAlternative) soNoCheckNote (choiceRegionMax ctx.o.resolvedType regionKind) (RegionPadding.padResidues padding) ctx.codec
                         | CommonTypes.ContainedInBitString ->
                             ctx.lm.acn.bit_string_containing_deferred_wrapper
                                 bodyResult.funcBody detParamName patchFnName sValue soNBits errCode.errCodeName (containingSizePatchCannotFail ctx sizePrm) (pastRegionExemption bDeducedEveryAlternative) soNoCheckNote (choiceRegionMax ctx.o.resolvedType regionKind) ctx.codec

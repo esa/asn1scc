@@ -297,6 +297,9 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
             // the template does not check its result before the length and the contents
             let callTarget, callOutcome = encodeCallTarget lm t.id.ModName us codec t.id baseFncName
             let soNoCheckNote = encodeNoCheckNote lm codec callOutcome
+            // cycle 15e: the residues of the sizes the called encoder writes into the temporary stream decide the
+            // rounding of its length to octets (RegionPadding; the merged contents and the callee, united)
+            let padResidues = RegionPadding.padResidues (RegionPadding.regionPadding r o None)
             let funcBodyContent, errCodes, localVariables, userDefinedFunctions, ns2, partOutcome =
                 match encOptions.acnEncodingClass, encOptions.octOrBitStr with
                 | SZ_EC_ExternalField    relPath    , ContainedInOctString  ->
@@ -331,10 +334,10 @@ let createReferenceFunction_inline (r:Asn1AcnAst.AstRoot) (deps:Asn1AcnAst.AcnIn
                     // the bits the size determinant's update encoded (BitStream_AppendBits)
                     fncBody, [errCode],[], [], us, lm.lg.encodeTemplateOutcome EncRtlWritesOnly
                 | SZ_EC_FIXED_SIZE        , ContainedInOctString  ->
-                    let fncBody = octet_string_containing_func pp callTarget baseTypeDefinitionName sReqBytesForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true errCode.errCodeName bDeducedContent soNoCheckNote codec
+                    let fncBody = octet_string_containing_func pp callTarget baseTypeDefinitionName sReqBytesForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true errCode.errCodeName bDeducedContent soNoCheckNote padResidues codec
                     fncBody, [errCode],[], [], us, EncodeOutcome.sequence [callOutcome; lm.lg.encodeTemplateOutcome EncOctetStringNoLength]
                 | SZ_EC_LENGTH_EMBEDDED nBits , ContainedInOctString  ->
-                    let fncBody = octet_string_containing_func pp callTarget baseTypeDefinitionName sReqBytesForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false errCode.errCodeName bDeducedContent soNoCheckNote codec
+                    let fncBody = octet_string_containing_func pp callTarget baseTypeDefinitionName sReqBytesForUperEncoding nBits encOptions.minSize.acn encOptions.maxSize.acn false errCode.errCodeName bDeducedContent soNoCheckNote padResidues codec
                     fncBody, [errCode],[], [], us, EncodeOutcome.sequence [callOutcome; lm.lg.encodeTemplateOutcome EncOctetStringNoLength]
                 | SZ_EC_FIXED_SIZE                        , ContainedInBitString  ->
                     let fncBody = bit_string_containing_func pp callTarget baseTypeDefinitionName sReqBytesForUperEncoding sReqBitForUperEncoding 0I encOptions.minSize.acn encOptions.maxSize.acn true errCode.errCodeName soNoCheckNote codec

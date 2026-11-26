@@ -1,0 +1,29 @@
+-- C_ADA_ONLY (CONTAINING sites whose ACN specification overrides the contents; the experimental backends are not checked on this file)
+-- The zero padding of an OCTET STRING (CONTAINING X) region to whole octets is decided by the sizes of the encoding
+-- that is written into the region, which is not always the encoding of the site's merged contents. Legacy encodes the
+-- contents of an embedded-length / fixed-size site with the referenced type assignment's encoder, whatever the site's
+-- ACN specification says about the components (Issue 134 accepts it when the region sizes agree in octets); --acn-v2
+-- gives such a site a function of its own with the merged contents (Issue 135).
+--   C1: Tc has no ACN of its own (8 + 2 + 8 n bits: the region is padded by 6 bits), the site makes 'a' 14 bits
+--       (16 + 8 n: never padded). Legacy pads, --acn-v2 does not.
+--   M1: Tm has 8 + 8 bits (never padded), the site makes it 6 + 4 bits (always padded, 2 octets of which the second
+--       is partly padding). --acn-v2 pads, legacy does not.
+-- The analysis of the padding must not take the merged contents alone (cycle 15e review): legacy keeps the padding
+-- test at both sites, --acn-v2 drops it with the right claim.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+    Tc ::= SEQUENCE { a INTEGER (0..255), v OCTET STRING (SIZE (0..3)) }
+    Tm ::= SEQUENCE { a INTEGER (0..15), b INTEGER (0..15) }
+
+    MyPDU ::= SEQUENCE {
+        c1 OCTET STRING (CONTAINING Tc),
+        m1 OCTET STRING (CONTAINING Tm),
+        z  INTEGER (0..255)
+    }
+
+    pdu1 MyPDU ::= { c1 { a 200, v '0102'H }, m1 { a 9, b 6 }, z 17 }
+    pdu2 MyPDU ::= { c1 { a 1, v ''H }, m1 { a 0, b 15 }, z 255 }
+
+END
+
+--TCLS     Tm[] { a [encoding pos-int, size 8], b [encoding pos-int, size 8] } MyPDU[] { c1 [] { a [encoding pos-int, size 14], v [] }, m1 [] { a [encoding pos-int, size 6], b [encoding pos-int, size 4] }, z [] }
