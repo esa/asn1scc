@@ -1108,17 +1108,17 @@ let encodeCallTarget (lm:LanguageMacros) (sCallerModName:string) (us:State) (cod
         | Some _, _
         | None, _                                                                  -> viaEncoder ()
 
-/// Coverage step 12a: the encoder of a type whose IsConstraintValid cannot fail (11b outcome AlwaysValid) does not
-/// call it; the template emits a comment instead of the call and its check. Decoders are unchanged.
+/// Coverage step 12a / cycle 15a2: whether the IsConstraintValid that a type's encoder or decoder calls (the function
+/// emitted under the name of isValidFunc) cannot fail for any value (11b outcome AlwaysValid).
 /// emitted = State.emittedValidatorOutcomes (cycle 15a2): the outcome of the functions the type assignment under
 /// construction emits, from its first construction (DAstConstruction.mapTas).
-let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (emitted: Map<string, ValidationOutcome>) (isValidFunc: IsValidFunction option) (t:Asn1AcnAst.Asn1Type) (bodyOutcome:EncodeOutcome) : bool =
+let private calledValidatorCannotFail (lm:LanguageMacros) (emitted: Map<string, ValidationOutcome>) (isValidFunc: IsValidFunction option) (t:Asn1AcnAst.Asn1Type) : bool =
     // The merged type of a reference with constraints at the site (Outer ::= Alias ('010203'H), ByteFlags ::= BitFlags
-    // (SIZE(8))) builds the encoder that the type assignment lends (DAstUPer.createReferenceFunction when the encodings
-    // differ, AcnReference.createReferenceFunction_inline), but the IsConstraintValid emitted under the name the encoder
-    // calls is the type assignment's, created after it; a chained alias creates one more validator per alias in between,
-    // under the same name. The encoder's own isValidFunc is the one of the level that builds it, so the decision reads
-    // the outcome of the function emitted under that name when the first construction knows it.
+    // (SIZE(8))) builds the encoder (decoder) that the type assignment lends (DAstUPer.createReferenceFunction when the
+    // encodings differ, AcnReference.createReferenceFunction_inline), but the IsConstraintValid emitted under the name
+    // the function calls is the type assignment's, created after it; a chained alias creates one more validator per
+    // alias in between, under the same name. The function's own isValidFunc is the one of the level that builds it, so
+    // the decision reads the outcome of the function emitted under that name when the first construction knows it.
     let calledFunctionsOutcome =
         match isValidFunc with
         | Some {funcName = Some fn}  -> emitted.TryFind (encodeCallKey lm t.id.ModName fn)
@@ -1143,6 +1143,12 @@ let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (emitte
         | None, Some {hasAdditionalConstraints = true}      -> false
         | None, Some {hasAdditionalConstraints = false}
         | None, None                                        -> true
+    alwaysValid && outcomeIsTheCalledFunctions
+
+/// Coverage step 12a: the encoder of a type whose IsConstraintValid cannot fail (11b outcome AlwaysValid) does not
+/// call it; the template emits a comment instead of the call and its check. Decoders: decoderSkipsValidation.
+let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (emitted: Map<string, ValidationOutcome>) (isValidFunc: IsValidFunction option) (t:Asn1AcnAst.Asn1Type) (bodyOutcome:EncodeOutcome) : bool =
+    let cannotFail = calledValidatorCannotFail lm emitted isValidFunc t
     // (a variable-size OCTET / BIT STRING encoding starts with its own length check, which sets result); since 12b
     // also any body whose writes are known: the encoder initialises result only where the body needs it
     let encodingWritesNoResult =
@@ -1155,10 +1161,78 @@ let encoderSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (emitte
         | Asn1AcnAst.SequenceOf _ | Asn1AcnAst.Sequence _ | Asn1AcnAst.Choice _ | Asn1AcnAst.ReferenceType _ -> false
     let bodyWritesKnown = bodyOutcome.writes <> WritesUnknown
     match codec, lm.lg.encoderValidationModel with
-    | CommonTypes.Encode, EncodersSkipAlwaysValid           -> alwaysValid && outcomeIsTheCalledFunctions
-    | CommonTypes.Encode, EncodersSkipAlwaysValidPrimitives -> alwaysValid && outcomeIsTheCalledFunctions && (encodingWritesNoResult || bodyWritesKnown)
+    | CommonTypes.Encode, EncodersSkipAlwaysValid           -> cannotFail
+    | CommonTypes.Encode, EncodersSkipAlwaysValidPrimitives -> cannotFail && (encodingWritesNoResult || bodyWritesKnown)
     | CommonTypes.Encode, EncodersCallEveryValidation
     | CommonTypes.Decode, _                                 -> false
+
+/// Cycle 15j (stage A): the public decoder of a type (uPER `T_Decode`, ACN `T_ACN_Decode`) does not end with a call of
+/// an IsConstraintValid that cannot fail for any value; the template returns `ret` with a comment naming the function.
+/// The decision is the encoders' (12a / 15a2: the outcome of the function emitted under the name the decoder calls,
+/// calledValidatorCannotFail); the decoded value itself is not looked at. Kept separate from encoderSkipsValidation
+/// so that the encoder models (Ada EncodersSkipAlwaysValidPrimitives) never reach the decoders. The skipped C validator
+/// also wrote `*pErrCode = 0`: without it a successful decode leaves the code its body wrote last, which must be 0 (the
+/// templates write the code on their failure paths only; the C `-atc` tests check `*pErrCode == 0` after every decode).
+let decoderSkipsValidation (lm:LanguageMacros) (emitted: Map<string, ValidationOutcome>) (isValidFunc: IsValidFunction option) (t:Asn1AcnAst.Asn1Type) : bool =
+    // Cycle 15j round 3: a user `post-decoding-validator` (ACN property of a SEQUENCE, PreDecodingFunction) may write a
+    // nonzero *pErrCode and still return TRUE; master's final validity call then reset the code to 0. A decoder whose
+    // type, or any type below it (an inline child's callback runs in this decoder's body; a referenced one may be
+    // inlined), has such a callback keeps the call, so its success code stays 0 whatever the callback writes.
+    let rec hasPostDecodingValidator (t:Asn1AcnAst.Asn1Type) : bool =
+        match t.Kind with
+        | Asn1AcnAst.Sequence sq ->
+            sq.acnProperties.preDecodingFunction.IsSome ||
+                sq.children |> List.exists (fun c ->
+                    match c with
+                    | Asn1AcnAst.Asn1Child ch -> hasPostDecodingValidator ch.Type
+                    | Asn1AcnAst.AcnChild _   -> false)
+        | Asn1AcnAst.Choice ch          -> ch.children |> List.exists (fun c -> hasPostDecodingValidator c.Type)
+        | Asn1AcnAst.SequenceOf so      -> hasPostDecodingValidator so.child
+        | Asn1AcnAst.ReferenceType r    -> hasPostDecodingValidator r.resolvedType
+        | Asn1AcnAst.Integer _ | Asn1AcnAst.Real _ | Asn1AcnAst.IA5String _ | Asn1AcnAst.NumericString _
+        | Asn1AcnAst.OctetString _ | Asn1AcnAst.NullType _ | Asn1AcnAst.BitString _ | Asn1AcnAst.Boolean _
+        | Asn1AcnAst.Enumerated _ | Asn1AcnAst.ObjectIdentifier _ | Asn1AcnAst.TimeType _ -> false
+    match lm.lg.decoderValidationModel with
+    | DecodersSkipAlwaysValidGuardOthers -> calledValidatorCannotFail lm emitted isValidFunc t && not (hasPostDecodingValidator t)
+    | DecodersCallEveryValidation        -> false
+
+/// Cycle 15j round 4 (Q1 = b): whether the emitted body of a C decoder leaves `ret` TRUE on every path, so that the
+/// decoder ends with `(void)ret; return V(...);` instead of `if (ret) { ret = V(...); }` (whose FALSE outcome no input
+/// could take). Decided from the code text, because no decode-outcome fact exists for C (DecodeOutcome answers MayFail
+/// for every C type, ReadsCanFail): the body (comments removed) has no `return` / `goto` and every mention of `ret` is an
+/// assignment `ret = TRUE;` (the template declares `flag ret = TRUE;`). A one-value type assigned without a read
+/// (decodeOneValueWithoutRead, IntNoneRequired) and an empty body qualify. A wrong TRUE would change behaviour; the
+/// rule only accepts the text in which ret cannot become FALSE.
+let decoderBodyCannotFail (lm:LanguageMacros) (body: string) : bool =
+    match lm.lg.decoderValidationModel with
+    | DecodersSkipAlwaysValidGuardOthers ->
+        let s = Text.RegularExpressions.Regex.Replace (body, @"/\*.*?\*/", " ", Text.RegularExpressions.RegexOptions.Singleline)
+        let s = Text.RegularExpressions.Regex.Replace (s, @"//[^\n]*", " ")
+        let mentions = Text.RegularExpressions.Regex.Matches(s, @"(?<![\w.>])ret(?!\w)").Count
+        let trueAssigns = Text.RegularExpressions.Regex.Matches(s, @"(?<![\w.>])ret\s*=\s*TRUE\s*;").Count
+        not (Text.RegularExpressions.Regex.IsMatch (s, @"\b(return|goto)\b")) && mentions = trueAssigns
+    | DecodersCallEveryValidation        -> false
+
+/// Cycle 15j round 2: whether the generated code of a decoder body (its statements and local declarations) names the
+/// decoder's value parameter. Used only where a decoder omits its final validity call (decoderSkipsValidation): that
+/// call was the template's only use of the parameter, so a body that does not name it needs `(void)<param>;` (C
+/// `-Wextra -Werror`: unused parameter; an ACN SEQUENCE of NULLs with a pattern or an alignment). Read from the text,
+/// not from the bodies' bValIsUnReferenced: the decode producers do not compute it (an ACN SEQUENCE reports it only for
+/// Encode, coverage step 14p). Comments are removed first; a false "named" here would be a compile error, a false
+/// "not named" only a redundant `(void)`.
+let decoderBodyNamesValue (varName:string) (code: string seq) : bool =
+    let noComments (s:string) =
+        let s = Text.RegularExpressions.Regex.Replace (s, @"/\*.*?\*/", " ", Text.RegularExpressions.RegexOptions.Singleline)
+        Text.RegularExpressions.Regex.Replace (s, @"//[^\n]*", " ")
+    let rx = Text.RegularExpressions.Regex (@"(?<!->)(?<![\w.])" + Text.RegularExpressions.Regex.Escape varName + @"(?!\w)")
+    code |> Seq.exists (fun c -> rx.IsMatch (noComments c))
+
+/// Whether the encoder (12a) or the public decoder (15j) of a type omits its validity call; bValidityCannotFail of the
+/// type-assignment templates.
+let codecSkipsValidation (lm:LanguageMacros) (codec:CommonTypes.Codec) (emitted: Map<string, ValidationOutcome>) (isValidFunc: IsValidFunction option) (t:Asn1AcnAst.Asn1Type) (bodyOutcome:EncodeOutcome) : bool =
+    match codec with
+    | CommonTypes.Encode -> encoderSkipsValidation lm codec emitted isValidFunc t bodyOutcome
+    | CommonTypes.Decode -> decoderSkipsValidation lm emitted isValidFunc t
 
 
 /// nestItems for encode parts whose outcome is known (coverage step 12b): after a part that may fail the rest is

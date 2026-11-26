@@ -128,8 +128,9 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                     match content with
                     | Some c -> encodeOutcomeOf codec c.encOutcome
                     | None   -> encodeOutcomeOf codec EncodeOutcome.noWrite
-                // coverage step 12a: an encoder does not call a validity function that cannot fail
-                let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation lm codec us.emittedValidatorOutcomes isValidFunc t bodyOutcome
+                // coverage step 12a: an encoder does not call a validity function that cannot fail; cycle 15j: nor
+                // does the decoder end with one (C)
+                let bValidityCannotFail = DAstUtilFunctions.codecSkipsValidation lm codec us.emittedValidatorOutcomes isValidFunc t bodyOutcome
                 let bValidityCalled = isValidFuncName.IsSome && not bValidityCannotFail
                 // coverage step 12b: an encoder that cannot fail states result.Success in its contract (Ada)
                 let soSparkAnnotations =
@@ -180,7 +181,22 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                             | Encode, _                 -> withEncodeResultInit bodyResult.funcBody
                         // an encoder's val is referenced by its validity call when it makes one (coverage step 12a)
                         let bValIsUnReferenced = bodyResult.bValIsUnReferenced && not (codec = Encode && isValidFuncName.IsSome && not bValidityCannotFail)
+                        // cycle 15j: a decoder without its final validity call (C) references val only in its body
+                        let bValIsUnReferenced =
+                            match codec, bValidityCannotFail && isValidFuncName.IsSome with
+                            | Decode, true  ->
+                                bValIsUnReferenced ||
+                                    not (DAstUtilFunctions.decoderBodyNamesValue varName (body :: (bodyResult.localVariables |> List.map lm.lg.getLocalVariableDeclaration)))
+                            | Decode, false
+                            | Encode, _     -> bValIsUnReferenced
                         body, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bValIsUnReferenced, bodyResult.auxiliaries
+                // cycle 15j round 4: a C decoder whose body cannot fail calls its validator directly (bAlwaysSucceeds of
+                // the C decode templates; for C DecodeOutcome is always MayFail, so this is the only way it becomes true)
+                let bAlwaysSucceedsT =
+                    match codec, isValidFuncName.IsSome && not bValidityCannotFail with
+                    | Decode, true  -> bAlwaysSucceeds || DAstUtilFunctions.decoderBodyCannotFail lm bodyResult_funcBody
+                    | Decode, false
+                    | Encode, _     -> bAlwaysSucceeds
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
                 let precondAnnots = lm.lg.generatePrecond r UPER t codec
                 let postcondAnnots = lm.lg.generatePostcond r UPER p t codec
@@ -197,7 +213,7 @@ let internal createUperFunction (r:Asn1AcnAst.AstRoot)
                         let aux = EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) Seq.empty callBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) false false soValInitFuncName funcDefAnnots precondAnnots postcondAnnots bAlwaysSucceeds false bValidityCannotFail codec
                         Some (body + "\n\n" + aux)
                     | _, _ ->
-                        Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) lvars  bodyResult_funcBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soValInitFuncName funcDefAnnots precondAnnots postcondAnnots bAlwaysSucceeds (bValInOut && not bVarNameIsUnreferenced) bValidityCannotFail codec)
+                        Some(EmitTypeAssignment varName sStar funcName isValidFuncName  (lm.lg.getLongTypedefName typeDefinition) lvars  bodyResult_funcBody soSparkAnnotations sInitialExp (t.uperMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced soValInitFuncName funcDefAnnots precondAnnots postcondAnnots bAlwaysSucceedsT (bValInOut && not bVarNameIsUnreferenced) bValidityCannotFail codec)
 
                 let errCodStr = errCodes |> List.map(fun x -> (EmitTypeAssignment_def_err_code x.errCodeName) (BigInteger x.errCodeValue) x.fieldPath)
                 // coverage step 14c2a: a full-index CHOICE writes all of its `in out` val (DecodeOutcome.uperValInitUnused)
@@ -281,7 +297,7 @@ let castPp (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) codec pp (intClass:Asn1Acn
     | CommonTypes.Decode -> pp
 
 
-let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (uperRange:BigIntegerUperRange) errLoc (intClass:Asn1AcnAst.IntegerClass) (cons: IntegerTypeConstraint list) (allCons: IntegerTypeConstraint list) (typeId: ReferenceToType) (typeDefinition:TypeDefinitionOrReference) (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fullRangeUse: DecodeOutcome.FullRangeUse) =
+let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (uperRange:BigIntegerUperRange) errLoc (intClass:Asn1AcnAst.IntegerClass) (cons: IntegerTypeConstraint list) (allCons: IntegerTypeConstraint list) (typeId: ReferenceToType) (typeDefinition:TypeDefinitionOrReference) (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fullRangeUse: DecodeOutcome.FullRangeUse) (soExtTypeName: string option) =
     let pp, resultExpr = adaptArgument lm codec p
     let IntNoneRequired         = lm.uper.IntNoneRequired
     let IntFullyConstraintPos   = lm.uper.IntFullyConstraintPos
@@ -316,9 +332,9 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
         | Concrete (min, max), _ when min=max -> IntNoneRequired (lm.lg.getValue p.accessPath) (lm.lg.intValueToString min intClass) errCode.errCodeName sType codec, true, true, None
         | Concrete (min, max), Some fr when intClass.IsPositive && (not extCon) -> lm.uper.IntFullyConstraintPos_fullRange pp min fr.nBits suffix, false, false, Some (FullyConstrainedPositive (min, max))
         | Concrete (min, max), Some fr when (not extCon) -> lm.uper.IntFullyConstraint_fullRange pp min fr.nBits suffix, false, false, Some (FullyConstrained (min, max))
-        | Concrete (min, max), _ when intClass.IsPositive && (not extCon) -> IntFullyConstraintPos (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min)) suffix errCode.errCodeName rangeAssert sType codec, false, false, Some (FullyConstrainedPositive (min, max))
+        | Concrete (min, max), _ when intClass.IsPositive -> IntFullyConstraintPos (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min)) suffix errCode.errCodeName rangeAssert sType codec, false, false, Some (FullyConstrainedPositive (min, max))
         | Concrete (min, max), _ -> IntFullyConstraint (castPp ((int r.args.integerSizeInBytes)*8)) min max (GetNumberOfBitsForNonNegativeInteger (max-min)) suffix errCode.errCodeName sType codec, false, false, Some (FullyConstrained (min, max))
-        | PosInf a, _  when a>=0I && (not extCon) -> IntSemiConstraintPos pp a  errCode.errCodeName sType codec, false, false, Some (SemiConstrainedPositive a)
+        | PosInf a, _  when a>=0I && (intClass.IsPositive || not extCon) -> IntSemiConstraintPos pp a  errCode.errCodeName sType codec, false, false, Some (SemiConstrainedPositive a)
         | PosInf a, _ -> IntSemiConstraint pp a  errCode.errCodeName sType codec, false, false, Some (SemiConstrained a)
         | NegInf max, _ -> IntUnconstrainedMax pp max None errCode.errCodeName sType codec, false, false, Some (UnconstrainedMax max)
         | Full, _ -> IntUnconstrained pp errCode.errCodeName false sType codec, false, false, Some Unconstrained
@@ -329,28 +345,71 @@ let getIntfuncBodyByCons (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:Commo
         | PosInf(a)       -> a
         | NegInf(b)       -> b
         | Full            -> 0I
-    let funcBodyContent, bValIsUnReferenced, bBsIsUnReferenced, intEncodingType =
+    // Issue 184: the extension path of the decoder reads an unconstrained whole number (X.691 12.1, 10.8), which the RTL
+    // returns as a signed integer. A typedef that does not hold every signed value (unsigned, or a range from the
+    // constraints before the extensible one: uperRange) takes it through a signed temporary, which must lie within the
+    // typedef's range. Each bound is emitted only when it is tighter than the signed range (a comparison with the
+    // type's own limit is always true: gcc -Wtype-limits at -wordSize 4, GNAT -gnatwc). Neither bound: master's text.
+    let sint = Asn1AcnAst.ASN1SCC_Int (r.args.SIntMin, r.args.SIntMax)
+    let soExtMin, soExtMax =
+        let lo, hi =
+            match uperRange with
+            | Full when intClass.IsPositive -> Some 0I, None
+            | Full                          -> None, None
+            | Concrete (lo, hi)             -> Some lo, Some hi
+            | PosInf lo                     -> Some lo, None
+            | NegInf hi                     -> None, Some hi
+        (lo |> Option.filter (fun v -> v > r.args.SIntMin) |> Option.map (fun v -> lm.lg.intValueToString v sint)),
+        (hi |> Option.filter (fun v -> v < r.args.SIntMax) |> Option.map (fun v -> lm.lg.intValueToString v sint))
+    let bExtViaTemp = soExtMin.IsSome || soExtMax.IsSome
+    // the type of the value written by the extension path (Ada converts the temporary to it): the typedef, or for an
+    // ACN inserted field (soExtTypeName) the type of its local
+    let sExtType = soExtTypeName |> Option.defaultWith (fun () -> lm.lg.getLongTypedefName typeDefinition)
+    // Issue 184 (R1): the encoder writes an extension addition as a signed unconstrained whole number (the RTL call is
+    // signed), so a value of an unsigned typedef above the signed maximum cannot be encoded: the encoder fails with the
+    // type's error code. Emitted only when an addition can be above the signed maximum (the hull of the additions and
+    // of the constraints before them), else that check could never fail.
+    let soExtUnsignedMax (additions: IntegerTypeConstraint) =
+        let hiOf (rng: BigIntegerUperRange) =
+            match rng with
+            | Concrete (_, hi) | NegInf hi  -> Some hi
+            | PosInf _ | Full               -> None
+        let addHi =
+            match hiOf uperRange, hiOf (uPER.getIntTypeConstraintUperRange [additions] errLoc) with
+            | Some a, Some b    -> Some (min a b)
+            | Some a, None      -> Some a
+            | None, b           -> b
+        match intClass.IsPositive, addHi with
+        | true, None                                -> Some (lm.lg.intValueToString r.args.SIntMax intClass)
+        | true, Some hi when hi > r.args.SIntMax    -> Some (lm.lg.intValueToString r.args.SIntMax intClass)
+        | true, Some _ | false, _                   -> None
+    let funcBodyContent, bValIsUnReferenced, bBsIsUnReferenced, intEncodingType, extOutcome =
         match rootCons with
-        | []                            -> IntBod uperRange false
+        | []                            ->
+            let body, b1, b2, t = IntBod uperRange false
+            body, b1, b2, t, None
         | (RangeRootConstraint (_, a))::rest      ->
-            let uperR    = uPER.getIntTypeConstraintUperRange [a]  errLoc
+            // Issue 184: the root of every constraint intersected (only the last can be extensible, AcnCreateFromAntlr.serialRoots)
+            let uperR    = uPER.getIntTypeConstraintRootRange cons errLoc
             let cc,_ = DastValidate2.integerConstraint2ValidationCodeBlock r lm intClass a 0
             let cc = DastValidate2.ValidationBlockAsStringExpr (cc p)
             let rootBody, _,_, intEncodingType = IntBod uperR true
-            IntRootExt pp (getValueByConstraint uperR) cc rootBody errCode.errCodeName codec, false, false, intEncodingType
-        | (RangeRootConstraint2(_,a,_))::rest  ->
-            let uperR    = uPER.getIntTypeConstraintUperRange [a]  errLoc
+            IntRootExt pp (getValueByConstraint uperR) cc rootBody errCode.errCodeName bExtViaTemp soExtMin soExtMax sExtType codec, false, false, intEncodingType, None
+        | (RangeRootConstraint2(_,a,b))::rest  ->
+            let uperR    = uPER.getIntTypeConstraintRootRange cons errLoc
             let cc,_ = DastValidate2.integerConstraint2ValidationCodeBlock r lm intClass a 0
             let cc = DastValidate2.ValidationBlockAsStringExpr (cc p)
             let rootBody, _,_, intEncodingType = IntBod uperR true
-            IntRootExt2 pp (getValueByConstraint uperR) cc rootBody errCode.errCodeName (ToC typeId.dropModule.AsString) codec, false, false, intEncodingType
+            let soUnsignedMax = match codec with Encode -> soExtUnsignedMax b | Decode -> None
+            let extOutcome = soUnsignedMax |> Option.map (fun _ -> lm.lg.encodeTemplateOutcome EncIntExtensionAboveSignedMax)
+            IntRootExt2 pp (getValueByConstraint uperR) cc rootBody errCode.errCodeName (ToC typeId.dropModule.AsString) bExtViaTemp soExtMin soExtMax sExtType soUnsignedMax codec, false, false, intEncodingType, extOutcome
         | _                             -> raise(BugErrorException "")
-    Some({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=bValIsUnReferenced; bBsIsUnReferenced=bBsIsUnReferenced; resultExpr=resultExpr; auxiliaries = []; encOutcome = encodeOutcomeOf codec (lm.lg.encodeTemplateOutcome EncRtlWritesOnly)})
+    Some({UPERFuncBodyResult.funcBody = funcBodyContent; errCodes = [errCode]; localVariables = []; bValIsUnReferenced=bValIsUnReferenced; bBsIsUnReferenced=bBsIsUnReferenced; resultExpr=resultExpr; auxiliaries = []; encOutcome = encodeOutcomeOf codec (extOutcome |> Option.defaultValue (lm.lg.encodeTemplateOutcome EncRtlWritesOnly))})
 
 
 let createIntegerFunction (r:Asn1AcnAst.AstRoot) (lm:LanguageMacros) (codec:CommonTypes.Codec) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Integer) (typeDefinition:TypeDefinitionOrReference) (baseTypeUperFunc : UPerFunction option) (isValidFunc: IsValidFunction option) (us:State)  =
     let funcBody (errCode:ErrorCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
-        let res = getIntfuncBodyByCons r lm codec o.uperRange t.Location o.intClass o.cons o.AllCons t.id typeDefinition errCode nestingScope p DecodeOutcome.UseFullRange
+        let res = getIntfuncBodyByCons r lm codec o.uperRange t.Location o.intClass o.cons o.AllCons t.id typeDefinition errCode nestingScope p DecodeOutcome.UseFullRange None
         res |> Option.map (fun res ->
             let aux = lm.lg.generateIntegerAuxiliaries r UPER t o nestingScope p.accessPath codec
             {res with auxiliaries = res.auxiliaries @ aux}

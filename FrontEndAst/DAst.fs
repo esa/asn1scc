@@ -252,6 +252,9 @@ type DeferredPatchCheck =
 
 type EncodeTemplate =
     | EncRtlWritesOnly          // INTEGER, REAL, BOOLEAN, NULL, OBJECT IDENTIFIER, TIME (uPER): RTL writes
+    | EncIntExtensionAboveSignedMax // Issue 184: an extensible INTEGER of an unsigned typedef whose extension additions can
+                                    // be above the signed maximum: such a value fails with the type's error code (the
+                                    // unconstrained whole number RTL call is signed); the other values: RTL writes
     | EncPresenceBits           // the presence bits of a SEQUENCE
     | EncEnumerated             // the value -> index / encoded value map
     | EncOctetStringFixedSize
@@ -583,6 +586,9 @@ and AtcVariant = {
     replaces    : (ReferenceToType * Map<ReferenceToType, TestCaseValue>) option
     usedBy      : AtcVariantUse                         // which automatic tests may take the variant
     change      : AtcVariantChange                      // what the variant changes
+    // coverage cycle 15h: the scope of the changed node from the value's scope (the scope applyFnc takes), so a test
+    // can compare the node's active contents in the value and in its changed copy
+    nodeScope   : CodegenScope -> CodegenScope
 }
 
 /// Coverage cycle 15c (round 7, George: option A): the variants that are new in the Equal tests since 15c are taken
@@ -699,6 +705,17 @@ type EncoderValidationModel =
     // EncodeOutcome.writes), so a body whose writes are not classified (a CHOICE, CONTAINING, ACN inserted fields)
     // keeps the call; primitives skip it as in 12a.
     | EncodersSkipAlwaysValidPrimitives
+
+/// How a type's public decoder ends with its IsConstraintValid (cycle 15j). Ada, Scala, Python and Rust keep their
+/// form (`return ret && V(...)` / Ada's `if result.Success then result := V(val); end if;`).
+/// C (George, Q1 = b): a validator that cannot fail for any value is not called (stage A: `return ret;` + comment,
+/// DAstUtilFunctions.decoderSkipsValidation); any other is called only after a successful decode, as its own
+/// statement (`if (ret) { ret = V(...); } return ret;`, the C decode templates), or directly (`(void)ret; return
+/// V(...);`) after a body that cannot fail (DAstUtilFunctions.decoderBodyCannotFail). The calls, their order and
+/// *pErrCode are those of `return ret && V(...)`; the validator call is no longer a condition of a decision.
+type DecoderValidationModel =
+    | DecodersCallEveryValidation
+    | DecodersSkipAlwaysValidGuardOthers
 
 type IsValidFunction = {
     errCodes            : ErrorCode list

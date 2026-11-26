@@ -902,6 +902,9 @@ type LangGeneric_c() =
         override _.atcEmitsInvalidValueTests = true
         // An encoder does not call an IsConstraintValid that cannot fail (coverage step 12a).
         override _.encoderValidationModel = EncodersSkipAlwaysValid
+        // A public decoder does not call an IsConstraintValid that cannot fail and calls any other one as a statement
+        // after a successful decode (cycle 15j).
+        override _.decoderValidationModel = DecodersSkipAlwaysValidGuardOthers
         // coverage step 14q (Q6 b): the determinant of several sources from one that is always set
         override _.multiAcnUpdateFromAlwaysSetSource = true
         // Issue 105: the determinant of several sources takes its default value when no source is set
@@ -915,6 +918,8 @@ type LangGeneric_c() =
             | EncSequenceOfOtherLoop | EncLoopWithoutInvariant  -> EncodeOutcome.noWrite
             // the defensive default arm (ret = FALSE) of an unchecked encode of an invalid value (coverage step 12d)
             | EncEnumerated                                     -> {canFail = true; writes = SometimesWrites; callee = None}
+            // Issue 184: ret = FALSE for a valid extension addition above the signed maximum
+            | EncIntExtensionAboveSignedMax                     -> {canFail = true; writes = SometimesWrites; callee = None}
             // BitStream_EncodeOctetString_no_length returns FALSE only for a stream shorter than the encoder's
             // REQUIRED_BYTES, which every other C write assumes too (they only assert; BitStream_AppendBits ignores
             // this result): the fixed-size call is not checked (coverage step 14i, C1)
@@ -948,6 +953,7 @@ type LangGeneric_c() =
         override _.acnDeterminantFlagModel = FlagMaybeUninitialized
         override _.atcEmitsConstraintViolationTests = true
         override _.atcEmitsEqualityVariantTests = true
+        override _.atcEmitsGuardedValueReplacements = true
         override _.atcEmitsValidityTests = true
         override this.atcEqualityToggle (toggle:EqualityToggle) (path:AccessPath) =
             let v = this.getValue path

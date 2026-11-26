@@ -92,8 +92,15 @@ flag <sFuncName>(<sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, int* pEr
 	<arrsAcnParamNames:{name|(void)<name>;}; separator="\n">
 
 	<sContent>
+<if(soIValidFuncName)><if(bValidityCannotFail)><else><if(bAlwaysSucceeds)>
+    (void)ret;    /* the decoding above cannot fail: ret is TRUE here */
+<else>
+    if (ret) {
+        ret = <soIValidFuncName>(<sVarName>, pErrCode);
+    }
+<endif><endif><endif>
 
-    return ret<if(soIValidFuncName)> && <soIValidFuncName>(<sVarName>, pErrCode)<endif>;
+    return <if(soIValidFuncName)><if(bValidityCannotFail)>ret;    /* no validity check: <soIValidFuncName>() cannot fail for any value of this type */<else><if(bAlwaysSucceeds)><soIValidFuncName>(<sVarName>, pErrCode);<else>ret;<endif><endif><else>ret;<endif>
 }
 >>
 

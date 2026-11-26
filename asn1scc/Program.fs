@@ -138,7 +138,7 @@ let printVersion () =
     //let fvi = System.Diagnostics.FileVersionInfo.GetVersionInfo(assembly.Location);
     //let version = fvi.FileVersion;
 
-    let version = "4.9.167.0"
+    let version = "4.9.170.0"
     printfn "asn1scc version %s\n" version
     ()
 
@@ -308,7 +308,13 @@ let checkArgument (cliArgs : CliArguments list) arg =
         Seq.iter(fun (file,_) ->
             let errMsg = sprintf "Duplicate Input file. File '%s' was provided twice in the command line"  file
             raise (SemanticError (emptyLocation, errMsg)))
-    | Type_Prefix _    -> ()
+    | Type_Prefix vl   ->
+        // coverage cycle 15h: the automatic tests name their own C locals tc__... ("--" cannot occur in an ASN.1 name);
+        // a type prefix is the one way a generated name could start so
+        // (checked after the normalisation the identifiers get, FsUtils.ToC: tc--, tc-_, tc._ give tc__ too)
+        match (ToC vl).StartsWith ("tc__", StringComparison.OrdinalIgnoreCase) with
+        | true  -> raise (UserException ("invalid value for argument -typePrefix: names starting with tc__ are reserved for the generated automatic tests"))
+        | false -> ()
     | Rename_Policy rp   ->
         match rp with
         | 0 | 1 | 2 | 3-> ()

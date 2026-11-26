@@ -1746,10 +1746,19 @@ let private emitSpecializedFunctionDecl
         | Decode -> DecodeOutcome.valInOut vw soValInitFuncName && not bVarNameIsUnreferenced
         | Encode -> false
 
-    // coverage step 12a / 12b: as AcnFunctionWrapper.createAcnFunction
+    // coverage step 12a / 12b, cycle 15j: as AcnFunctionWrapper.createAcnFunction
     let bodyOutcome = encodeOutcomeOf ctx.codec finalBody.encOutcome
-    let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation ctx.lm ctx.codec ctx.emittedValidatorOutcomes ctx.isValidFunc ctx.t bodyOutcome
+    let bValidityCannotFail = DAstUtilFunctions.codecSkipsValidation ctx.lm ctx.codec ctx.emittedValidatorOutcomes ctx.isValidFunc ctx.t bodyOutcome
     let bValidityCalled = isValidFuncName.IsSome && not bValidityCannotFail
+    // cycle 15j round 3: a specialised decoder that has a validator name (a CONTAINING type assignment's
+    // <T>_Containing_ACN_Decode) and omits the call references val only in its body (as createAcnFunction)
+    let bVarNameIsUnreferenced =
+        match ctx.codec, bValidityCannotFail && isValidFuncName.IsSome with
+        | Decode, true  ->
+            bVarNameIsUnreferenced ||
+                not (DAstUtilFunctions.decoderBodyNamesValue varName (finalBody.funcBody :: (finalBody.localVariables |> List.map ctx.lm.lg.getLocalVariableDeclaration)))
+        | Decode, false
+        | Encode, _     -> bVarNameIsUnreferenced
     // coverage step 10b: same result initialisation as AcnFunctionWrapper.createAcnFunction (DecodeOutcome.fs)
     let specBodyContent =
         match ctx.codec, ctx.lm.lg.decodeReadFailureModel with
@@ -1771,7 +1780,12 @@ let private emitSpecializedFunctionDecl
             false
             soValInitFuncName [] [] []  // funcDefAnnots, precondAnnots, postcondAnnots
             true  // bDeferredSpecialization: callers use the specialized body directly
-            false // bAlwaysSucceeds: a type with deferred determinants is MayFail (DecodeOutcome.acn)
+            // bAlwaysSucceeds: a type with deferred determinants is MayFail (DecodeOutcome.acn); cycle 15j round 4: a C
+            // decoder whose body cannot fail calls its validator directly (as createAcnFunction)
+            (match ctx.codec, isValidFuncName.IsSome && not bValidityCannotFail with
+             | Decode, true  -> DAstUtilFunctions.decoderBodyCannotFail ctx.lm specBodyContent
+             | Decode, false
+             | Encode, _     -> false)
             bValInOut
             bValidityCannotFail // coverage step 12a
             ctx.codec

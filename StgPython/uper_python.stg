@@ -227,12 +227,12 @@ IntNoneRequired_decode(p, sConst, sErrCode, soType) ::= <<
 >>
 
 /*case: A:: = INTEGER (5..40,...) */
-IntRootExt_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
+IntRootExt_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, bExtViaTemp, soExtMin, soExtMax, sExtType) ::=<<
 codec.append_bit(False) # write extension bit
 <sIntBody>
 >>
 
-IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode) ::=<<
+IntRootExt_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, bExtViaTemp, soExtMin, soExtMax, sExtType) ::=<<
 # read extension bit
 decoded_ext_bit = codec.read_bit()
 if not decoded_ext_bit or decoded_ext_bit.decoded_value is None:
@@ -245,7 +245,7 @@ else:
 >>
 
 /*case: A:: = INTEGER (5..40,..., 60..70) */
-IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::=<<
+IntRootExt2_encode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType, bExtViaTemp, soExtMin, soExtMax, sExtType, soExtUnsignedMax) ::=<<
 if <sRootBaseConstraint>:
     codec.append_bit(False) # write extension bit, value within root range, so ext bit is zero
     <sIntBody>
@@ -255,7 +255,7 @@ else:
     <IntUnconstrained_encode(p=p, sErrCode=sErrCode, soType=sType)>
 >>
 
-IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType) ::="<IntRootExt_decode(p=p, nMin=nMin, sRootBaseConstraint=sRootBaseConstraint, sIntBody=sIntBody, sErrCode=sErrCode)>"
+IntRootExt2_decode(p, nMin, sRootBaseConstraint, sIntBody, sErrCode, sType, bExtViaTemp, soExtMin, soExtMax, sExtType, soExtUnsignedMax) ::="<IntRootExt_decode(p=p, nMin=nMin, sRootBaseConstraint=sRootBaseConstraint, sIntBody=sIntBody, sErrCode=sErrCode, bExtViaTemp=bExtViaTemp, soExtMin=soExtMin, soExtMax=soExtMax, sExtType=sExtType)>"
 
 
 /* INTEGER END*/

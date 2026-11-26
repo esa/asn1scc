@@ -1,0 +1,10 @@
+-- A null-terminated ACN IA5String with SIZE (3 .. 8) (cycle 15j): a terminator after fewer than 3 characters is decoded
+-- without error, and only the final validity check of the decoder rejects the value (strlen below the minimum).
+-- Name: the type itself; Rec: a component that references Name (Name_ACN_Decode rejects); Msg: an inline component
+-- (decoded inline, so only Msg's own final check rejects).
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 020_wire_test.c.
+WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+	Name ::= IA5String (SIZE (3 .. 8))
+	Rec  ::= SEQUENCE { id INTEGER (0 .. 255), label Name }
+	Msg  ::= SEQUENCE { id INTEGER (0 .. 255), text IA5String (SIZE (3 .. 8)) }
+END

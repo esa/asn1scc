@@ -175,6 +175,36 @@ let knownFailureMarker (t:Test_Case) (lang:string, ws:int, slim:bool, enableIG:b
         | l :: modes when l = lang && List.forall modeMatches modes -> Some m.Value
         | _ -> None)
 
+// ATC_SKIPS(<n>) or ATC_SKIPS(<lang>=<n>[,<lang>=<n>...]) on the first line (same rules in runTests.py and
+// step09/try_pusc_group.py): the number of guarded checks the automatic tests skip (coverage cycle 15h: the executable
+// prints "Guarded checks skipped (counted as passed): <n>" as its last line when it has guarded checks), 0 when the
+// marker or the language is absent; a run that prints another number fails (George, Q5 = A+).
+let atcSkipLine = "Guarded checks skipped (counted as passed):"
+let expectedSkips (t:Test_Case) (lang:string) =
+    let markers = File.ReadLines t.asn1 |> Seq.tryHead |> Option.defaultValue ""
+    let m = System.Text.RegularExpressions.Regex.Match(markers, @"ATC_SKIPS\(([^)]*)\)")
+    match m.Success with
+    | false -> 0
+    | true  ->
+        let body = m.Groups[1].Value.Trim()
+        match System.Int32.TryParse body with
+        | true, n  -> n
+        | false, _ ->
+            body.Split(',') |> Array.map (fun s -> s.Trim()) |> Array.filter (fun s -> s <> "") |>
+            Array.tryPick (fun tok ->
+                match tok.Split('=') |> Array.map (fun s -> s.Trim()) with
+                | [| l; n |] ->
+                    match System.Int32.TryParse n with
+                    | true, v  -> if l = lang then Some v else None
+                    | false, _ -> failwithf "%s: bad ATC_SKIPS entry '%s' (<n> or <lang>=<n>, ...)" t.asn1 tok
+                | _ -> failwithf "%s: bad ATC_SKIPS entry '%s' (<n> or <lang>=<n>, ...)" t.asn1 tok) |>
+            Option.defaultValue 0
+let printedSkips (output:string) =
+    let ms = System.Text.RegularExpressions.Regex.Matches(output, System.Text.RegularExpressions.Regex.Escape atcSkipLine + @"\s*(\d+)")
+    match ms.Count with
+    | 0 -> 0
+    | n -> int ms[n - 1].Groups[1].Value
+
 // <name>.helpers/ next to <name>.asn1: files copied into the work directory of
 // each test case of that file (e.g. user-provided mapping functions).
 let copyHelpers (asn1FileName:string) workDir =
@@ -349,6 +379,8 @@ let executeTestCase asn1sccdll workDir  (t:Test_Case) (lang:string, ws:int, slim
                     | [] -> ""
                     | ls -> runTimeAssertionTag + "\n" + String.concat "\n" ls + "\n"
                 markError "Error code is %d\n%s%s\n%s" res.ExitCode evidence res.StdErr cmd
+            elif not bNoAtc && (lang = "c" || lang = "Ada") && printedSkips res.StdOut <> expectedSkips t lang then
+                markError "skipped guarded checks: %d, the file states ATC_SKIPS %d\n%s" (printedSkips res.StdOut) (expectedSkips t lang) cmd
             else
                 if bNoAtc then
                     markSuccess "Make OK"

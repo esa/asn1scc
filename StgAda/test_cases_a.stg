@@ -304,7 +304,10 @@ end if;
 
                    
 
-PrintATCRunner(sTestSuiteFilename, arrsIncludedModules, arrsVars, arrsTestFunctions, arrsUsedPackages, arrsInitCalls, bGenerateDatFile) ::= <<
+/* bSkips (coverage cycle 15h): the suite holds guarded checks (atcSkipped); the runner prints the number of skipped
+   ones as its last line, the sum of the counters of the test files arrsSkipCounters (the files with guarded tests,
+   atcSkipCounterDecl). */
+PrintATCRunner(sTestSuiteFilename, arrsIncludedModules, arrsVars, arrsTestFunctions, arrsUsedPackages, arrsInitCalls, bGenerateDatFile, bSkips, arrsSkipCounters) ::= <<
 pragma Style_Checks (Off);
 with Ada.Text_IO;
 <if(bGenerateDatFile)>
@@ -361,7 +364,7 @@ is
     end;
 
 <endif>
-begin
+begin<if(bSkips)><\n>    --  the skip counters start from 0 at every run of the suite<\n>    <arrsSkipCounters:{f|Standard.<f>.<f>.Skipped := 0;}; separator="\n    "><endif>
 
     <arrsTestFunctions;separator="\n\n">
 
@@ -372,10 +375,10 @@ begin
     pragma Warnings (Off, "condition is always False");
     if totalErrors > 0 then
         Put_Line (Integer'Image(totalErrors) & " out of <arrsTestFunctions.Length> failed."); 
-        return 1;
+<if(bSkips)>        <atcSkipSummary(arrsSkipCounters=arrsSkipCounters)><\n><endif>        return 1;
     else
         Put_Line ("All test cases (<arrsTestFunctions.Length>) run successfully."); 
-        return 0;
+<if(bSkips)>        <atcSkipSummary(arrsSkipCounters=arrsSkipCounters)><\n><endif>        return 0;
     end if;
     pragma Warnings (On, "condition can only be True if invalid values present");
     pragma Warnings (On, "condition is always False");
@@ -392,6 +395,40 @@ PrintMain(sTestSuiteFilename, arrsProgramUnitNames) ::= <<
 
 invokeTestCaseAsFunc(sFuncName) ::= <<
 <sFuncName> (totalErrors);
+>>
+
+/* Coverage cycle 15h: a test with guarded checks (atcSkipped); Ada counts its skips in its file's counter
+   (atcSkipCounterDecl), so the call is the usual one. */
+invokeGuardedTestCaseAsFunc(sFuncName) ::= <<
+<sFuncName> (totalErrors);
+>>
+
+emitGuardedTestCaseAsFunc_h(sFuncName) ::= <<
+procedure <sFuncName> ( totalErrors : in out Integer);
+>>
+
+/* Coverage cycle 15h: the skip counter of a test file (sFilePkg) that holds guarded tests, in its package spec.
+   Naming rule of the generated tests' own state: Ada identifiers cannot contain "__" and every other identifier can be
+   built from an ASN.1 name, so the state lives in a package named after the test file's own package: that identifier
+   already denotes the file's package wherever the tests run (a homograph built from an ASN.1 name is hidden there
+   anyway), and the state is reached only by expanded names (Standard.<sFilePkg>.<sFilePkg>.Skipped). */
+atcSkipCounterDecl(sFilePkg) ::= <<
+--  coverage cycle 15h: the number of skipped guarded checks of this file (atcSkipped), reached by expanded name only
+package <sFilePkg> is
+    Skipped : Natural := 0;
+end <sFilePkg>;
+>>
+
+/* Coverage cycle 15h: the one place that reports a skipped guarded check (its precondition did not hold at run time:
+   the start value was not valid, the change wrote no other value, or a value predicted to be rejected was accepted and
+   round-tripped). The check counts as passed; the runner prints the number of skips as its last line (atcSkipSummary). */
+atcSkipped(sFuncName, sReason, sWhat, sFilePkg) /*nogen*/ ::= <<
+Put_Line ("Test case '<sFuncName>': check skipped (<sReason>): <sWhat>");
+Standard.<sFilePkg>.<sFilePkg>.Skipped := Standard.<sFilePkg>.<sFilePkg>.Skipped + 1;
+>>
+
+atcSkipSummary(arrsSkipCounters) /*nogen*/ ::= <<
+Put_Line ("Guarded checks skipped (counted as passed):" & Integer'Image (<arrsSkipCounters:{f|Standard.<f>.<f>.Skipped}; separator=" + ">));
 >>
 
 
@@ -656,6 +693,93 @@ if ok then
 end if;
 >>
 
+/* Coverage cycle 15h (A2): a violation that the 15c P3 relaxation adds (an ALWAYS PRESENT child made absent where it
+   needs no selection, a node inside element 0 of a non-empty SEQUENCE OF), as a guarded test: the start value must be
+   valid (else the check is skipped), the changed value rejected with a nonzero code (an enclosing or a child check may
+   fail first) and every checked encoder must fail with that code; when the validator accepts the changed value,
+   <sEqualFunc> with the start value must hold both ways (the change wrote no live node: skipped), else the test fails. */
+emitGuardedConstraintViolationTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sSetInvalidValue, sWhat, sIsValidFunc, arrsEncodeChecks, sEqualFunc, sFilePkg) ::= <<
+procedure <sFuncName> ( totalErrors : in out Integer)
+is
+    procedure Put_Line (Item : String) renames Ada.Text_IO.Put_Line;
+    result  : adaasn1rtl.ASN1_RESULT;
+    ok      : Boolean;
+    <arrsVars; separator="\n">
+	pragma Warnings (Off, "there are no others");
+    tc_data : Standard.<sModName>.<sTasName>;
+	pragma Warnings (On, "there are no others");
+    --  the test's own state, named by the file's package (atcSkipCounterDecl): expanded names only; the types by
+    --  Standard.<module> (a component of the package may have a module's name) (GNAT 13 says
+    --  "never read and never assigned" of an object without initial value in a package of a subprogram, also when
+    --  the subprogram reads and assigns it by an expanded name)
+	pragma Warnings (Off);
+    package <sFilePkg> is
+        Start         : Standard.<sModName>.<sTasName>;
+        ValidatorCode : Integer := 0;
+    end <sFilePkg>;
+	pragma Warnings (On);
+begin
+	pragma Warnings (Off, "there are no others");
+	pragma Warnings (Off, "condition can only be True if invalid values present");
+	pragma Warnings (Off, "condition can only be False if invalid values present");
+	pragma Warnings (Off, "condition is always False");
+	pragma Warnings (Off, "condition is always True");
+	pragma Warnings (Off, "is always True at this point");
+	pragma Warnings (Off, "is always False at this point");
+    <sInitializeTcData>
+	pragma Warnings (On, "there are no others");
+	pragma Warnings (On, "condition can only be True if invalid values present");
+	pragma Warnings (On, "condition can only be False if invalid values present");
+	pragma Warnings (On, "condition is always False");
+	pragma Warnings (On, "condition is always True");
+	pragma Warnings (On, "is always True at this point");
+	pragma Warnings (On, "is always False at this point");
+    --  the start value must be valid, else the check is skipped
+    result := Standard.<sModName>.<sIsValidFunc> (tc_data);
+    ok := result.Success and result.ErrorCode = 0;
+    if not ok then
+        <atcSkipped(sFuncName=sFuncName, sReason="the start value is not valid", sWhat=sWhat, sFilePkg=sFilePkg)>
+        ok := True;
+    else
+        <sFilePkg>.Start := tc_data;
+        --  <sWhat>
+        <sSetInvalidValue>
+        result := Standard.<sModName>.<sIsValidFunc> (tc_data);
+        if result.Success then
+            --  accepted: the change must have written no live node, else the test fails
+            ok := Standard.<sModName>.<sEqualFunc> (<sFilePkg>.Start, tc_data) and then Standard.<sModName>.<sEqualFunc> (tc_data, <sFilePkg>.Start);
+            if ok then
+                <atcSkipped(sFuncName=sFuncName, sReason="the change wrote no live node", sWhat=sWhat, sFilePkg=sFilePkg)>
+            end if;
+        else
+            <sFilePkg>.ValidatorCode := result.ErrorCode;
+            ok := <sFilePkg>.ValidatorCode /= 0;
+            <arrsEncodeChecks; separator="\n">
+        end if;
+    end if;
+    if ok then
+        Put_Line ("Test case '<sFuncName>' succeeded");
+    else
+        Put_Line ("Test case '<sFuncName>' failed: <sWhat>: not rejected with a nonzero error code (by the validator and every checked encoder alike), and not equal to the starting value.");
+        Put_Line ("========================================");
+        totalErrors := totalErrors + 1;
+    end if;
+end <sFuncName>;
+>>
+
+guardedViolationEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber, sFilePkg) ::= <<
+if ok then
+    declare
+        pragma Warnings (Off);
+        bs : Standard.<sModName>.<sTasName>_<sEnc>Stream;
+        pragma Warnings (On);
+    begin
+        Standard.<sModName>.<sEncFunc> (tc_data, bs, result);
+        ok := not result.Success and result.ErrorCode = <sFilePkg>.ValidatorCode;
+    end;
+end if;
+>>
+
 /* Coverage step 12d: C only (invalid CHOICE selectors / ENUMERATED values, ILangGeneric.atcEmitsInvalidValueTests). */
 constraintViolationUncheckedEncodeCheck(sEncFunc, sModName, sTasName, sEnc, sAmber) ::= <<
 >>
@@ -740,7 +864,7 @@ end if;
 
 /* Coverage step 14a: T_Equal with two different values (AutomaticTestCase.variants): the test value with one node
    changed must compare unequal, both ways. */
-emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks, bReflexiveChecks) ::= <<
+emitEqualityVariantTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sEqualFunc, arrsVariantChecks, bReflexiveChecks, bGuarded) ::= <<
 procedure <sFuncName> ( totalErrors : in out Integer)
 is
     procedure Put_Line (Item : String) renames Ada.Text_IO.Put_Line;
@@ -790,6 +914,67 @@ if <sModName>.<sEqualFunc> (tc_data, tc_data2) or else <sModName>.<sEqualFunc> (
 end if;
 >>
 
+/* Coverage cycle 15h (VR, George: Q4 = A): a variant that may write the same value at its node (another automatic
+   value of an inner node lifted to the parent: two notations of one value). sDiff (atcDiff* macros, here a Boolean
+   expression: the node's active contents are the same in the value and in the changed copy) compares them exactly
+   and without the Equal functions under test: when they are the same the check is skipped (atcSkipped), else T_Equal
+   must return False both ways. An expression, so the test declares no name of its own (atcSkipCounterDecl). */
+equalityVariantCheckGuarded(sFuncName, sModName, sAmber, sApplyVariant, sWhat, sEqualFunc, sDiff, sFilePkg) ::= <<
+--  <sWhat> (checked when the change wrote another value at the node)
+tc_data2 := tc_data;
+<sApplyVariant>
+if <sDiff> then
+    <atcSkipped(sFuncName=sFuncName, sReason="the change wrote the same value at the node", sWhat=sWhat, sFilePkg=sFilePkg)>
+elsif Standard.<sModName>.<sEqualFunc> (tc_data, tc_data2) or else Standard.<sModName>.<sEqualFunc> (tc_data2, tc_data) then
+    ok := False;
+    Put_Line ("  equal for: <sWhat>");
+end if;
+>>
+
+/* Coverage cycle 15h: the exact comparison of a node's active contents (equalityVariantCheckGuarded), as Boolean
+   expressions that hold when the value (sV1 / sP1) and its changed copy (sV2 / sP2) are the same there. The bound
+   variable of a quantified expression (atcDiffIndexName) is visible inside the expression only, which holds no name
+   built from an ASN.1 name but the _PRESENT literals of CHOICE selectors. */
+atcDiffIndexName(sKind, nLevel) ::= "tc_<sKind><nLevel>"
+
+atcDiffJoin(arrsParts) ::= <<
+<arrsParts:{x|(<x>)}; separator="\nand then ">
+>>
+
+atcDiffScalar(sV1, sV2) ::= <<
+<sV1> = <sV2>
+>>
+
+atcDiffString(sV1, sV2) ::= <<
+<sV1> = <sV2>
+>>
+
+atcDiffOctets(sP1, sP2, bFixed, nSize) ::= <<
+<if(bFixed)><sP1>Data (1 .. <nSize>) = <sP2>Data (1 .. <nSize>)<else>(<sP1>Length = <sP2>Length and then <sP1>Data (1 .. <sP1>Length) = <sP2>Data (1 .. <sP2>Length))<endif>
+>>
+
+/* bit by bit: GNAT 13 compared two slices of a bit-packed array wrongly in a generated test file (09-CHOICE/015:
+   Data (1 .. 1) /= Data (1 .. 1) was False for the bits 0 and 1) */
+atcDiffBits(sP1, sP2, bFixed, nSize, sIdx) ::= <<
+<if(bFixed)>(for all <sIdx> in 1 .. <nSize> => <sP1>Data (<sIdx>) = <sP2>Data (<sIdx>))<else>(<sP1>Length = <sP2>Length and then (for all <sIdx> in 1 .. <sP1>Length => <sP1>Data (<sIdx>) = <sP2>Data (<sIdx>)))<endif>
+>>
+
+atcDiffOptional(sP1, sP2, sAcc, sChName, soInner) ::= <<
+<if(soInner)>(<sP1>.Exist.<sChName> = <sP2>.Exist.<sChName> and then (<sP1>.Exist.<sChName> = 0 or else (<soInner>)))<else><sP1>.Exist.<sChName> = <sP2>.Exist.<sChName><endif>
+>>
+
+atcDiffChoice(sP1, sP2, sAcc, arrsAlternatives) ::= <<
+<if(arrsAlternatives)>(<sP1>.kind = <sP2>.kind and then (if <arrsAlternatives; separator="\nelsif "> else True))<else><sP1>.kind = <sP2>.kind<endif>
+>>
+
+atcDiffChoiceAlternative(sP1, sAcc, sPresentPkg, sPresent, sInner) ::= <<
+<sP1>.kind = Standard.<sPresentPkg>.<sPresent> then (<sInner>)
+>>
+
+atcDiffSeqOf(sP1, sP2, sAcc, bFixed, nSize, sIdx, soInner) ::= <<
+<if(bFixed)>(for all <sIdx> in 1 .. <nSize> => (<soInner>))<else><if(soInner)>(<sP1>.Length = <sP2>.Length and then (for all <sIdx> in 1 .. <sP1>.Length => (<soInner>)))<else><sP1>.Length = <sP2>.Length<endif><endif>
+>>
+
 /* Coverage cycle 15c (P4): after equalityVariantCheck, the changed value (tc_data2) compared with itself must be equal:
    the MC/DC pair of `ret and then val1.Exist.x = 1` with x absent on both sides (an ALWAYS PRESENT child made absent). */
 equalityReflexiveCheck(sModName, sAmber, sWhat, sEqualFunc) ::= <<
@@ -800,8 +985,16 @@ end if;
 >>
 
 /* Coverage step 14d: a value whose ACN fields disagree (one consumer of a shared field changed): the ACN encoder must
-   reject it with a nonzero error code. */
-emitInconsistentValueTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sChange, sWhat, sEncFunc, sEnc) ::= <<
+   reject it with a nonzero error code.
+   Coverage cycle 15h (soDecFunc, Issue 144): when the encoder accepts the value, it must round-trip: decode (from the
+   encoded length for a 'size deduced' PDU, bDeduced), <sEqualFunc> with the value, and the decoded value encoded again
+   to the same bits; then the fields agreed after all and the check is skipped (atcSkipped). Anything else fails. The
+   test's own state lives in a package named after the file's package (atcSkipCounterDecl): expanded names only.
+   Limit (George, Q5 = A+): the round trip cannot tell a value whose fields agree from one that a coordinated encoder +
+   decoder fault writes and reads back alike (e.g. an illegal determinant code for two disagreeing CHOICEs); such a
+   fault shows only as a skip count other than the one the test file states (first-line marker ATC_SKIPS, checked by
+   runTests.py, the regression tool and the PUS-C script). */
+emitInconsistentValueTestCase(sFuncName, arrsVars, sModName, sTasName, sAmber, sInitializeTcData, bStatic, sChange, sWhat, sEncFunc, sEnc, soDecFunc, sEqualFunc, bDeduced, sFilePkg) ::= <<
 procedure <sFuncName> ( totalErrors : in out Integer)
 is
     procedure Put_Line (Item : String) renames Ada.Text_IO.Put_Line;
@@ -813,6 +1006,16 @@ is
 	pragma Warnings (Off);
     bs : <sModName>.<sTasName>_<sEnc>Stream;
 	pragma Warnings (On);
+    <if(soDecFunc)>
+	pragma Warnings (Off);
+    package <sFilePkg> is
+        Ok    : Boolean := False;
+        NBits : Natural := 0;
+        Dec   : Standard.<sModName>.<sTasName>;
+        Bs2   : Standard.<sModName>.<sTasName>_<sEnc>Stream;
+    end <sFilePkg>;
+	pragma Warnings (On);
+    <endif>
 begin
 	pragma Warnings (Off, "there are no others");
 	pragma Warnings (Off, "condition can only be True if invalid values present");
@@ -832,12 +1035,45 @@ begin
 	pragma Warnings (On, "is always True at this point");
 	pragma Warnings (On, "is always False at this point");
     <sModName>.<sEncFunc> (tc_data, bs, result);
+    <if(soDecFunc)>
+    <inconsistentValueRoundTrip(sFuncName=sFuncName, sModName=sModName, sTasName=sTasName, sWhat=sWhat, sEncFunc=sEncFunc, sEnc=sEnc, sDecFunc=soDecFunc, sEqualFunc=sEqualFunc, bDeduced=bDeduced, sFilePkg=sFilePkg)>
+    if <sFilePkg>.Ok then
+    <else>
     if not result.Success and result.ErrorCode /= 0 then
+    <endif>
         Put_Line ("Test case '<sFuncName>' succeeded");
     else
-        Put_Line ("Test case '<sFuncName>' failed: <sWhat>: the ACN fields of the value disagree, but <sEncFunc> did not fail with an error code.");
+        Put_Line ("Test case '<sFuncName>' failed: <sWhat>: the ACN fields of the value disagree, but <sEncFunc> did not fail with an error code<if(soDecFunc)> (and the accepted value did not round-trip)<endif>.");
         Put_Line ("========================================");
         totalErrors := totalErrors + 1;
     end if;
 end <sFuncName>;
+>>
+
+/* Coverage cycle 15h: the round trip of an accepted 14d value (emitInconsistentValueTestCase). */
+inconsistentValueRoundTrip(sFuncName, sModName, sTasName, sWhat, sEncFunc, sEnc, sDecFunc, sEqualFunc, bDeduced, sFilePkg) /*nogen*/ ::= <<
+<sFilePkg>.Ok := not result.Success and result.ErrorCode /= 0;
+--  (an Ada encoder / decoder that succeeds may leave a nonzero ErrorCode: its Success decides)
+if result.Success then
+    --  accepted: the value must decode to an equal value and encode to the same bits again
+    <sFilePkg>.NBits := bs.Current_Bit_Pos;
+    bs.Current_Bit_Pos := 0;
+    <if(bDeduced)>
+    --  'size deduced' PDU: the decoder takes the element counts from the end of the encoded length
+    bs.End_Bit_Pos := ((<sFilePkg>.NBits + 7) / 8) * 8;
+    Standard.<sModName>.<sDecFunc>_aux (<sFilePkg>.Dec, bs, result);
+    <else>
+    Standard.<sModName>.<sDecFunc> (<sFilePkg>.Dec, bs, result);
+    <endif>
+    <sFilePkg>.Ok := result.Success and then
+          Standard.<sModName>.<sEqualFunc> (tc_data, <sFilePkg>.Dec) and then Standard.<sModName>.<sEqualFunc> (<sFilePkg>.Dec, tc_data);
+    if <sFilePkg>.Ok then
+        Standard.<sModName>.<sEncFunc> (<sFilePkg>.Dec, <sFilePkg>.Bs2, result);
+        <sFilePkg>.Ok := result.Success and then
+              <sFilePkg>.Bs2.Current_Bit_Pos = <sFilePkg>.NBits and then <sFilePkg>.Bs2.Buffer = bs.Buffer;
+    end if;
+    if <sFilePkg>.Ok then
+        <atcSkipped(sFuncName=sFuncName, sReason="the value predicted to be rejected was accepted and round-trips, so its ACN fields agree", sWhat=sWhat, sFilePkg=sFilePkg)>
+    end if;
+end if;
 >>

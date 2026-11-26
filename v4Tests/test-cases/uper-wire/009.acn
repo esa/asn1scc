@@ -1,0 +1,7 @@
+UPER-WIRE-EXT DEFINITIONS ::= BEGIN
+    AP [encoding pos-int, size 8]
+    AQ [encoding pos-int, size 8]
+    AR [encoding pos-int, size 8]
+    SQL [] { n L [encoding pos-int, size 8], s [size n] }
+    SQD [] { n L2 [], s [size n] }
+END

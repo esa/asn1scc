@@ -526,6 +526,8 @@ type LangGeneric_a() =
             match t with
             | EncRtlWritesOnly | EncPresenceBits | EncEnumerated | EncOctetStringFixedSize | EncOctetStringNoLength | EncBitStringFixedSize
             | EncStringFixedSize | EncSequenceOfFixedSize                           -> EncodeOutcome.noWrite
+            // Issue 184: result := (False, <code>) for a valid extension addition above the signed maximum
+            | EncIntExtensionAboveSignedMax                                         -> {canFail = true; writes = SometimesWrites; callee = None}
             // BitStream_EncodeContainingOctets / Bits: procedures without result (coverage step 14p)
             | EncContainingUper                                                     -> EncodeOutcome.noWrite
             // the fragmentation writes no result; since coverage step 14p its fixed-size blocks are joined by what an element
@@ -563,6 +565,7 @@ type LangGeneric_a() =
             | EncDeterminantMulti                                                   -> {canFail = true; writes = ReadsFirst; callee = None}
         override _.atcEmitsConstraintViolationTests = true
         override _.atcEmitsEqualityVariantTests = true
+        override _.atcBitStringDiffSupported = not CommonTypes.bitStringAlignment
         override _.atcEmitsValidityTests = true
         // Coverage step 14i: the toggles of 14a where the Ada type holds the changed value. The content of a fixed-size
         // OCTET / BIT STRING (Asn1Byte, BIT: modular, `not` gives another element) and of an IA5String (Character) can

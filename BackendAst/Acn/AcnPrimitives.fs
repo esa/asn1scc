@@ -259,7 +259,7 @@ let createAcnIntegerFunction (r:Asn1AcnAst.AstRoot) (deps: Asn1AcnAst.AcnInserte
     let fullRangeUse = DecodeOutcome.acnInsertedFieldFullRangeUse (Asn1AcnAst.AcnInteger t)
     let uperFuncBody (errCode) (nestingScope: NestingScope) (p:CodegenScope) (fromACN: bool) =
         let acnPrimitiveTypeDef = ReferenceToExistingDefinition {ReferenceToExistingDefinition.programUnit = None; typedefName = "int"; definedInRtl = false}
-        DAstUPer.getIntfuncBodyByCons r lm codec t.uperRange t.Location (getAcnIntegerClass r.args t) (t.cons) (t.cons@t.withcons) typeId acnPrimitiveTypeDef errCode nestingScope p fullRangeUse
+        DAstUPer.getIntfuncBodyByCons r lm codec t.uperRange t.Location (getAcnIntegerClass r.args t) (t.cons) (t.cons@t.withcons) typeId acnPrimitiveTypeDef errCode nestingScope p fullRangeUse (Some typeName)
     let soMapFunc, soMapFunMod = getMappingFunction r lm t.acnProperties.mappingFunction
 
     let sAsn1Constraints = constraintsToIcdStr (DAstAsn1.createAcnInteger (t.cons@t.withcons))

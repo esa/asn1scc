@@ -1,0 +1,15 @@
+-- C_ADA_ONLY (automatic tests of C and Ada; not run in the experimental Python / Rust legs)
+-- Names of the generated tests' own state (coverage cycle 15h, code review r2): the Ada comparison of a changed
+-- SEQUENCE OF of CHOICE elements was a quantified expression whose bound variable (tc_i1) would hide a package of the
+-- same name; the selector literals of module Tc-i1 are therefore written Standard.Tc_i1.<literal>. Expected: no skip.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   IMPORTS Pick FROM Tc-i1;
+   Inner ::= SEQUENCE { xs SEQUENCE (SIZE(1..2)) OF Pick (WITH COMPONENTS { ..., a (0..2) }) }
+   Outer ::= SEQUENCE { x Inner }
+END
+
+Tc-i1 DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   Pick ::= CHOICE { a INTEGER (0..3), b BOOLEAN }
+END
+
+--TCLS     Outer[]

@@ -1,0 +1,19 @@
+-- C_ADA_ONLY ATC_SKIPS(c=1) (automatic tests of C and Ada; C: Outer.x.data, two notations of one value)
+-- Equal tests with another value of a node inside a referenced type (coverage cycle 15h, value replacements; C only,
+-- Ada keeps master's Equal tests): the test compares the node's active contents in the value and in the changed copy, asserts that Equal tells the two
+-- values apart when they differ, and skips the check (printed, counted) when the change wrote the same value. Outer:
+-- the two automatic values of x.data are one value in two notations ('01'H, '00000001'B) in a padded struct: one skip
+-- per C configuration. Top: every kind of node the comparison handles, changed inside a referenced Leaf (directly and
+-- in SEQUENCE OF elements): INTEGER, BOOLEAN, ENUMERATED, IA5String, BIT / OCTET STRING, SEQUENCE OF, CHOICE, OPTIONAL.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+  Inner ::= SEQUENCE { data OCTET STRING (SIZE(1..2)), b BOOLEAN }
+  Outer ::= SEQUENCE { x Inner (WITH COMPONENTS { ..., data ('01'H | '00000001'B) }) }
+  Leaf ::= SEQUENCE {
+    n INTEGER (0..10), f BOOLEAN, e ENUMERATED { r, g, bl }, s IA5String (SIZE(1..4)), bs BIT STRING (SIZE(1..12)),
+    os OCTET STRING (SIZE(1..3)), l SEQUENCE (SIZE(1..2)) OF INTEGER (0..3), c CHOICE { a INTEGER (0..3), z BOOLEAN },
+    o SEQUENCE { p INTEGER (0..3) OPTIONAL, q BOOLEAN }
+  }
+  Top ::= SEQUENCE { leaf Leaf, list SEQUENCE (SIZE(2)) OF Leaf }
+END
+
+--TCLS Inner [] Outer [] Top []

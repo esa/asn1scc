@@ -1,0 +1,16 @@
+--C_ADA_ONLY (pins C decoder code shape; the Python / Rust output of these types is unchanged)
+-- SEQUENCEs whose components are only NULLs with bits of their own (a pattern, an alignment): the ACN decoder body
+-- reads the stream but names no component of the value. A C decoder that does not end with a validity call (the
+-- validator of such a SEQUENCE cannot fail) must still use its value parameter, else `unused parameter` under
+-- -Wextra -Werror. Sync: one NULL with a pattern; Pad: two aligned NULLs; Nest: an inline SEQUENCE holding a NULL
+-- with a pattern; Outer: references to them (its decoder calls theirs).
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+Sync ::= SEQUENCE { marker NULL }
+Pad ::= SEQUENCE { n NULL, m NULL }
+Nest ::= SEQUENCE { e SEQUENCE { z NULL } }
+Outer ::= SEQUENCE { s Sync, p Pad, t Nest, b BOOLEAN }
+
+END
+
+--TCLS Sync [] { marker [pattern '11'B] } Pad [] { n [align-to-next byte], m [align-to-next dword] } Nest [] { e [] { z [pattern '101'B] } } Outer [] { s [], p [], t [], b [] }

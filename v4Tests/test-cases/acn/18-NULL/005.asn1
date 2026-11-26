@@ -1,0 +1,14 @@
+--C_ONLY (pins a C decoder code shape; Ada's uPER decoder of a BIT STRING CONTAINING a zero-bit uPER encoding leaves its
+-- "contents past the region" arm uncovered, a line-gate gap unrelated to this file)
+-- A CONTAINING type assignment whose ACN overrides the contents' encoding gets, with --acn-v2, its own decoder
+-- Box_Containing_ACN_Decode. Its body reads the pattern and names no component of the value; when it does not end with a
+-- validity call (the validator of Box cannot fail) it must still use its value parameter, else `unused parameter`
+-- under -Wextra -Werror. In legacy the same grammar checks the ACN SEQUENCE decoder of Sync.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+
+Sync ::= SEQUENCE { marker NULL }
+Box ::= BIT STRING (CONTAINING Sync)
+
+END
+
+--TCLS Sync [] { marker [pattern '1'B] } Box [] { marker [pattern '0'B] }

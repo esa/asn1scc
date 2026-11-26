@@ -789,6 +789,18 @@ type ILangGeneric () =
     abstract member atcEmitsEqualityVariantTests : bool
     default _.atcEmitsEqualityVariantTests = false
 
+    /// Coverage cycle 15h: the guarded Equal checks can compare the bits of a BIT STRING node (macro atcDiffBits); Ada
+    /// not with -adaBitStringAlignment (the elements are then octets that hold the bits).
+    abstract member atcBitStringDiffSupported : bool
+    default _.atcBitStringDiffSupported = true
+
+    /// Coverage cycle 15h (VR): the Equal tests take the lifted "another value" variants as guarded checks (a
+    /// comparison of the changed node, macro equalityVariantCheckGuarded). C only: the Ada comparison had to name the
+    /// selector literals of CHOICEs reached through references and CONTAINING by their declaring package, which failed
+    /// for a subtype of an imported CHOICE (code review r3); Ada VR is left to a later cycle.
+    abstract member atcEmitsGuardedValueReplacements : bool
+    default _.atcEmitsGuardedValueReplacements = false
+
     /// Automatic tests for a type assignment that has no test of its own (coverage step 14j task 0,
     /// DastTestCaseCreation validityTestCases): IsConstraintValid must accept every automatic test value. C and Ada.
     abstract member atcEmitsValidityTests : bool
@@ -885,6 +897,12 @@ type ILangGeneric () =
     /// EncoderValidationModel; coverage step 12a).
     abstract member encoderValidationModel : EncoderValidationModel
     default _.encoderValidationModel = EncodersCallEveryValidation
+
+    /// Whether a public decoder calls its type's IsConstraintValid when that function is AlwaysValid (see
+    /// DecoderValidationModel; cycle 15j). Separate from encoderValidationModel: Ada's encoder model must not reach
+    /// its decoders.
+    abstract member decoderValidationModel : DecoderValidationModel
+    default _.decoderValidationModel = DecodersCallEveryValidation
 
     /// What an encode template writes to ret / result and whether it can fail (coverage step 12b, EncodeTemplate).
     /// Unknown everywhere by default: the parts keep their checks (Scala, Python, Rust output unchanged).

@@ -99,13 +99,21 @@ let PrintATCRunnerDefinition () =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "test_cases_rust" "PrintATCRunnerDefinition" []
 
-let PrintATCRunner (sTestSuiteFilename:string) (arrsIncludedModules:seq<string>) (arrsVars:seq<string>) (arrsTestFunctions:seq<string>) (arrsUsedPackages:seq<string>) (arrsInitCalls:seq<string>) (bGenerateDatFile:bool) =
+let PrintATCRunner (sTestSuiteFilename:string) (arrsIncludedModules:seq<string>) (arrsVars:seq<string>) (arrsTestFunctions:seq<string>) (arrsUsedPackages:seq<string>) (arrsInitCalls:seq<string>) (bGenerateDatFile:bool) (bSkips:bool) (arrsSkipCounters:seq<string>) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "test_cases_rust" "PrintATCRunner" [("sTestSuiteFilename",(if sTestSuiteFilename = null then null else ST.StrHelper sTestSuiteFilename:>Object) );("arrsIncludedModules",(arrsIncludedModules|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("arrsVars",(arrsVars|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("arrsTestFunctions",(arrsTestFunctions|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("arrsUsedPackages",(arrsUsedPackages|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("arrsInitCalls",(arrsInitCalls|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("bGenerateDatFile",bGenerateDatFile :>Object)]
+    ST.call "test_cases_rust" "PrintATCRunner" [("sTestSuiteFilename",(if sTestSuiteFilename = null then null else ST.StrHelper sTestSuiteFilename:>Object) );("arrsIncludedModules",(arrsIncludedModules|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("arrsVars",(arrsVars|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("arrsTestFunctions",(arrsTestFunctions|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("arrsUsedPackages",(arrsUsedPackages|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("arrsInitCalls",(arrsInitCalls|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("bGenerateDatFile",bGenerateDatFile :>Object);("bSkips",bSkips :>Object);("arrsSkipCounters",(arrsSkipCounters|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object)]
 
 let invokeTestCaseAsFunc (sFuncName:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "test_cases_rust" "invokeTestCaseAsFunc" [("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) )]
+
+let invokeGuardedTestCaseAsFunc (sFuncName:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "invokeGuardedTestCaseAsFunc" [("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) )]
+
+let emitGuardedTestCaseAsFunc_h (sFuncName:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "emitGuardedTestCaseAsFunc_h" [("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) )]
 
 let emitTestCaseAsFunc_h (sFuncName:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
@@ -155,6 +163,14 @@ let constraintViolationEncodeCheck (sEncFunc:string) (sModName:string) (sTasName
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "test_cases_rust" "constraintViolationEncodeCheck" [("sEncFunc",(if sEncFunc = null then null else ST.StrHelper sEncFunc:>Object) );("sModName",(if sModName = null then null else ST.StrHelper sModName:>Object) );("sTasName",(if sTasName = null then null else ST.StrHelper sTasName:>Object) );("sEnc",(if sEnc = null then null else ST.StrHelper sEnc:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) );("sErrCodeModule",(if sErrCodeModule = null then null else ST.StrHelper sErrCodeModule:>Object) );("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) )]
 
+let emitGuardedConstraintViolationTestCase (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sSetInvalidValue:string) (sWhat:string) (sIsValidFunc:string) (arrsEncodeChecks:seq<string>) (sEqualFunc:string) (sFilePkg:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "emitGuardedConstraintViolationTestCase" [("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("arrsVars",(arrsVars|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sModName",(if sModName = null then null else ST.StrHelper sModName:>Object) );("sTasName",(if sTasName = null then null else ST.StrHelper sTasName:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) );("sInitializeTcData",(if sInitializeTcData = null then null else ST.StrHelper sInitializeTcData:>Object) );("bStatic",bStatic :>Object);("sSetInvalidValue",(if sSetInvalidValue = null then null else ST.StrHelper sSetInvalidValue:>Object) );("sWhat",(if sWhat = null then null else ST.StrHelper sWhat:>Object) );("sIsValidFunc",(if sIsValidFunc = null then null else ST.StrHelper sIsValidFunc:>Object) );("arrsEncodeChecks",(arrsEncodeChecks|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sEqualFunc",(if sEqualFunc = null then null else ST.StrHelper sEqualFunc:>Object) );("sFilePkg",(if sFilePkg = null then null else ST.StrHelper sFilePkg:>Object) )]
+
+let guardedViolationEncodeCheck (sEncFunc:string) (sModName:string) (sTasName:string) (sEnc:string) (sAmber:string) (sFilePkg:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "guardedViolationEncodeCheck" [("sEncFunc",(if sEncFunc = null then null else ST.StrHelper sEncFunc:>Object) );("sModName",(if sModName = null then null else ST.StrHelper sModName:>Object) );("sTasName",(if sTasName = null then null else ST.StrHelper sTasName:>Object) );("sEnc",(if sEnc = null then null else ST.StrHelper sEnc:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) );("sFilePkg",(if sFilePkg = null then null else ST.StrHelper sFilePkg:>Object) )]
+
 let constraintViolationUncheckedEncodeCheck (sEncFunc:string) (sModName:string) (sTasName:string) (sEnc:string) (sAmber:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "test_cases_rust" "constraintViolationUncheckedEncodeCheck" [("sEncFunc",(if sEncFunc = null then null else ST.StrHelper sEncFunc:>Object) );("sModName",(if sModName = null then null else ST.StrHelper sModName:>Object) );("sTasName",(if sTasName = null then null else ST.StrHelper sTasName:>Object) );("sEnc",(if sEnc = null then null else ST.StrHelper sEnc:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) )]
@@ -183,9 +199,57 @@ let validityCheck (sModName:string) (sAmber:string) (sInitializeTcData:string) (
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "test_cases_rust" "validityCheck" [("sModName",(if sModName = null then null else ST.StrHelper sModName:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) );("sInitializeTcData",(if sInitializeTcData = null then null else ST.StrHelper sInitializeTcData:>Object) );("sWhat",(if sWhat = null then null else ST.StrHelper sWhat:>Object) );("sIsValidFunc",(if sIsValidFunc = null then null else ST.StrHelper sIsValidFunc:>Object) )]
 
-let emitEqualityVariantTestCase (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sEqualFunc:string) (arrsVariantChecks:seq<string>) (bReflexiveChecks:bool) =
+let emitEqualityVariantTestCase (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sEqualFunc:string) (arrsVariantChecks:seq<string>) (bReflexiveChecks:bool) (bGuarded:bool) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "test_cases_rust" "emitEqualityVariantTestCase" [("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("arrsVars",(arrsVars|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sModName",(if sModName = null then null else ST.StrHelper sModName:>Object) );("sTasName",(if sTasName = null then null else ST.StrHelper sTasName:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) );("sInitializeTcData",(if sInitializeTcData = null then null else ST.StrHelper sInitializeTcData:>Object) );("bStatic",bStatic :>Object);("sEqualFunc",(if sEqualFunc = null then null else ST.StrHelper sEqualFunc:>Object) );("arrsVariantChecks",(arrsVariantChecks|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("bReflexiveChecks",bReflexiveChecks :>Object)]
+    ST.call "test_cases_rust" "emitEqualityVariantTestCase" [("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("arrsVars",(arrsVars|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sModName",(if sModName = null then null else ST.StrHelper sModName:>Object) );("sTasName",(if sTasName = null then null else ST.StrHelper sTasName:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) );("sInitializeTcData",(if sInitializeTcData = null then null else ST.StrHelper sInitializeTcData:>Object) );("bStatic",bStatic :>Object);("sEqualFunc",(if sEqualFunc = null then null else ST.StrHelper sEqualFunc:>Object) );("arrsVariantChecks",(arrsVariantChecks|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("bReflexiveChecks",bReflexiveChecks :>Object);("bGuarded",bGuarded :>Object)]
+
+let equalityVariantCheckGuarded (sFuncName:string) (sModName:string) (sAmber:string) (sApplyVariant:string) (sWhat:string) (sEqualFunc:string) (sDiff:string) (sFilePkg:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "equalityVariantCheckGuarded" [("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("sModName",(if sModName = null then null else ST.StrHelper sModName:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) );("sApplyVariant",(if sApplyVariant = null then null else ST.StrHelper sApplyVariant:>Object) );("sWhat",(if sWhat = null then null else ST.StrHelper sWhat:>Object) );("sEqualFunc",(if sEqualFunc = null then null else ST.StrHelper sEqualFunc:>Object) );("sDiff",(if sDiff = null then null else ST.StrHelper sDiff:>Object) );("sFilePkg",(if sFilePkg = null then null else ST.StrHelper sFilePkg:>Object) )]
+
+let atcSkipCounterDecl (sFilePkg:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "atcSkipCounterDecl" [("sFilePkg",(if sFilePkg = null then null else ST.StrHelper sFilePkg:>Object) )]
+
+let atcDiffIndexName (sKind:string) (nLevel:BigInteger) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "atcDiffIndexName" [("sKind",(if sKind = null then null else ST.StrHelper sKind:>Object) );("nLevel",nLevel :>Object)]
+
+let atcDiffJoin (arrsParts:seq<string>) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "atcDiffJoin" [("arrsParts",(arrsParts|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object)]
+
+let atcDiffScalar (sV1:string) (sV2:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "atcDiffScalar" [("sV1",(if sV1 = null then null else ST.StrHelper sV1:>Object) );("sV2",(if sV2 = null then null else ST.StrHelper sV2:>Object) )]
+
+let atcDiffString (sV1:string) (sV2:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "atcDiffString" [("sV1",(if sV1 = null then null else ST.StrHelper sV1:>Object) );("sV2",(if sV2 = null then null else ST.StrHelper sV2:>Object) )]
+
+let atcDiffOctets (sP1:string) (sP2:string) (bFixed:bool) (nSize:BigInteger) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "atcDiffOctets" [("sP1",(if sP1 = null then null else ST.StrHelper sP1:>Object) );("sP2",(if sP2 = null then null else ST.StrHelper sP2:>Object) );("bFixed",bFixed :>Object);("nSize",nSize :>Object)]
+
+let atcDiffBits (sP1:string) (sP2:string) (bFixed:bool) (nSize:BigInteger) (sIdx:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "atcDiffBits" [("sP1",(if sP1 = null then null else ST.StrHelper sP1:>Object) );("sP2",(if sP2 = null then null else ST.StrHelper sP2:>Object) );("bFixed",bFixed :>Object);("nSize",nSize :>Object);("sIdx",(if sIdx = null then null else ST.StrHelper sIdx:>Object) )]
+
+let atcDiffOptional (sP1:string) (sP2:string) (sAcc:string) (sChName:string) (soInner:string option) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "atcDiffOptional" [("sP1",(if sP1 = null then null else ST.StrHelper sP1:>Object) );("sP2",(if sP2 = null then null else ST.StrHelper sP2:>Object) );("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("sChName",(if sChName = null then null else ST.StrHelper sChName:>Object) );("soInner",(if soInner.IsNone then null else ST.StrHelper soInner.Value:>Object) )]
+
+let atcDiffChoice (sP1:string) (sP2:string) (sAcc:string) (arrsAlternatives:seq<string>) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "atcDiffChoice" [("sP1",(if sP1 = null then null else ST.StrHelper sP1:>Object) );("sP2",(if sP2 = null then null else ST.StrHelper sP2:>Object) );("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("arrsAlternatives",(arrsAlternatives|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object)]
+
+let atcDiffChoiceAlternative (sP1:string) (sAcc:string) (sPresentPkg:string) (sPresent:string) (sInner:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "atcDiffChoiceAlternative" [("sP1",(if sP1 = null then null else ST.StrHelper sP1:>Object) );("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("sPresentPkg",(if sPresentPkg = null then null else ST.StrHelper sPresentPkg:>Object) );("sPresent",(if sPresent = null then null else ST.StrHelper sPresent:>Object) );("sInner",(if sInner = null then null else ST.StrHelper sInner:>Object) )]
+
+let atcDiffSeqOf (sP1:string) (sP2:string) (sAcc:string) (bFixed:bool) (nSize:BigInteger) (sIdx:string) (soInner:string option) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "test_cases_rust" "atcDiffSeqOf" [("sP1",(if sP1 = null then null else ST.StrHelper sP1:>Object) );("sP2",(if sP2 = null then null else ST.StrHelper sP2:>Object) );("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("bFixed",bFixed :>Object);("nSize",nSize :>Object);("sIdx",(if sIdx = null then null else ST.StrHelper sIdx:>Object) );("soInner",(if soInner.IsNone then null else ST.StrHelper soInner.Value:>Object) )]
 
 let equalityVariantCheck (sModName:string) (sAmber:string) (sApplyVariant:string) (sWhat:string) (sEqualFunc:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
@@ -195,7 +259,7 @@ let equalityReflexiveCheck (sModName:string) (sAmber:string) (sWhat:string) (sEq
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "test_cases_rust" "equalityReflexiveCheck" [("sModName",(if sModName = null then null else ST.StrHelper sModName:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) );("sWhat",(if sWhat = null then null else ST.StrHelper sWhat:>Object) );("sEqualFunc",(if sEqualFunc = null then null else ST.StrHelper sEqualFunc:>Object) )]
 
-let emitInconsistentValueTestCase (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sChange:string) (sWhat:string) (sEncFunc:string) (sEnc:string) =
+let emitInconsistentValueTestCase (sFuncName:string) (arrsVars:seq<string>) (sModName:string) (sTasName:string) (sAmber:string) (sInitializeTcData:string) (bStatic:bool) (sChange:string) (sWhat:string) (sEncFunc:string) (sEnc:string) (soDecFunc:string option) (sEqualFunc:string) (bDeduced:bool) (sFilePkg:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "test_cases_rust" "emitInconsistentValueTestCase" [("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("arrsVars",(arrsVars|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sModName",(if sModName = null then null else ST.StrHelper sModName:>Object) );("sTasName",(if sTasName = null then null else ST.StrHelper sTasName:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) );("sInitializeTcData",(if sInitializeTcData = null then null else ST.StrHelper sInitializeTcData:>Object) );("bStatic",bStatic :>Object);("sChange",(if sChange = null then null else ST.StrHelper sChange:>Object) );("sWhat",(if sWhat = null then null else ST.StrHelper sWhat:>Object) );("sEncFunc",(if sEncFunc = null then null else ST.StrHelper sEncFunc:>Object) );("sEnc",(if sEnc = null then null else ST.StrHelper sEnc:>Object) )]
+    ST.call "test_cases_rust" "emitInconsistentValueTestCase" [("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("arrsVars",(arrsVars|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sModName",(if sModName = null then null else ST.StrHelper sModName:>Object) );("sTasName",(if sTasName = null then null else ST.StrHelper sTasName:>Object) );("sAmber",(if sAmber = null then null else ST.StrHelper sAmber:>Object) );("sInitializeTcData",(if sInitializeTcData = null then null else ST.StrHelper sInitializeTcData:>Object) );("bStatic",bStatic :>Object);("sChange",(if sChange = null then null else ST.StrHelper sChange:>Object) );("sWhat",(if sWhat = null then null else ST.StrHelper sWhat:>Object) );("sEncFunc",(if sEncFunc = null then null else ST.StrHelper sEncFunc:>Object) );("sEnc",(if sEnc = null then null else ST.StrHelper sEnc:>Object) );("soDecFunc",(if soDecFunc.IsNone then null else ST.StrHelper soDecFunc.Value:>Object) );("sEqualFunc",(if sEqualFunc = null then null else ST.StrHelper sEqualFunc:>Object) );("bDeduced",bDeduced :>Object);("sFilePkg",(if sFilePkg = null then null else ST.StrHelper sFilePkg:>Object) )]
 

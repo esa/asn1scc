@@ -1,3 +1,4 @@
+-- ATC_SKIPS(c=1) (C: the guarded Equal check of x.data skips, its two values are one value)
 -- Two automatic values of an OCTET STRING that are the same value ('01'H and '00000001'B): an Equal test must not
 -- assert that they compare unequal (the referenced type's inner variants are lifted to its parents for the Equal tests
 -- only when they flip a presence flag).

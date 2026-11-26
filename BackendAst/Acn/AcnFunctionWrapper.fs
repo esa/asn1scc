@@ -326,8 +326,9 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                     match content with
                     | Some c -> encodeOutcomeOf codec c.encOutcome
                     | None   -> encodeOutcomeOf codec EncodeOutcome.noWrite
-                // coverage step 12a: an encoder does not call a validity function that cannot fail
-                let bValidityCannotFail = DAstUtilFunctions.encoderSkipsValidation lm codec ns.emittedValidatorOutcomes isValidFunc t bodyOutcome
+                // coverage step 12a: an encoder does not call a validity function that cannot fail; cycle 15j: nor
+                // does the decoder end with one (C)
+                let bValidityCannotFail = DAstUtilFunctions.codecSkipsValidation lm codec ns.emittedValidatorOutcomes isValidFunc t bodyOutcome
                 let bValidityCalled = isValidFuncName.IsSome && not bValidityCannotFail
                 // coverage step 12b: an encoder that cannot fail states result.Success in its contract (Ada)
                 let soSparkAnnotations =
@@ -409,6 +410,14 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                             | Encode, _                 -> withEncodeResultInit bodyResult.funcBody
                         // an encoder's val is referenced by its validity call when it makes one (coverage step 12a)
                         let bValIsUnReferenced = bodyResult.bValIsUnReferenced && not (codec = Encode && isValidFuncName.IsSome && not bValidityCannotFail) && not bAlignedNullDecode
+                        // cycle 15j: a decoder without its final validity call (C) references val only in its body
+                        let bValIsUnReferenced =
+                            match codec, bValidityCannotFail && isValidFuncName.IsSome with
+                            | Decode, true  ->
+                                bValIsUnReferenced ||
+                                    not (DAstUtilFunctions.decoderBodyNamesValue varName (body :: (bodyResult.localVariables |> List.map lm.lg.getLocalVariableDeclaration)))
+                            | Decode, false
+                            | Encode, _     -> bValIsUnReferenced
                         body, bodyResult.errCodes, bodyResult.localVariables, bodyResult.bBsIsUnReferenced, bValIsUnReferenced, bodyResult.userDefinedFunctions, bodyResult.auxiliaries, icdResult
 
                 let handleAcnParameter (p:AcnParameter) =
@@ -436,6 +445,13 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         let basicType, defaultVal = lm.lg.resolveAcnPrmRefTypeEmission prmTypeName resolvedKind intZero
                         emitPrm p.c_name basicType defaultVal
 
+                // cycle 15j round 4: a C decoder whose body cannot fail calls its validator directly (bAlwaysSucceeds of
+                // the C decode templates; for C DecodeOutcome is always MayFail, so this is the only way it becomes true)
+                let bAlwaysSucceedsT =
+                    match codec, isValidFuncName.IsSome && not bValidityCannotFail with
+                    | Decode, true  -> bAlwaysSucceeds || DAstUtilFunctions.decoderBodyCannotFail lm bodyResult_funcBody
+                    | Decode, false
+                    | Encode, _     -> bAlwaysSucceeds
                 let lvars = bodyResult_localVariables |> List.map(fun (lv:LocalVariable) -> lm.lg.getLocalVariableDeclaration lv) |> Seq.distinct
                 let prms = t.acnParameters |> List.map handleAcnParameter
                 let prmNames = t.acnParameters |> List.map (fun p -> p.c_name)
@@ -474,7 +490,7 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                         let aux = EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName Seq.empty callBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) false false false soValInitFuncName funcDefAnnots precondAnnots postcondAnnots false bAlwaysSucceeds false bValidityCannotFail codec
                         Some (body + "\n\n" + aux)
                     | _, _ ->
-                        Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced false soValInitFuncName funcDefAnnots precondAnnots postcondAnnots false bAlwaysSucceeds (bValInOut && not bVarNameIsUnreferenced) bValidityCannotFail codec)
+                        Some(EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName lvars bodyResult_funcBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) bBsIsUnreferenced bVarNameIsUnreferenced false soValInitFuncName funcDefAnnots precondAnnots postcondAnnots false bAlwaysSucceedsT (bValInOut && not bVarNameIsUnreferenced) bValidityCannotFail codec)
 
                 let errCodStr =
                     errCodes |>

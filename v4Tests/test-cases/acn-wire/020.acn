@@ -1,0 +1,5 @@
+WIRE DEFINITIONS ::= BEGIN
+	Name [encoding ASCII, size null-terminated]
+	Rec [] { id [size 8, encoding pos-int], label [] }
+	Msg [] { id [size 8, encoding pos-int], text [encoding ASCII, size null-terminated] }
+END
