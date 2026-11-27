@@ -137,8 +137,8 @@ def build_jobs():
     jobs["c-1"] += [sh("./scripts/runWireTests.sh"), sh("./scripts/runIcdPdusTests.sh")]
     jobs["c-2"] += [sh("python3 ./scripts/runIcdTests.py --require-excel"),
                     sh("python3 ./scripts/runTests.py -l c --xer"),
-                    # the guarded Equal checks of CHOICE nodes: Ada must make every one C makes (cycle 15i), ~1.5 min
-                    sh("python3 ./scripts/checkAtcVrParity.py test-cases/acn/22-modules/*.asn1 "
+                    # the CHOICE selector comparisons of the guarded Equal checks: the same in Ada as in C (cycle 15i), ~1 min
+                    sh("python3 ./scripts/checkAtcVrParity.py --self-test test-cases/acn/22-modules/*.asn1 "
                        "test-cases/acn/10-SEQEUENCE/033.asn1 test-cases/acn/10-SEQEUENCE/034.asn1")]
     jobs["ada-ws4"] += [sh("python3 ./scripts/runTests.py -l Ada --xer")]
     jobs["python"] = [reg("-l python -ws 4 -s false"), reg("-l python -ws 8 -s false"),

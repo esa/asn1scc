@@ -689,6 +689,16 @@ type EqualityToggle =
     | ToggleByte of BigInteger      // OCTET STRING: this byte; BIT STRING: the first bit of this byte
     | ToggleBit of BigInteger       // BIT STRING: this bit (0-based)
 
+/// Coverage cycle 15i: how the guarded Equal checks (value replacements) write the comparison of a node that holds
+/// nothing to compare (a BIT / OCTET STRING or SEQUENCE OF fixed to SIZE (0); a node without contents).
+type AtcEmptyComparison =
+    /// statements that set the difference flag: the general form, which sets nothing here (C: a loop or memcmp over 0
+    /// elements; an empty text for a node without contents)
+    | EmptyComparisonAsWritten
+    /// an expression that holds when the two values are the same there: this text (Ada "True"; a quantifier or a
+    /// slice over 1 .. 0 is a GNAT "null range" warning, and `if  then` does not compile)
+    | EmptyComparisonExpression of string
+
 /// What a SEQUENCE component contributes to the Equal function of its SEQUENCE (coverage step 14i, E2).
 type EqualChildPart =
     | EqualChildCompares of string * LocalVariable list    // a comparison: writes ret

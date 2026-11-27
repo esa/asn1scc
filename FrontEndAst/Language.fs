@@ -794,6 +794,11 @@ type ILangGeneric () =
     abstract member atcBitStringDiffSupported : bool
     default _.atcBitStringDiffSupported = true
 
+    /// Coverage cycle 15i: the comparison of a node with nothing to compare in the guarded Equal checks (C: the general
+    /// form, as before; Ada: "True").
+    abstract member atcEmptyComparison : AtcEmptyComparison
+    default _.atcEmptyComparison = EmptyComparisonAsWritten
+
     /// Coverage cycle 15h (VR): the Equal tests take the lifted "another value" variants as guarded checks (a
     /// comparison of the changed node, macro equalityVariantCheckGuarded). C since 15h, Ada since cycle 15i (the CHOICE
     /// selector literals are named through the package of the dealiased definition, DastTestCaseCreation.activeDiff).

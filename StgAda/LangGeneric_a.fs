@@ -566,6 +566,7 @@ type LangGeneric_a() =
         override _.atcEmitsConstraintViolationTests = true
         override _.atcEmitsEqualityVariantTests = true
         override _.atcBitStringDiffSupported = not CommonTypes.bitStringAlignment
+        override _.atcEmptyComparison = EmptyComparisonExpression "True"
         // coverage cycle 15i: VR for Ada (selector literals through the declaring package, see activeDiff)
         override _.atcEmitsGuardedValueReplacements = true
         override _.atcEmitsValidityTests = true
