@@ -1,0 +1,63 @@
+-- C_ADA_ONLY (automatic tests of C and Ada; Ada names the packages of selector literals, the subject of this file)
+-- Ada value replacements of the Equal tests (coverage cycle 15i): the changed copy of a CHOICE node is compared by
+-- naming its selector literals Standard.<package>.<alternative>_PRESENT, and only the base type of the CHOICE declares
+-- them (an Ada subtype declares none). Here the CHOICE nodes are reached through types of other modules: CONTAINING of
+-- an imported CHOICE, of a WITH COMPONENTS subtype of it, of a CONTAINING chain and of an alias chain over modules
+-- declared in reverse order; an instance of a parameterised CHOICE; hyphenated module names; ENUMERATED items named
+-- like CHOICE alternatives. Expected: every literal names the declaring package; no skip.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   IMPORTS Narrow, WrapN, WrapSeq, Holder, Deep, Gen, WrapInl, Alt2, Col, Loc, En, Rec, OnlyOpt FROM Mid-R
+           A3, W3 FROM Xm
+           Pick, Seqc FROM Picks-Base;
+   M ::= SEQUENCE { a WrapN, b WrapSeq, c Deep, d OCTET STRING (CONTAINING Holder), e Gen, g WrapInl, h Alt2, i Col,
+                    j OCTET STRING (CONTAINING Seqc), k BIT STRING (CONTAINING Narrow), l OCTET STRING (CONTAINING A3),
+                    m W3, n BIT STRING (CONTAINING A3), f BOOLEAN }
+   W ::= SEQUENCE (SIZE(1..2)) OF M
+   T ::= SEQUENCE { x W }
+   U ::= SEQUENCE { loc Loc, e En, r Rec, oo OnlyOpt, q CHOICE { opt INTEGER (0..5), other BOOLEAN }, pick Pick }
+END
+
+Mid-R DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   IMPORTS Pick, Seqc, PGen FROM Picks-Base;
+   Narrow ::= Pick (WITH COMPONENTS {..., opt (0..2)})
+   WrapN ::= OCTET STRING (CONTAINING Narrow)
+   WrapSeq ::= OCTET STRING (CONTAINING Seqc)
+   Holder ::= SEQUENCE { p Pick, n Narrow, w WrapN OPTIONAL }
+   Deep0 ::= OCTET STRING (CONTAINING Pick)
+   Deep1 ::= Deep0
+   Deep ::= OCTET STRING (CONTAINING Deep1)
+   Gen ::= PGen {INTEGER (0..7)}
+   Inl ::= CHOICE { m1 INTEGER (0..3), m2 BOOLEAN }
+   WrapInl ::= OCTET STRING (CONTAINING Inl)
+   Alt2 ::= CHOICE { p1 OCTET STRING (CONTAINING Pick), p2 Narrow, p3 SEQUENCE (SIZE (1..2)) OF Pick }
+   Col ::= CHOICE { opt INTEGER (0..9), other BOOLEAN }
+   Loc ::= OCTET STRING (CONTAINING Pick)
+   En ::= ENUMERATED { opt, other, red }
+   Rec ::= SEQUENCE { k CHOICE { opt En, lst SEQUENCE (SIZE(1..3)) OF En }, l Loc OPTIONAL }
+   -- outside TEST-CASE: the Ada line gate reads test_case.adb, whose ALWAYS ABSENT arms never run (09-CHOICE/022)
+   OnlyOpt ::= SEQUENCE { p Pick (WITH COMPONENTS {opt PRESENT}), f BOOLEAN }
+END
+
+Xm DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   IMPORTS A2 FROM Ym-Mod;
+   W3 ::= OCTET STRING (CONTAINING A3)
+   A3 ::= A2
+END
+
+Ym-Mod DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   IMPORTS A1 FROM Zm;
+   A2 ::= A1
+END
+
+Zm DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   IMPORTS Pick FROM Picks-Base;
+   A1 ::= Pick
+END
+
+Picks-Base DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   Pick ::= CHOICE { opt INTEGER (0..5), other BIT STRING (SIZE(1..2)), third ENUMERATED { opt, e2 } }
+   Seqc ::= SEQUENCE { c CHOICE { u INTEGER (0..3), v BOOLEAN }, sq SEQUENCE (SIZE(1..2)) OF CHOICE { e1 INTEGER (0..1), e2 BOOLEAN }, g BOOLEAN }
+   PGen {Tp} ::= CHOICE { ga Tp, gb BOOLEAN }
+END
+
+--TCLS     T[]

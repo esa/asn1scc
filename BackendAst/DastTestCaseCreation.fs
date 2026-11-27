@@ -1154,13 +1154,34 @@ type private NodeDiff =
     | DiffNoContent             // nothing to compare (NULL, an empty SEQUENCE)
     | DiffStatements of string  // statements that set tc_differs when the two values differ there
 
+/// Coverage cycle 15i: (package, type name) of every CHOICE that a generated spec declares as a new type, i.e. with its
+/// selector literals: the CHOICE definitions of kind NonPrimitiveNewTypeDefinition in the type definitions of the type
+/// assignments and of their inline components (not through references, whose definitions are copies).
+let declaredChoiceTypes (r:DAst.AstRoot) (lm:LanguageMacros) : Set<string*string> =
+    let rec declared (t:Asn1Type) : (string*string) list =
+        match t.Kind with
+        | Choice ch ->
+            let td = lm.lg.getChoiceTypeDefinition ch.baseInfo.typeDef
+            let own =
+                match td.kind with
+                | NonPrimitiveNewTypeDefinition -> [(td.programUnit, td.typeName)]
+                | NonPrimitiveNewSubTypeDefinition _ | NonPrimitiveReference2OtherType -> []
+            own @ (ch.children |> List.collect (fun c -> declared c.chType))
+        | Sequence sq -> sq.children |> List.collect (fun c -> match c with Asn1Child ch -> declared ch.Type | AcnChild _ -> [])
+        | SequenceOf o -> declared o.childType
+        | ReferenceType _
+        | Integer _ | Real _ | IA5String _ | OctetString _ | NullType _ | BitString _ | Boolean _ | Enumerated _
+        | ObjectIdentifier _ | TimeType _ -> []
+    r.Files |> List.collect (fun f -> f.Modules) |> List.collect (fun m -> m.TypeAssignments) |>
+    List.collect (fun ta -> declared ta.Type) |> Set.ofList
+
 /// Coverage cycle 15h (VR, George: Q4 = A): statements that set tc_differs when the active contents of a node differ
 /// between the value (p1) and its changed copy (p2): every compared part only where the value holds it (an OPTIONAL
 /// child when present, the selected alternative, the first nCount / Length elements, octets, bits and characters), and
 /// exactly (no tolerance). Written with macros of their own (atcDiff*), not with the Equal functions under test; the
 /// layout choices (fixed or variable size) are the Equal functions'. A REAL, OBJECT IDENTIFIER or TIME anywhere in the
 /// node: no comparison (the variant is not taken).
-let rec private activeDiff (lm:LanguageMacros) (level:int) (t:Asn1Type) (p1:AccessPath) (p2:AccessPath) : NodeDiff =
+let rec private activeDiff (lm:LanguageMacros) (declared:Set<string*string>) (level:int) (t:Asn1Type) (p1:AccessPath) (p2:AccessPath) : NodeDiff =
     let joined (p:AccessPath) = p.joined lm.lg
     let withAcc (p:AccessPath) = (p.joined lm.lg) + (lm.lg.getAccess p)
     let scalar () = DiffStatements (lm.atc.atcDiffScalar (lm.lg.getValue p1) (lm.lg.getValue p2))
@@ -1175,13 +1196,13 @@ let rec private activeDiff (lm:LanguageMacros) (level:int) (t:Asn1Type) (p1:Acce
         match lm.lg.atcBitStringDiffSupported with
         | false -> DiffUnsupported
         | true  -> DiffStatements (lm.atc.atcDiffBits (withAcc p1) (withAcc p2) (o.baseInfo.minSize.uper = o.baseInfo.maxSize.uper) o.baseInfo.maxSize.uper (lm.atc.atcDiffIndexName "b" (BigInteger level)))
-    | ReferenceType rf -> activeDiff lm level rf.resolvedType p1 p2
+    | ReferenceType rf -> activeDiff lm declared level rf.resolvedType p1 p2
     | SequenceOf o ->
         let sIdx = lm.atc.atcDiffIndexName "i" (BigInteger level)
         let bFixed = o.baseInfo.minSize.uper = o.baseInfo.maxSize.uper
         let elem (p:AccessPath) = lm.lg.getArrayItem p sIdx o.childType.isIA5String
         let seqOf soInner = DiffStatements (lm.atc.atcDiffSeqOf (joined p1) (joined p2) (lm.lg.getAccess p1) bFixed o.baseInfo.maxSize.uper sIdx soInner)
-        match activeDiff lm (level + 1) o.childType (elem p1) (elem p2), bFixed with
+        match activeDiff lm declared (level + 1) o.childType (elem p1) (elem p2), bFixed with
         | DiffUnsupported, _        -> DiffUnsupported
         | DiffNoContent, true       -> DiffNoContent
         | DiffNoContent, false      -> seqOf None
@@ -1195,7 +1216,7 @@ let rec private activeDiff (lm:LanguageMacros) (level:int) (t:Asn1Type) (p1:Acce
                 | Asn1Child ch ->
                     let sName = lm.lg.getAsn1ChildBackendName ch
                     let chp (p:AccessPath) = lm.lg.getSeqChild p sName ch.Type.isIA5String ch.Optionality.IsSome
-                    let inner = activeDiff lm level ch.Type (chp p1) (chp p2)
+                    let inner = activeDiff lm declared level ch.Type (chp p1) (chp p2)
                     match ch.Optionality, inner with
                     | _, DiffUnsupported                    -> Some DiffUnsupported
                     | None, DiffNoContent                   -> None
@@ -1207,29 +1228,50 @@ let rec private activeDiff (lm:LanguageMacros) (level:int) (t:Asn1Type) (p1:Acce
         | false, [] -> DiffNoContent
         | false, ss -> DiffStatements (lm.atc.atcDiffJoin ss)
     | Choice ch ->
-        // the alternatives the automatic test values can select (DAstInitialize, CHOICE test cases)
-        let alternatives =
-            ch.children |>
-            List.filter (fun c -> c.Optionality.IsNone || c.Optionality = (Some Asn1AcnAst.Asn1ChoiceOptionality.ChoiceAlwaysPresent) || (lm.lg.decodingKind = Copy && c.Optionality <> Some Asn1AcnAst.Asn1ChoiceOptionality.ChoiceAlwaysAbsent))
-        let arms =
-            alternatives |>
-            List.map (fun c ->
-                let sName = lm.lg.getAsn1ChChildBackendName c
-                let alt (p:AccessPath) = lm.lg.getChChild p sName c.chType.isIA5String
-                // the selector literal with the package that declares it (Ada writes Standard.<package>.<literal>: no
-                // name of the test, e.g. a quantified index, can hide the package; C: the literal alone)
-                let sPresentPkg = (lm.lg.getTypeDefinition t.FT_TypeDefinition).programUnit
-                let sPresent = lm.lg.presentWhenName None c
-                match activeDiff lm level c.chType (alt p1) (alt p2) with
-                | DiffUnsupported   -> Some DiffUnsupported
-                | DiffNoContent     -> None
-                | DiffStatements s  -> Some (DiffStatements (lm.atc.atcDiffChoiceAlternative (joined p1) (lm.lg.getAccess p1) sPresentPkg sPresent s)))
-            |> List.choose id
-        match arms |> List.exists (fun d -> d = DiffUnsupported) with
-        | true  -> DiffUnsupported
-        | false ->
-            let sArms = arms |> List.choose (fun d -> match d with DiffStatements s -> Some s | DiffUnsupported | DiffNoContent -> None)
-            DiffStatements (lm.atc.atcDiffChoice (joined p1) (joined p2) (lm.lg.getAccess p1) sArms)
+        // the selector literals with the package that declares them (Ada writes Standard.<package>.<literal>: no name of
+        // the test, e.g. a quantified index, can hide the package; C: the literal alone, no package). Only the base
+        // `type ... is (...)` of the CHOICE declares the literals, an Ada subtype declares none, and the CHOICE node
+        // reached through an OCTET / BIT STRING (CONTAINING Pick) type assignment of another module carries that
+        // assignment's `subtype Local is Picks.Pick;` (coverage cycle 15i: the node's own typedef package gave
+        // `Standard.R.opt_PRESENT`, a build error). So the package is the one of the definition the subtype chain ends
+        // in (dealiased), taken only when a spec declares a new CHOICE type of that package and name (declaredChoiceTypes:
+        // a reference's definition is a copy of the referenced one, made before an alias was known as a subtype, and
+        // a subtype's base is a snapshot, FE_TypeDefinition). Otherwise the node is not compared (no VR check there, as
+        // for a REAL): nothing proves which package declares the literals.
+        let presentPkg =
+            let dd = (lm.lg.getChoiceTypeDefinition ch.baseInfo.typeDef).dealiased
+            match lm.lg.hasModules, dd.kind with
+            | true, (NonPrimitiveNewTypeDefinition | NonPrimitiveReference2OtherType) ->
+                match declared.Contains (dd.programUnit, dd.typeName) with
+                | true  -> Some dd.programUnit
+                | false -> None
+            // dealiased follows every subtype to its end
+            | true, NonPrimitiveNewSubTypeDefinition _ -> None
+            // no packages: the macro names none
+            | false, (NonPrimitiveNewTypeDefinition | NonPrimitiveNewSubTypeDefinition _ | NonPrimitiveReference2OtherType) -> Some dd.programUnit
+        match presentPkg with
+        | None -> DiffUnsupported
+        | Some sPresentPkg ->
+            // the alternatives the automatic test values can select (DAstInitialize, CHOICE test cases)
+            let alternatives =
+                ch.children |>
+                List.filter (fun c -> c.Optionality.IsNone || c.Optionality = (Some Asn1AcnAst.Asn1ChoiceOptionality.ChoiceAlwaysPresent) || (lm.lg.decodingKind = Copy && c.Optionality <> Some Asn1AcnAst.Asn1ChoiceOptionality.ChoiceAlwaysAbsent))
+            let arms =
+                alternatives |>
+                List.map (fun c ->
+                    let sName = lm.lg.getAsn1ChChildBackendName c
+                    let alt (p:AccessPath) = lm.lg.getChChild p sName c.chType.isIA5String
+                    let sPresent = lm.lg.presentWhenName None c
+                    match activeDiff lm declared level c.chType (alt p1) (alt p2) with
+                    | DiffUnsupported   -> Some DiffUnsupported
+                    | DiffNoContent     -> None
+                    | DiffStatements s  -> Some (DiffStatements (lm.atc.atcDiffChoiceAlternative (joined p1) (lm.lg.getAccess p1) sPresentPkg sPresent s)))
+                |> List.choose id
+            match arms |> List.exists (fun d -> d = DiffUnsupported) with
+            | true  -> DiffUnsupported
+            | false ->
+                let sArms = arms |> List.choose (fun d -> match d with DiffStatements s -> Some s | DiffUnsupported | DiffNoContent -> None)
+                DiffStatements (lm.atc.atcDiffChoice (joined p1) (joined p2) (lm.lg.getAccess p1) sArms)
 
 /// Coverage cycle 15h: the node with this id anywhere in the type's tree, through references (a lifted variant's node
 /// id is the referenced type's).
@@ -1301,7 +1343,7 @@ let guardedConstraintViolationTestCases (r:DAst.AstRoot) (lm:LanguageMacros) (t:
     | true, None, _
     | false, _, _ -> []
 
-let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) : AtcTestFunctor list =
+let equalityVariantTestCases (lm:LanguageMacros) (declared:Set<string*string>) (t:Asn1Type) : AtcTestFunctor list =
     match lm.lg.atcEmitsEqualityVariantTests, t.equalFunction.isEqualFuncName with
     | true, Some sEqualFunc ->
         let atcs = t.initFunction.automaticTestCases |> List.toArray
@@ -1321,7 +1363,7 @@ let equalityVariantTestCases (lm:LanguageMacros) (t:Asn1Type) : AtcTestFunctor l
             | (InconsistencyAndEquality | EqualityOnly | EqualityOnlyAndReflexive), ValueChange when lm.lg.atcEmitsGuardedValueReplacements && complete.Force () ->
                 findAnyNode v.nodeId t |>
                 Option.bind (fun node ->
-                    match activeDiff lm 1 node (v.nodeScope p).accessPath (v.nodeScope p2).accessPath with
+                    match activeDiff lm declared 1 node (v.nodeScope p).accessPath (v.nodeScope p2).accessPath with
                     | DiffStatements s -> Some s
                     | DiffNoContent    -> Some ""
                     | DiffUnsupported  -> None)
@@ -1508,6 +1550,7 @@ let asn1EncodingMapping = function
 
 let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outDir =
     let ambiguousTypeNames = atcAmbiguousTypeNames r
+    let declaredChoices = declaredChoiceTypes r lm
     // Invalid-value tests follow all other tests, so the names of the existing ones do not change.
     let invalidValueFunctors = ResizeArray<int -> string*string*string>()
     // Invalid-stream tests come last, after the invalid-value tests.
@@ -1607,7 +1650,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                     (t.Type.getEncDecTestFunc e).IsSome &&
                     r.callersSet |> Set.contains {Caller.typeId = typeAssignmentInfo; funcType = asn1EncodingMapping e}
                 match r.args.encodings |> List.exists tested with
-                | true  -> yield! equalityVariantTestCases lm t.Type
+                | true  -> yield! equalityVariantTestCases lm declaredChoices t.Type
                 | false -> () ]
     // Values whose ACN fields disagree (coverage step 14d), the ACN encoder of each type assignment tested with ACN.
     let inconsistentFunctors =
@@ -1646,7 +1689,7 @@ let printAllTestCasesAndTestCaseRunner (r:DAst.AstRoot) (lm:LanguageMacros) outD
                         yield! plainTests (constraintViolationTestCases r lm t.Type [] soEqualFunc OwnSelectorInViolationTests)
                     | false -> ()
                     match r.args.GenerateEqualFunctions && emitted EqualFunctionType with
-                    | true  -> yield! equalityVariantTestCases lm t.Type
+                    | true  -> yield! equalityVariantTestCases lm declaredChoices t.Type
                     | false -> () ]
     let allTests = plainTests (validFunctors @ List.ofSeq invalidValueFunctors @ List.ofSeq invalidStreamFunctors @ constraintFunctors) @ equalityFunctors @ inconsistentFunctors @ untestedFunctors @ List.ofSeq guardedViolationFunctors
     let tcFunctors = allTests |> List.map (fun x -> x.functor)
