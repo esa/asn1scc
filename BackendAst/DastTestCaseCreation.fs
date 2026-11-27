@@ -1154,6 +1154,18 @@ type private NodeDiff =
     | DiffNoContent             // nothing to compare (NULL, an empty SEQUENCE)
     | DiffStatements of string  // statements that set tc_differs when the two values differ there
 
+/// Coverage cycle 15i: the size of an OCTET / BIT STRING or SEQUENCE OF node as the comparison sees it.
+type private NodeSize =
+    | FixedEmpty        // SIZE (0): no element
+    | FixedNonEmpty
+    | Variable
+
+let private fixedSizeOf (minSize:BigInteger) (maxSize:BigInteger) : NodeSize =
+    match minSize = maxSize, maxSize = 0I with
+    | true, true   -> FixedEmpty
+    | true, false  -> FixedNonEmpty
+    | false, _     -> Variable
+
 /// Coverage cycle 15i: (package, type name) of every CHOICE that a generated spec declares as a new type, i.e. with its
 /// selector literals: the CHOICE definitions of kind NonPrimitiveNewTypeDefinition in the type definitions of the type
 /// assignments and of their inline components (not through references, whose definitions are copies).
@@ -1190,23 +1202,32 @@ let rec private activeDiff (lm:LanguageMacros) (declared:Set<string*string>) (le
     | NullType _                           -> DiffNoContent
     | Real _ | ObjectIdentifier _ | TimeType _ -> DiffUnsupported
     | IA5String _                          -> DiffStatements (lm.atc.atcDiffString (joined p1) (joined p2))
+    // coverage cycle 15i (Codex r1 P2): a fixed size of 0 holds nothing to compare (a loop or slice over 1 .. 0 is a
+    // GNAT "null range" warning, an error under -gnatwe)
     | OctetString o ->
-        DiffStatements (lm.atc.atcDiffOctets (withAcc p1) (withAcc p2) (o.baseInfo.minSize.uper = o.baseInfo.maxSize.uper) o.baseInfo.maxSize.uper)
+        match fixedSizeOf o.baseInfo.minSize.uper o.baseInfo.maxSize.uper with
+        | FixedEmpty -> DiffNoContent
+        | FixedNonEmpty | Variable ->
+            DiffStatements (lm.atc.atcDiffOctets (withAcc p1) (withAcc p2) (o.baseInfo.minSize.uper = o.baseInfo.maxSize.uper) o.baseInfo.maxSize.uper)
     | BitString o ->
-        match lm.lg.atcBitStringDiffSupported with
-        | false -> DiffUnsupported
-        | true  -> DiffStatements (lm.atc.atcDiffBits (withAcc p1) (withAcc p2) (o.baseInfo.minSize.uper = o.baseInfo.maxSize.uper) o.baseInfo.maxSize.uper (lm.atc.atcDiffIndexName "b" (BigInteger level)))
+        match lm.lg.atcBitStringDiffSupported, fixedSizeOf o.baseInfo.minSize.uper o.baseInfo.maxSize.uper with
+        | false, _ -> DiffUnsupported
+        | true, FixedEmpty -> DiffNoContent
+        | true, (FixedNonEmpty | Variable) -> DiffStatements (lm.atc.atcDiffBits (withAcc p1) (withAcc p2) (o.baseInfo.minSize.uper = o.baseInfo.maxSize.uper) o.baseInfo.maxSize.uper (lm.atc.atcDiffIndexName "b" (BigInteger level)))
     | ReferenceType rf -> activeDiff lm declared level rf.resolvedType p1 p2
     | SequenceOf o ->
         let sIdx = lm.atc.atcDiffIndexName "i" (BigInteger level)
         let bFixed = o.baseInfo.minSize.uper = o.baseInfo.maxSize.uper
         let elem (p:AccessPath) = lm.lg.getArrayItem p sIdx o.childType.isIA5String
         let seqOf soInner = DiffStatements (lm.atc.atcDiffSeqOf (joined p1) (joined p2) (lm.lg.getAccess p1) bFixed o.baseInfo.maxSize.uper sIdx soInner)
-        match activeDiff lm declared (level + 1) o.childType (elem p1) (elem p2), bFixed with
-        | DiffUnsupported, _        -> DiffUnsupported
-        | DiffNoContent, true       -> DiffNoContent
-        | DiffNoContent, false      -> seqOf None
-        | DiffStatements s, _       -> seqOf (Some s)
+        match fixedSizeOf o.baseInfo.minSize.uper o.baseInfo.maxSize.uper with
+        | FixedEmpty -> DiffNoContent
+        | FixedNonEmpty | Variable ->
+            match activeDiff lm declared (level + 1) o.childType (elem p1) (elem p2), bFixed with
+            | DiffUnsupported, _        -> DiffUnsupported
+            | DiffNoContent, true       -> DiffNoContent
+            | DiffNoContent, false      -> seqOf None
+            | DiffStatements s, _       -> seqOf (Some s)
     | Sequence sq ->
         let parts =
             sq.children |>
@@ -1365,7 +1386,10 @@ let equalityVariantTestCases (lm:LanguageMacros) (declared:Set<string*string>) (
                 Option.bind (fun node ->
                     match activeDiff lm declared 1 node (v.nodeScope p).accessPath (v.nodeScope p2).accessPath with
                     | DiffStatements s -> Some s
-                    | DiffNoContent    -> Some ""
+                    // coverage cycle 15i: a node without contents (NULL, SIZE (0), a SEQUENCE of such) has one value: the
+                    // change cannot write another one, so the variant is not taken (an empty comparison was `if  then`
+                    // in Ada and an always-skipped check in C)
+                    | DiffNoContent
                     | DiffUnsupported  -> None)
             | (InconsistencyAndEquality | EqualityOnly | EqualityOnlyAndReflexive), ValueChange
             | _, PresenceFlip

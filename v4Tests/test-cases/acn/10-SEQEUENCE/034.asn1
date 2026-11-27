@@ -1,0 +1,16 @@
+-- C_ADA_ONLY (automatic tests of C and Ada: the guarded Equal checks of value replacements, coverage cycle 15i)
+-- Nodes of size 0 in the guarded Equal checks (Codex review r1 P2): a BIT / OCTET STRING subtype fixed to SIZE (0)
+-- holds nothing to compare, so the comparison of a node that contains it leaves it out; before, the Ada comparison
+-- looped over 1 .. 0 (GNAT "null range" warning, an error under -gnatwe). Also a SEQUENCE whose components all have
+-- size 0, as a component, an OPTIONAL component and a CHOICE alternative: it has one value, so no check is taken for
+-- it. Expected: no skip.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+  Blob ::= BIT STRING (SIZE(0..2))
+  Oct ::= OCTET STRING (SIZE(0..2))
+  Holder ::= SEQUENCE { x Blob (SIZE(0)), o Oct (SIZE(0)), y Blob (SIZE(0)) OPTIONAL, b BOOLEAN }
+  Only ::= SEQUENCE { z Oct (SIZE(0)), w Blob (SIZE(0)) }
+  Inner ::= SEQUENCE { h Holder, on Only, c CHOICE { a Only, k BOOLEAN }, p Only OPTIONAL }
+  Outer ::= SEQUENCE { i Inner }
+END
+
+--TCLS     Outer[]
