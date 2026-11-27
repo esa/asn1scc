@@ -274,6 +274,10 @@ $ ./sample_test
 01 01 01 02 09 80 cd 19 1e b8 51 eb 85 1f 48 65 6c 6c 6f 57 6f 72 6c 64 80 (25 bytes)
 ```
 
+The encoders check every write against the size of the buffer: with a buffer shorter than the encoding they return
+`false` with the error code `ERR_BITSTREAM_OVERFLOW` and write nothing past its end. See
+[Docs/c-runtime-bound-checks.md](Docs/c-runtime-bound-checks.md) (also for the opt-out `ASN1SCC_UNCHECKED_WRITES`).
+
 Ada backend
 -----------
 

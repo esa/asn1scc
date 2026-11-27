@@ -1093,4 +1093,36 @@ for mode in "" "--acn-v2"; do
     done
 done
 
+# Encoders into buffers that are too short (cycle 15k): the C runtime writes are bound-checked, a write that does not
+# fit writes nothing and the encoder returns FALSE with ERR_BITSTREAM_OVERFLOW (-1), the position inside the buffer.
+# Every shorter buffer from start bits 0 .. 7 between guard bytes, rows with positions worked out by hand, the full
+# encodings byte-exact (uPER and ACN, legacy and --acn-v2): with -DNDEBUG and ASan / UBSan (also -wordSize 4), with
+# assertions on (a short buffer must not stop the program), with ASN1SCC_STREAMING (no push callback; with one, chunk
+# buffers of 1 .. 8 bytes), and the opt-out ASN1SCC_UNCHECKED_WRITES (full buffers only).
+for mode in "" "--acn-v2"; do
+    for ws in 8 4; do
+        out=$work/acn022$mode$ws
+        mkdir "$out"
+        run_compiler -c -uPER -ACN $mode -wordSize $ws -o "$out" "$root/test-cases/acn-wire/022.asn1" \
+            "$root/test-cases/acn-wire/022.acn"
+        if [ $ws = 8 ]; then
+            builds="ndebug asserts streaming unchecked"
+        else
+            builds=ndebug
+        fi
+        for b in $builds; do
+            case $b in
+                ndebug) flags="-DNDEBUG -fsanitize=address,undefined -fno-sanitize-recover=undefined" ;;
+                asserts) flags="-fsanitize=address,undefined -fno-sanitize-recover=undefined" ;;
+                streaming) flags="-DNDEBUG -DASN1SCC_STREAMING -fsanitize=address,undefined -fno-sanitize-recover=undefined" ;;
+                unchecked) flags="-DNDEBUG -DASN1SCC_UNCHECKED_WRITES" ;;
+            esac
+            cc -std=c11 -pedantic-errors -Wall -Wextra -Werror $flags -I "$out" "$out"/*.c \
+                "$root/test-cases/acn-wire/022_wire_test.c" -o "$out/wire_test_$b" -lm
+            "$out/wire_test_$b"
+            echo "acn-wire 022 $mode ws$ws $b OK"
+        done
+    done
+done
+
 echo "acn-v2 wire checks passed"

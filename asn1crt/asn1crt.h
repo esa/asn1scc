@@ -162,6 +162,10 @@ typedef struct BitStream_t {
 	   boundary. Only the 'size deduced' decoders read it; an --acn-v2 OCTET STRING CONTAINING region that
 	   does not start at a byte boundary ends inside a byte and sets it while its contents are decoded. */
 	int unusedTailBits;
+	/* TRUE after an encoder write did not fit in the buffer (count bytes): that write wrote nothing and did not
+	   move the position, and the encoder returns FALSE with ERR_BITSTREAM_OVERFLOW. FALSE when a buffer is
+	   attached or initialized. */
+	flag overflow;
 } BitStream;
 
 
@@ -203,6 +207,15 @@ typedef struct {
 #define ERR_INVALID_BER_FILE	201
 #define ERR_BER_LENGTH_MISMATCH	202
 #define ERR_ACN_DET_CONSISTENCY_MISMATCH	203
+/* An encoder write did not fit in the buffer, or the encoding of the contents of an OCTET / BIT STRING
+   (CONTAINING ...) was longer than its maximum. Negative: no error code of the generated code has this value. */
+#define ERR_BITSTREAM_OVERFLOW	(-1)
+
+/* The encoder writes are bound-checked unless ASN1SCC_UNCHECKED_WRITES is defined when every unit is compiled;
+   that option restores the unchecked writes of earlier versions, which the automatic tests do not cover. */
+#ifndef ASN1SCC_UNCHECKED_WRITES
+#define ASN1SCC_CHECKED_WRITES
+#endif
 
 int GetCharIndex(char ch, byte allowedCharSet[], int setLen);
 

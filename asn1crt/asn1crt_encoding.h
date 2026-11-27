@@ -51,6 +51,34 @@ void BitStream_AppendByte(BitStream* pBitStrm, byte v, flag negate);
 flag BitStream_AppendByte0(BitStream* pBitStrm, byte v);
 
 asn1SccSint BitStream_GetLength(BitStream* pBitStrm);
+/* Bound checks of the encoder writes (on unless ASN1SCC_UNCHECKED_WRITES, see asn1crt.h). A write or a position
+   move that does not fit in the buffer sets pBitStrm->overflow and neither writes nor moves; the encoder then
+   returns FALSE. Not in an ASN1SCC_STREAMING build with a push callback: there the buffer is a chunk that is pushed
+   (and starts again at byte 0) whenever it is full. */
+#if !defined(ASN1SCC_CHECKED_WRITES)
+#define BITSTREAM_SHORT(p, nBytesAfterCurrent) 0
+#elif defined(ASN1SCC_STREAMING)
+#define BITSTREAM_SHORT(p, nBytesAfterCurrent) ((p)->pushDataPrm == NULL && (p)->currentByte + (nBytesAfterCurrent) >= (p)->count)
+#else
+#define BITSTREAM_SHORT(p, nBytesAfterCurrent) ((p)->currentByte + (nBytesAfterCurrent) >= (p)->count)
+#endif
+/* nBits more bits do not fit after the current position (a position move that writes nothing) */
+#if !defined(ASN1SCC_CHECKED_WRITES)
+#define BITSTREAM_SHORT_BITS(p, nBits) 0
+#elif defined(ASN1SCC_STREAMING)
+#define BITSTREAM_SHORT_BITS(p, nBits) ((p)->pushDataPrm == NULL && ((p)->count - (p)->currentByte) * 8 - (p)->currentBit < (long)(nBits))
+#else
+#define BITSTREAM_SHORT_BITS(p, nBits) (((p)->count - (p)->currentByte) * 8 - (p)->currentBit < (long)(nBits))
+#endif
+/* The final result of an encoder: FALSE with ERR_BITSTREAM_OVERFLOW when a write did not fit (an error code the
+   encoder already set for its own FALSE is kept), else ret. */
+#if defined(ASN1SCC_CHECKED_WRITES)
+flag BitStream_EncodeResult(const BitStream* pBitStrm, flag ret, int* pErrCode);
+#else
+#define BitStream_EncodeResult(pBitStrm, ret, pErrCode) ((void)(pBitStrm), (void)(pErrCode), (ret))
+#endif
+/* An encoding written to a temporary bitstream did not fit there: the stream it is copied to fails too. */
+void BitStream_TakeOverflow(BitStream* pBitStrm, const BitStream* pFrom);
 void BitStream_AppendBitOne(BitStream* pBitStrm);
 void BitStream_AppendBitZero(BitStream* pBitStrm);
 flag BitStream_PeekBit(BitStream* pBitStrm);

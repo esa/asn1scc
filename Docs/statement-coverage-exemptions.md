@@ -64,27 +64,25 @@ as "exempted, no violation" if a test ever executes it, which would mean the
 proof no longer holds. Decision and MC/DC obligations inside a region are
 exempted the same way (ASN1SCC-COV-002 covers the guard decision itself).
 
-## Defensive checks that stay open (not exempted)
+## Defensive checks of the encoders (tested, not exempted)
 
-Some checks of the generated C encoders can fail only when the encoder is
-called outside its usual conditions. They are reachable, so they are **not**
-exempted, and the automatic tests do not execute their failing side; they
-stay in the "neither covered nor proven" count, for the reason below.
+Some checks of the generated C encoders can fail only when the encoder writes into a bitstream that is too short for
+the value: the result of an RTL write of the contents of an OCTET / BIT STRING (`BitStream_EncodeOctetString_no_length`,
+`BitStream_EncodeContainingOctets` / `Bits`, after a variable-size, external-field or CONTAINING length) and the
+`if (ret)` after a call of another encoder. For a valid value encoded into a bitstream of at least
+`<Type>_REQUIRED_BYTES_FOR_ENCODING` / `..._ACN_ENCODING` bytes (the size the generated `*_Encode` wrappers and the
+automatic tests use) they never fail.
 
-- **The result of an RTL write of the contents of an OCTET / BIT STRING**
-  (`BitStream_EncodeOctetString_no_length`, `BitStream_EncodeContainingOctets`
-  / `Bits`, after a variable-size, external-field or CONTAINING length): the
-  RTL function refuses the write when the bitstream has no room for it, or for
-  a negative length. For a valid value encoded into a bitstream of at least
-  `<Type>_REQUIRED_BYTES_FOR_ENCODING` / `..._ACN_ENCODING` bytes (the size
-  the generated `*_Encode` wrappers and the automatic tests use) neither
-  happens. It can happen when a caller passes a shorter bitstream, or encodes
-  an invalid value with `bCheckConstraints = FALSE`; the check is then the only
-  barrier before a write past the buffer, because the other C write primitives
-  (e.g. `BitStream_AppendBit`) do not check the bitstream's size. The check
-  stays, and the encoder returns FALSE. A test cannot make the write fail
-  without making other writes of the same encoder undefined, so none is
-  generated.
+Every write of the C runtime checks the size of the bitstream before it writes
+([c-runtime-bound-checks.md](c-runtime-bound-checks.md)): a write that does not fit writes nothing, and the encoder returns FALSE with
+`ERR_BITSTREAM_OVERFLOW`. The automatic tests encode every test value again into buffers shorter than its encoding
+(the short-buffer sweep of [automatic-test-decode-sweeps.md](automatic-test-decode-sweeps.md)), so the failing side of
+these checks is executed and covered; they are not exempted. Before, the other write primitives did not check the size
+at all, and these checks stayed open.
+
+This evidence holds for the default, bound-checked runtime. A build with `ASN1SCC_UNCHECKED_WRITES` has the unchecked
+writes of earlier versions, which the automatic tests do not cover. Checks that a short buffer cannot make fail (for
+example the `&& ret` of a string loop whose body sets no result) stay open for their own reasons.
 
 
 ---

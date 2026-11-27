@@ -1,0 +1,15 @@
+-- Encoders into buffers that are too short (cycle 15k): bound-checked C runtime writes.
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 022_wire_test.c (-uPER -ACN, legacy and --acn-v2).
+WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+	U32   ::= INTEGER (0 .. 4294967295)
+	Pair  ::= SEQUENCE { x INTEGER (0 .. 4294967295), y INTEGER (0 .. 255) }
+	Q     ::= INTEGER (0 .. 3)
+	Rec   ::= SEQUENCE { a INTEGER (0 .. 255), b OCTET STRING (SIZE (1 .. 10)) }
+	Al    ::= SEQUENCE { a INTEGER (0 .. 255), b INTEGER (0 .. 255), c INTEGER (0 .. 255) }
+	Ad    ::= SEQUENCE { a INTEGER (0 .. 255), b INTEGER (0 .. 255), c INTEGER (0 .. 255) }
+	Box   ::= SEQUENCE { h INTEGER (0 .. 255), p OCTET STRING (CONTAINING Rec), t INTEGER (0 .. 255) }
+	Box2  ::= SEQUENCE { h INTEGER (0 .. 255), p OCTET STRING (CONTAINING Rec), t INTEGER (0 .. 255) }
+	Bits  ::= SEQUENCE { p BIT STRING (CONTAINING Rec), t INTEGER (0 .. 255) }
+	Inner ::= SEQUENCE { data OCTET STRING (SIZE (0 .. 20)) }
+	Outer ::= SEQUENCE { tag INTEGER (0 .. 255), payload Inner }
+END

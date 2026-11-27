@@ -77,7 +77,7 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, in
 
     <endif>
 
-    return ret;
+    return BitStream_EncodeResult(pBitStrm, ret, pErrCode);
 }
 >>
 
@@ -945,6 +945,7 @@ octet_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, 
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
 
 	ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
+	BitStream_TakeOverflow(pBitStrm, &bitStrm);
 <if(bCallCannotFail)>
 	/* no check of ret: <sFuncName> cannot fail */
 	/*X.691: general length in octets, contents padded to whole octets (an empty encoding is one zero octet)*/
@@ -985,6 +986,7 @@ bit_string_containing_func_encode(p, sFuncName, sContainedType, sBufferBytes, nM
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
 
 	ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
+	BitStream_TakeOverflow(pBitStrm, &bitStrm);
 <if(bCallCannotFail)>
 	/* no check of ret: <sFuncName> cannot fail */
 	/*X.691: general length in bits, contents padded to whole octets (an empty encoding is one zero octet)*/

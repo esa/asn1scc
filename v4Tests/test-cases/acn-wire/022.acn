@@ -1,0 +1,13 @@
+WIRE DEFINITIONS ::= BEGIN
+	U32 []
+	Pair [] { x [], y [] }
+	Q []
+	Rec [] { a [], b [] }
+	Al [] { a [], b [align-to-next word], c [] }
+	Ad [] { a [], b [align-to-next dword], c [] }
+	Box [] { h [], p [], t [] }
+	Box2 [] { h [], len INTEGER [size 8, encoding pos-int], p [size len], t [] }
+	Bits [] { p [], t [] }
+	Inner <INTEGER:len> [] { data [size len] }
+	Outer [] { len INTEGER [size 16, encoding pos-int], tag [], payload <len> [] }
+END

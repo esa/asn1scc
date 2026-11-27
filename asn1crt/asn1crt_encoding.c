@@ -70,6 +70,7 @@ void BitStream_Init(BitStream* pBitStrm, unsigned char* buf, long count)
 	pBitStrm->pushDataPrm = NULL;
 	pBitStrm->fetchDataPrm = NULL;
 	pBitStrm->unusedTailBits = 0;
+	pBitStrm->overflow = FALSE;
 }
 
 void BitStream_Init2(BitStream* pBitStrm, unsigned char* buf, long count,  void* pushDataPrm, void* fetchDataPrm)
@@ -88,6 +89,7 @@ void BitStream_AttachBuffer(BitStream* pBitStrm, unsigned char* buf, long count)
 	pBitStrm->pushDataPrm = NULL;
 	pBitStrm->fetchDataPrm = NULL;
 	pBitStrm->unusedTailBits = 0;
+	pBitStrm->overflow = FALSE;
 }
 
 void BitStream_AttachBuffer2(BitStream* pBitStrm, unsigned char* buf, long count, void* pushDataPrm, void* fetchDataPrm)
@@ -98,6 +100,23 @@ void BitStream_AttachBuffer2(BitStream* pBitStrm, unsigned char* buf, long count
 }
 
 
+#if defined(ASN1SCC_CHECKED_WRITES)
+flag BitStream_EncodeResult(const BitStream* pBitStrm, flag ret, int* pErrCode)
+{
+	/* a failure the encoder reported with an error code of its own keeps that code */
+	if (pBitStrm->overflow) {
+		if (ret || *pErrCode == 0)
+			*pErrCode = ERR_BITSTREAM_OVERFLOW;
+		return FALSE;
+	}
+	return ret;
+}
+#endif
+void BitStream_TakeOverflow(BitStream* pBitStrm, const BitStream* pFrom)
+{
+	if (pFrom->overflow)
+		pBitStrm->overflow = TRUE;
+}
 asn1SccSint BitStream_GetLength(BitStream* pBitStrm)
 {
 	long ret = pBitStrm->currentByte;
@@ -123,6 +142,10 @@ or  00010000
 
 void BitStream_AppendBitOne(BitStream* pBitStrm)
 {
+	if (BITSTREAM_SHORT(pBitStrm, 0)) {
+		pBitStrm->overflow = TRUE;
+		return;
+	}
 	pBitStrm->buf[pBitStrm->currentByte] |= masks[pBitStrm->currentBit];
 
 	if (pBitStrm->currentBit<7)
@@ -153,6 +176,10 @@ void BitStream_AppendBitOne(BitStream* pBitStrm)
 void BitStream_AppendBitZero(BitStream* pBitStrm)
 {
 	byte nmask = (byte)~masks[pBitStrm->currentBit];
+	if (BITSTREAM_SHORT(pBitStrm, 0)) {
+		pBitStrm->overflow = TRUE;
+		return;
+	}
 	pBitStrm->buf[pBitStrm->currentByte] &= nmask;
 	if (pBitStrm->currentBit<7)
 		pBitStrm->currentBit++;
@@ -166,9 +193,25 @@ void BitStream_AppendBitZero(BitStream* pBitStrm)
 
 void BitStream_AppendNBitZero(BitStream* pBitStrm, int nbits)
 {
-	int totalBits = pBitStrm->currentBit + nbits;
-	int totalBytes = totalBits / 8;
+	int totalBits;
+	int totalBytes;
+	/* nbits < 0: the value did not fit its range (an unchecked invalid value, or a length computed after a write
+	   that did not fit); moving back would corrupt the position */
+	if (nbits < 0 || BITSTREAM_SHORT_BITS(pBitStrm, nbits)) {
+		pBitStrm->overflow = TRUE;
+		return;
+	}
+	totalBits = pBitStrm->currentBit + nbits;
+	totalBytes = totalBits / 8;
 	pBitStrm->currentBit = totalBits % 8;
+#ifdef ASN1SCC_STREAMING
+	/* a chunk buffer with a push callback: push every chunk the zeros reach, so the position never passes its end */
+	while (pBitStrm->pushDataPrm != NULL && pBitStrm->count > 0 && pBitStrm->currentByte + totalBytes >= pBitStrm->count) {
+		totalBytes -= (int)(pBitStrm->count - pBitStrm->currentByte);
+		pBitStrm->currentByte = pBitStrm->count;
+		bitstream_push_data_if_required(pBitStrm);
+	}
+#endif
 	//pBitStrm->currentByte += totalBits / 8;
 	if (pBitStrm->currentByte + totalBytes <= pBitStrm->count) {
 		pBitStrm->currentByte += totalBytes;
@@ -211,6 +254,10 @@ void BitStream_AppendBits(BitStream* pBitStrm, const byte* srcBuffer, int nbits)
 
 void BitStream_AppendBit(BitStream* pBitStrm, flag v)
 {
+	if (BITSTREAM_SHORT(pBitStrm, 0)) {
+		pBitStrm->overflow = TRUE;
+		return;
+	}
 	if (v) {
 		pBitStrm->buf[pBitStrm->currentByte] |= masks[pBitStrm->currentBit];
 	}
@@ -286,6 +333,10 @@ void BitStream_AppendByte(BitStream* pBitStrm, byte v, flag negate)
 	if (negate)
 		v = (byte)~v;
 	byte mask = (byte)~masksb[ncb];
+	if (BITSTREAM_SHORT(pBitStrm, cb != 0)) {
+		pBitStrm->overflow = TRUE;
+		return;
+	}
 
 	pBitStrm->buf[pBitStrm->currentByte] &= mask;
 	pBitStrm->buf[pBitStrm->currentByte++] |= (byte)(v >> cb);
@@ -305,12 +356,20 @@ flag BitStream_AppendByte0(BitStream* pBitStrm, byte v)
 	int cb = pBitStrm->currentBit;
 	int ncb = 8 - cb;
 	if (cb < 0 || cb > 7 || pBitStrm->currentByte < 0 ||
-		pBitStrm->currentByte >= pBitStrm->count)
+		pBitStrm->currentByte >= pBitStrm->count) {
+		pBitStrm->overflow = TRUE;
 		return FALSE;
-#ifndef ASN1SCC_STREAMING
-	if (cb && pBitStrm->count - pBitStrm->currentByte < 2)
-		return FALSE;
+	}
+	/* the second byte must fit too (also in a streaming build without a push callback): nothing is written before
+	   the test */
+	if (cb && pBitStrm->count - pBitStrm->currentByte < 2
+#ifdef ASN1SCC_STREAMING
+		&& pBitStrm->pushDataPrm == NULL
 #endif
+		) {
+		pBitStrm->overflow = TRUE;
+		return FALSE;
+	}
 
 	byte mask = (byte)~masksb[ncb];
 
@@ -319,8 +378,10 @@ flag BitStream_AppendByte0(BitStream* pBitStrm, byte v)
 	bitstream_push_data_if_required(pBitStrm);
 
 	if (cb) {
-		if (pBitStrm->currentByte >= pBitStrm->count)
+		if (pBitStrm->currentByte >= pBitStrm->count) {
+			pBitStrm->overflow = TRUE;
 			return FALSE;
+		}
 		mask = (byte)~mask;
 		pBitStrm->buf[pBitStrm->currentByte] &= mask;
 		pBitStrm->buf[pBitStrm->currentByte] |= (byte)(v << ncb);
@@ -333,7 +394,7 @@ flag BitStream_AppendByteArray(BitStream* pBitStrm, const byte arr[], const int 
 #ifdef ASN1SCC_STREAMING
     if (arr_len < 0) return FALSE;
     for (int i = 0; i < arr_len; i++)
-        if (!BitStream_AppendByte0(pBitStrm, arr[i])) return FALSE;
+        if (!BitStream_AppendByte0(pBitStrm, arr[i])) return FALSE;   /* sets overflow */
     return TRUE;
 #else
     //static byte  masks[] = { 0x80, 0x40, 0x20, 0x10, 0x08, 0x04, 0x02, 0x01 };
@@ -348,8 +409,10 @@ flag BitStream_AppendByteArray(BitStream* pBitStrm, const byte arr[], const int 
     if (arr_len < 0 || cb < 0 || cb > 7 || pBitStrm->currentByte < 0 ||
         pBitStrm->currentByte > pBitStrm->count ||
         arr_len > pBitStrm->count - pBitStrm->currentByte ||
-        (arr_len > 0 && cb && arr_len == pBitStrm->count - pBitStrm->currentByte))
+        (arr_len > 0 && cb && arr_len == pBitStrm->count - pBitStrm->currentByte)) {
+        pBitStrm->overflow = TRUE;
         return FALSE;
+    }
 
     if (arr_len> 0) {
         mask = (byte)~masksb[ncb];
@@ -503,6 +566,12 @@ void BitStream_AppendPartialByte(BitStream* pBitStrm, byte v, byte nbits, flag n
 	if (negate)
 		v = masksb[nbits] & ((byte)~v);
 	byte mask1 = (byte)~masksb[ncb];
+	if (nbits == 0)
+		return;   /* nothing to write (also at the end of the buffer) */
+	if (BITSTREAM_SHORT(pBitStrm, totalBits > 8)) {
+		pBitStrm->overflow = TRUE;
+		return;
+	}
 
 	if (totalBits <= 8) {
 		//static byte masksb[] = { 0x0, 0x1, 0x3, 0x7, 0xF, 0x1F, 0x3F, 0x7F, 0xFF };
@@ -1460,15 +1529,19 @@ flag BitStream_EncodeOctetString_no_length (BitStream* pBitStrm, const byte* arr
 	int cb = pBitStrm->currentBit;
 	//int i1;
 	flag ret = TRUE;
-	if (nCount < 0 || pBitStrm->currentByte < 0 || pBitStrm->currentByte > pBitStrm->count)
+	if (nCount < 0 || pBitStrm->currentByte < 0 || pBitStrm->currentByte > pBitStrm->count) {
+		pBitStrm->overflow = TRUE;
 		return FALSE;
+	}
 
 	if (cb == 0) {
 #ifdef ASN1SCC_STREAMING
 		int remainingBytesToSend = nCount;
 		while (remainingBytesToSend > 0) {
-			if (pBitStrm->currentByte >= pBitStrm->count)
+			if (pBitStrm->currentByte >= pBitStrm->count) {
+				pBitStrm->overflow = TRUE;
 				return FALSE;
+			}
 			int currentBatch =
 				pBitStrm->currentByte + remainingBytesToSend <= pBitStrm->count ?
 				remainingBytesToSend :
@@ -1485,6 +1558,8 @@ flag BitStream_EncodeOctetString_no_length (BitStream* pBitStrm, const byte* arr
 		if (ret) {
 			memcpy(&pBitStrm->buf[pBitStrm->currentByte], arr, nCount);
 			pBitStrm->currentByte += nCount;
+		} else {
+			pBitStrm->overflow = TRUE;
 		}
 #endif
 
@@ -1740,6 +1815,9 @@ flag BitStream_EncodeContainingOctets(BitStream* pBitStrm, const byte* arr, int 
 	flag ret = nBits >= 0 && nCount <= nMaxOctets;
 	if (ret) {
 		BitStream_EncodeGeneralLength(pBitStrm, arr, nCount, 8);
+		ret = !pBitStrm->overflow;
+	} else {
+		pBitStrm->overflow = TRUE;   /* the contents do not fit their maximum: the encoder fails with ERR_BITSTREAM_OVERFLOW */
 	}
 	return ret;
 }
@@ -1794,6 +1872,9 @@ flag BitStream_EncodeContainingBits(BitStream* pBitStrm, const byte* arr, int nB
 	flag ret = nBits >= 0 && nCount <= nMaxBits;
 	if (ret) {
 		BitStream_EncodeGeneralLength(pBitStrm, arr, nCount, 1);
+		ret = !pBitStrm->overflow;
+	} else {
+		pBitStrm->overflow = TRUE;   /* the contents do not fit their maximum: the encoder fails with ERR_BITSTREAM_OVERFLOW */
 	}
 	return ret;
 }

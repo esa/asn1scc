@@ -11,6 +11,7 @@ the same encoding (the truncation at a bit offset and the single-bit flips since
 | truncation at a bit offset | the value encoded again starting at bit `s` of the buffer, for `s = 1 .. 7`; first the whole encoding, then its first `k` bytes, each decoded from bit `s` | the whole encoding decodes to a value that passes `IsConstraintValid`; a truncated copy fails with a nonzero error code | yes | round trip only |
 | corruption | the whole encoding with byte `i` set to `0x00`, then to `0xFF`, then with each of its 8 bits flipped in turn (restored after each decode) | the decoder fails with a nonzero error code, or succeeds with a value that passes `IsConstraintValid`; it must not crash or raise an exception | yes | yes |
 | corruption, more patterns and offsets | C only: byte `i` also decremented by `2^b` for `b = 0 .. 7`; the copy encoded from bit 1 corrupted with `0x00`, `0xFF` and the bit flips; the copy encoded from bit 3 with the decrements | as for the corruption | yes | no |
+| short buffer (an encode sweep) | the value **encoded** again into a buffer of exactly `k` bytes, for the sizes `k` shorter than its encoding that the truncation tries | the encoder fails with a nonzero error code and its position stays inside the buffer (see [c-runtime-bound-checks.md](c-runtime-bound-checks.md)) | yes | no |
 
 The sweeps know nothing about the structure of the type. A damaged byte always belongs to some field, so
 the decoder of that field fails, however deep it is nested, and the failure travels back through every
@@ -59,8 +60,9 @@ position:
     Msg_ACN_enc_dec: decoding the first 3 of 5 bytes from bit 0 returned TRUE with error code 0
     Test case 'test_case_ACN_000002' failed. A truncated copy of the encoded value was decoded without an error code.
 
-In C the test returns error code 6 (truncation), 7 (corruption) or 8 (the value encoded from a bit offset
-other than 0 did not decode to a valid value); in Ada the test fails in the step
+In C the test returns error code 6 (truncation), 7 (corruption), 8 (the value encoded from a bit offset
+other than 0 did not decode to a valid value) or 9 (an encode into a short buffer returned TRUE, returned FALSE without
+an error code, or left its position past the end of the buffer); in Ada the test fails in the step
 `TC_DECODE_CORRUPTED` (error code 7), after the line printed by the sweep. A failed Ada round trip from a bit offset
 prints the offset and the stage first, e.g.
 
@@ -79,6 +81,11 @@ the start and 128 at the end of the encoding, and stops after the decoders have 
 (512 KB per end); the truncations at the 7 bit offsets share one more such budget. The Ada round trips from a bit
 offset are not limited by the budget: they add 7 (15, 31) encodes and decodes of the whole value per test. At least two positions
 are always tried at each end. Encodings of up to 256 bytes are swept completely.
+The short-buffer sweep (C) takes the positions of the truncation, but counts a whole encode of the value for each
+(a refused write does not stop the encoder, so each short encode costs about as much as a full one): at least two
+sizes at each end, about the budget in encoded bytes. It runs with the bound-checked C runtime only: not when the tests
+are compiled with `-DASN1SCC_UNCHECKED_WRITES` or `-DASN1SCC_STREAMING`; `-DASN1SCC_NO_SHORT_BUFFER_SWEEP` turns it
+off.
 The fragmentation headers (at most 9 positions) come on top of the budget: they are a fixed, small set whatever the
 size of the value, and a smaller budget does not remove them.
 

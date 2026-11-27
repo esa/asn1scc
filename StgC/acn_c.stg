@@ -65,7 +65,7 @@ flag <sFuncName>(const <sTypeDefName><sStar> <sVarName>, BitStream* pBitStrm, in
 
     <endif>
 
-    return ret;
+    return BitStream_EncodeResult(pBitStrm, ret, pErrCode);
 }
 >>
 
@@ -1443,6 +1443,7 @@ SizeDependency_oct_str_containing(p, sFuncName, sReqBytesForUperEncoding, v, bIs
     pBitStrm = &bitStrm;
     <sInner>
     pBitStrm = pBitStrm_save;
+    BitStream_TakeOverflow(pBitStrm, &bitStrm);
 }
 <if(soNoCheckNote)>
 <soNoCheckNote>
@@ -1839,6 +1840,7 @@ octet_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAc
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
 
 	ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
+	BitStream_TakeOverflow(pBitStrm, &bitStrm);
 <if(soNoCheckNote)>
 	<soNoCheckNote>
 	int nCount = <if(arrnPadResidues)>bitStrm.currentByte + (bitStrm.currentBit + 7) / 8; /*no test whether padding is needed: every ACN encoding of the contents has a size of <arrnPadResidues; separator=" or "> bit(s) modulo 8; the count rounds up (a whole number of octets adds 0)*/<else>bitStrm.currentBit == 0 ? bitStrm.currentByte : (bitStrm.currentByte + 1);<endif><if(bFixedSize)><else><\n>	BitStream_EncodeConstraintWholeNumber(pBitStrm, nCount, <nMinSize>, <nMaxSize>);<endif>
@@ -1896,6 +1898,7 @@ bit_string_containing_func_encode(p, sFuncName, sContainedType, sReqBytesForAcnE
 	BitStream_Init(&bitStrm, arr, sizeof(arr));
 
 	ret = <sFuncName>(<p>, &bitStrm, pErrCode, FALSE);
+	BitStream_TakeOverflow(pBitStrm, &bitStrm);
 <if(soNoCheckNote)>
 	<soNoCheckNote>
 	int nCount = bitStrm.currentByte*8 + bitStrm.currentBit;<if(bFixedSize)><else><\n>	BitStream_EncodeConstraintWholeNumber(pBitStrm, nCount, <nMinSize>, <nMaxSize>);<endif>

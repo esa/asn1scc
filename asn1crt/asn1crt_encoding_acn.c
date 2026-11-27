@@ -11,13 +11,14 @@ static flag RequiresReverse(void)
 }
 
 /* The alignment functions return FALSE when the aligned position is past the end of the
-   stream. Encoding streams are as large as the largest encoding, so this is checked with an
-   assertion there; a decoder gets a stream from outside (possibly truncated) and fails. */
+   stream. An encoder does not move then and sets the overflow flag of the stream (the encoder
+   returns FALSE at its end); a decoder gets a stream from outside (possibly truncated) and fails. */
 flag Acn_AlignToNextByte(BitStream* pBitStrm, flag bEncode)
 {
-	if (bEncode)
-		CHECK_BIT_STREAM_PRE(pBitStrm, (NO_OF_BITS_IN_BYTE -
-			pBitStrm->currentBit) & (NO_OF_BITS_IN_BYTE - 1));
+	if (bEncode && BITSTREAM_SHORT_BITS(pBitStrm, (NO_OF_BITS_IN_BYTE - pBitStrm->currentBit) & (NO_OF_BITS_IN_BYTE - 1))) {
+		pBitStrm->overflow = TRUE;
+		return FALSE;
+	}
 
 	if (pBitStrm->currentBit != 0)
 	{
@@ -48,12 +49,27 @@ void Acn_Dec_AlignToNextByte(BitStream* pBitStrm)
 }
 flag Acn_AlignToNextWord(BitStream* pBitStrm, flag bEncode)
 {
-	if (bEncode)
-		CHECK_BIT_STREAM_PRE(pBitStrm, (NO_OF_BITS_IN_INT16 -
+	if (bEncode && BITSTREAM_SHORT_BITS(pBitStrm, (NO_OF_BITS_IN_INT16 -
 			(NO_OF_BITS_IN_BYTE * (pBitStrm->currentByte & (NO_OF_BYTES_IN_INT16 - 1)) + pBitStrm->currentBit))
-			& (NO_OF_BITS_IN_INT16 - 1));
+			& (NO_OF_BITS_IN_INT16 - 1))) {
+		pBitStrm->overflow = TRUE;
+		return FALSE;
+	}
 
 	(void)Acn_AlignToNextByte(pBitStrm, bEncode);
+#ifdef ASN1SCC_STREAMING
+	if (bEncode && pBitStrm->pushDataPrm != NULL) {
+		/* a chunk buffer with a push callback: move byte by byte, so that a full chunk is pushed before the
+		   position passes its end */
+		long nPadBytes = (NO_OF_BYTES_IN_INT16 - (pBitStrm->currentByte & (NO_OF_BYTES_IN_INT16 - 1))) & (NO_OF_BYTES_IN_INT16 - 1);
+		while (nPadBytes > 0) {
+			pBitStrm->currentByte++;
+			bitstream_push_data_if_required(pBitStrm);
+			nPadBytes--;
+		}
+		return TRUE;
+	}
+#endif
 	pBitStrm->currentByte = ((pBitStrm->currentByte + (NO_OF_BYTES_IN_INT16 - 1)) / NO_OF_BYTES_IN_INT16) * NO_OF_BYTES_IN_INT16;
 
 	if (bEncode) {
@@ -68,12 +84,27 @@ flag Acn_AlignToNextWord(BitStream* pBitStrm, flag bEncode)
 
 flag Acn_AlignToNextDWord(BitStream* pBitStrm, flag bEncode)
 {
-	if (bEncode)
-		CHECK_BIT_STREAM_PRE(pBitStrm, (NO_OF_BITS_IN_INT32 -
+	if (bEncode && BITSTREAM_SHORT_BITS(pBitStrm, (NO_OF_BITS_IN_INT32 -
 			(NO_OF_BITS_IN_BYTE * (pBitStrm->currentByte & (NO_OF_BYTES_IN_INT32 - 1)) + pBitStrm->currentBit))
-			& (NO_OF_BITS_IN_INT32 - 1));
+			& (NO_OF_BITS_IN_INT32 - 1))) {
+		pBitStrm->overflow = TRUE;
+		return FALSE;
+	}
 
 	(void)Acn_AlignToNextByte(pBitStrm, bEncode);
+#ifdef ASN1SCC_STREAMING
+	if (bEncode && pBitStrm->pushDataPrm != NULL) {
+		/* a chunk buffer with a push callback: move byte by byte, so that a full chunk is pushed before the
+		   position passes its end */
+		long nPadBytes = (NO_OF_BYTES_IN_INT32 - (pBitStrm->currentByte & (NO_OF_BYTES_IN_INT32 - 1))) & (NO_OF_BYTES_IN_INT32 - 1);
+		while (nPadBytes > 0) {
+			pBitStrm->currentByte++;
+			bitstream_push_data_if_required(pBitStrm);
+			nPadBytes--;
+		}
+		return TRUE;
+	}
+#endif
 	pBitStrm->currentByte = ((pBitStrm->currentByte + (NO_OF_BYTES_IN_INT32 - 1)) / NO_OF_BYTES_IN_INT32) * NO_OF_BYTES_IN_INT32;
 
 	if (bEncode) {

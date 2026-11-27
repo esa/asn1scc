@@ -275,10 +275,46 @@ static int asn1scc_sweep_corrupted(const char* sTestName, byte* buf, long nBytes
     return 0;
 }
 
+/* Short-buffer encode sweep (coverage cycle 15k): the value is encoded again into buffers of exactly k bytes, k \< nBytes
+   (the head and tail positions of the truncation sweep; each costs a whole encode); the encoder must return FALSE with
+   a nonzero error code and leave its position inside the buffer (ASan: no write past it). Not with
+   ASN1SCC_UNCHECKED_WRITES (no bound checks), ASN1SCC_STREAMING or ASN1SCC_NO_SHORT_BUFFER_SWEEP. Returns 0 or 9. */
+static int asn1scc_short_buffer_sweep(const char* sTestName, long nBytes, const void* pVal, asn1scc_sweep_encoder encode)
+{
+#if !defined(ASN1SCC_CHECKED_WRITES) || defined(ASN1SCC_STREAMING) || defined(ASN1SCC_NO_SHORT_BUFFER_SWEEP)
+    (void)sTestName; (void)nBytes; (void)pVal; (void)encode;
+    return 0;
+#else
+    long positions[2 * ASN1SCC_SWEEP_POSITIONS];
+    int nPositions = asn1scc_sweep_positions(positions, nBytes, TRUE, 1);
+    int j;
+    for (j = 0; j \< nPositions; j++) {
+        long k = positions[j];
+        BitStream s;
+        int errCode = 0;
+        flag ok;
+        byte* buf = (byte*)malloc((size_t)(k \> 0 ? k : 1));
+        if (buf == NULL) {
+            return 0;
+        }
+        BitStream_Init(&s, buf, k);
+        ok = encode(pVal, &s, &errCode);
+        if (ok || errCode == 0 || s.currentByte * 8 + s.currentBit \> k * 8) {
+            printf("%s: encoding into a buffer of %ld of %ld bytes returned %s with error code %d, position %ld.%d\n", sTestName,
+                   k, nBytes, ok ? "TRUE" : "FALSE", errCode, s.currentByte, s.currentBit);
+            free(buf);
+            return 9;
+        }
+        free(buf);
+    }
+    return 0;
+#endif
+}
+
 /* Returns 0, 6 (a truncated copy was accepted, or rejected without an error code), 7 (a corrupted copy, also the one
    encoded from bit 1 or 3, was
-   accepted with an invalid value, or rejected without an error code) or 8 (the value encoded from bit 1..7 did
-   not decode to a valid value); stops at the first violation. */
+   accepted with an invalid value, or rejected without an error code), 8 (the value encoded from bit 1..7 did
+   not decode to a valid value) or 9 (an encode into a short buffer, see above); stops at the first violation. */
 static int asn1scc_decode_fault_sweep(const char* sTestName, byte* encBuff, long nBytes, void* pDecoded,
                                       asn1scc_sweep_decoder decode, const void* pVal, asn1scc_sweep_encoder encode,
                                       long nCapacity, flag bTruncate, flag bDeduced)
@@ -291,6 +327,12 @@ static int asn1scc_decode_fault_sweep(const char* sTestName, byte* encBuff, long
     flag valid;
     BitStream sweepStrm;
 
+    if (encode != NULL) {
+        int rc = asn1scc_short_buffer_sweep(sTestName, nBytes, pVal, encode);
+        if (rc != 0) {
+            return rc;
+        }
+    }
     if (bTruncate) {
         int nOffset;
         nPositions = asn1scc_sweep_positions(positions, nBytes, FALSE, 1);
@@ -768,6 +810,9 @@ void <sFuncName>(const TestOutput* output, int *totalErrors)
             break;
         case 8:
             output->report_failure_message("Test case '<sFuncName>' failed. The value encoded from a bit offset other than 0 did not decode to a valid value.");
+            break;
+        case 9:
+            output->report_failure_message("Test case '<sFuncName>' failed. Encoding the value into a buffer shorter than its encoding did not fail with an error code inside the buffer.");
             break;
         default:
             output->report_failure_message("Unexpected error code in test case '<sFuncName>'.");
