@@ -1096,7 +1096,9 @@ done
 # Encoders into buffers that are too short (cycle 15k): the C runtime writes are bound-checked, a write that does not
 # fit writes nothing and the encoder returns FALSE with ERR_BITSTREAM_OVERFLOW (-1), the position inside the buffer.
 # Every shorter buffer from start bits 0 .. 7 between guard bytes, rows with positions worked out by hand, the full
-# encodings byte-exact (uPER and ACN, legacy and --acn-v2): with -DNDEBUG and ASan / UBSan (also -wordSize 4), with
+# encodings byte-exact, the bits a short buffer holds equal to the start of the encoding (the stream freezes at the first
+# refused write; -DWIRE_ACNV2 names the types that write a value again at a saved position) (uPER and ACN, legacy and
+# --acn-v2): with -DNDEBUG and ASan / UBSan (also -wordSize 4), with
 # assertions on (a short buffer must not stop the program), with ASN1SCC_STREAMING (no push callback; with one, chunk
 # buffers of 1 .. 8 bytes), and the opt-out ASN1SCC_UNCHECKED_WRITES (full buffers only).
 for mode in "" "--acn-v2"; do
@@ -1117,6 +1119,9 @@ for mode in "" "--acn-v2"; do
                 streaming) flags="-DNDEBUG -DASN1SCC_STREAMING -fsanitize=address,undefined -fno-sanitize-recover=undefined" ;;
                 unchecked) flags="-DNDEBUG -DASN1SCC_UNCHECKED_WRITES" ;;
             esac
+            if [ -n "$mode" ]; then
+                flags="$flags -DWIRE_ACNV2"
+            fi
             cc -std=c11 -pedantic-errors -Wall -Wextra -Werror $flags -I "$out" "$out"/*.c \
                 "$root/test-cases/acn-wire/022_wire_test.c" -o "$out/wire_test_$b" -lm
             "$out/wire_test_$b"

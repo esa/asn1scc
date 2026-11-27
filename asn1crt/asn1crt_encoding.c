@@ -355,7 +355,7 @@ flag BitStream_AppendByte0(BitStream* pBitStrm, byte v)
 {
 	int cb = pBitStrm->currentBit;
 	int ncb = 8 - cb;
-	if (cb < 0 || cb > 7 || pBitStrm->currentByte < 0 ||
+	if (BITSTREAM_FROZEN(pBitStrm) || cb < 0 || cb > 7 || pBitStrm->currentByte < 0 ||
 		pBitStrm->currentByte >= pBitStrm->count) {
 		pBitStrm->overflow = TRUE;
 		return FALSE;
@@ -392,7 +392,7 @@ flag BitStream_AppendByte0(BitStream* pBitStrm, byte v)
 flag BitStream_AppendByteArray(BitStream* pBitStrm, const byte arr[], const int arr_len)
 {
 #ifdef ASN1SCC_STREAMING
-    if (arr_len < 0) return FALSE;
+    if (arr_len < 0 || BITSTREAM_FROZEN(pBitStrm)) return FALSE;
     for (int i = 0; i < arr_len; i++)
         if (!BitStream_AppendByte0(pBitStrm, arr[i])) return FALSE;   /* sets overflow */
     return TRUE;
@@ -406,7 +406,7 @@ flag BitStream_AppendByteArray(BitStream* pBitStrm, const byte arr[], const int 
     byte mask;
     byte nmask;
     //if (pBitStrm->currentByte + (int)arr_len + (cb > 0 ? 1 : 0) >= pBitStrm->count)
-    if (arr_len < 0 || cb < 0 || cb > 7 || pBitStrm->currentByte < 0 ||
+    if (BITSTREAM_FROZEN(pBitStrm) || arr_len < 0 || cb < 0 || cb > 7 || pBitStrm->currentByte < 0 ||
         pBitStrm->currentByte > pBitStrm->count ||
         arr_len > pBitStrm->count - pBitStrm->currentByte ||
         (arr_len > 0 && cb && arr_len == pBitStrm->count - pBitStrm->currentByte)) {
@@ -1529,7 +1529,7 @@ flag BitStream_EncodeOctetString_no_length (BitStream* pBitStrm, const byte* arr
 	int cb = pBitStrm->currentBit;
 	//int i1;
 	flag ret = TRUE;
-	if (nCount < 0 || pBitStrm->currentByte < 0 || pBitStrm->currentByte > pBitStrm->count) {
+	if (BITSTREAM_FROZEN(pBitStrm) || nCount < 0 || pBitStrm->currentByte < 0 || pBitStrm->currentByte > pBitStrm->count) {
 		pBitStrm->overflow = TRUE;
 		return FALSE;
 	}

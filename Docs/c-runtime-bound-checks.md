@@ -7,6 +7,8 @@ does not fit:
 
 - writes nothing and leaves the position where it was, so the position never passes the end of the buffer;
 - sets the member `overflow` of the `BitStream` (it stays set until the next `BitStream_Init` / `BitStream_AttachBuffer`);
+- freezes the stream: from then on no runtime function writes into the buffer or moves the position, also when a
+  later, smaller write would fit;
 - makes the encoder return `FALSE`, usually with the error code `ERR_BITSTREAM_OVERFLOW` (`asn1crt.h`, value `-1`).
 
 Every generated encoder ends with
@@ -16,9 +18,15 @@ Every generated encoder ends with
 ```
 
 which returns `ret` when nothing overflowed. After an overflow it returns `FALSE`; it keeps an error code that the
-encoder already set for a failure of its own, and sets `ERR_BITSTREAM_OVERFLOW` otherwise. The writes after the one
-that did not fit are still made when they fit, so after an overflow the bytes of the buffer are undefined; only the
-result counts.
+encoder already set for a failure of its own, and sets `ERR_BITSTREAM_OVERFLOW` otherwise.
+
+After a `FALSE` result with `overflow` set, the position is where the first refused write would have started, and the
+buffer up to that position holds the encoding as far as it got: for an encoder that writes every bit once, in stream
+order, these are the first bits of the full encoding. The `--acn-v2` encoders also write some values a second time, at
+a position saved before (a deferred determinant, the length of an OCTET / BIT STRING CONTAINING region, written after
+the data that follows it); those second writes are refused too once the stream is frozen
+(`Acn_BitStream_SetPos` does not move a frozen stream), so such a field keeps the placeholder written first. The
+encoding is not usable either way: test the result.
 
 **The `overflow` member of the `BitStream` is the test for "the buffer was too short"**, not the error code. A check of
 the generated code that runs after a refused write can fail on what that write left behind and report its own code: an
@@ -65,23 +73,25 @@ so every later encode into that stream fails as well. Call `BitStream_Init` / `B
 - Without a push callback (`pushDataPrm == NULL`) the buffer is checked as above. An octet array is written byte by
   byte there, so the bytes that fit before the refused one are written.
 - With a push callback the buffer is a chunk that is pushed (and starts again at byte 0) whenever it is full; there is
-  nothing to check. The runtime pushes a full chunk before the position passes its end, also inside a run of zero bits
-  and inside the padding of an `align-to-next word` / `dword`. Known limitations, as before: the alignment is computed
-  from the position inside the chunk (use a chunk size that is a multiple of 4 to get the same encoding as without
-  streaming), the bits that a run of zeros or a padding skips keep what the chunk buffer held before, and the
-  `--acn-v2` encoders, which write a length or a determinant again after the data that follows it, need the whole
-  encoding in one buffer.
+  no size to check. The other refusals (a negative number of leading zero bits, CONTAINING contents above their
+  maximum) still set `overflow` and freeze the stream: nothing more is written or pushed. The runtime pushes a full
+  chunk before the position passes its end, also inside a run of zero bits and inside the padding of an `align-to-next
+  word` / `dword`. Known limitations, as before: the alignment is computed from the position inside the chunk (use a
+  chunk size that is a multiple of 4 to get the same encoding as without streaming), the bits that a run of zeros or a
+  padding skips keep what the chunk buffer held before, and the `--acn-v2` encoders, which write a length or a
+  determinant again after the data that follows it, need the whole encoding in one buffer.
 
 ## Turning the checks off: `ASN1SCC_UNCHECKED_WRITES`
 
 Compiling every unit (runtime and generated code) with `-DASN1SCC_UNCHECKED_WRITES` restores the unchecked writes of
-earlier versions: the write functions and position moves do not test the buffer size, and `BitStream_EncodeResult`
-is `ret` (no call). What stays: the `overflow` member; a negative number of leading zero bits is still refused (and
-the encoder result then ignores it); the runtime functions that already returned a result set the flag when they
-refuse a write; the uPER CONTAINING functions (`BitStream_EncodeContainingOctets` / `Bits`) still return `FALSE` when
-the flag is set; and the generated encoders of CONTAINING contents still call `BitStream_TakeOverflow` after encoding
-the contents into their temporary stream, so their code is a few bytes larger than with earlier versions. The automatic tests do not cover this configuration (their short-buffer sweep is off), so the
-coverage of the generated code is evidence for the default, checked runtime only.
+earlier versions: the write functions and position moves do not test the buffer size, and `BitStream_EncodeResult` is
+`ret` (no call), and the stream does not freeze. What stays: the `overflow` member; a negative number of leading zero
+bits is still refused (and the encoder result then ignores it); the runtime functions that already returned a result
+set the flag when they refuse a write; the uPER CONTAINING functions (`BitStream_EncodeContainingOctets` / `Bits`)
+still return `FALSE` when the flag is set; and the generated encoders of CONTAINING contents still call
+`BitStream_TakeOverflow` after encoding the contents into their temporary stream, so their code is a few bytes larger
+than with earlier versions. The automatic tests do not cover this configuration (their short-buffer sweep is off), so
+the coverage of the generated code is evidence for the default, checked runtime only.
 
 The decision whether the checks are on is made in one place, `asn1crt.h`:
 
@@ -93,13 +103,13 @@ The decision whether the checks are on is made in one place, `asn1crt.h`:
 
 ## Cost
 
-The checks are a comparison per write in the runtime and one call at the end of each encoder. Measured on the PUS-C
-test grammars and a small benchmark, `.text` of the runtime and the generated codecs with `-DNDEBUG`: +2 % to +5 % at
-`-Os` and -2 % to +5 % at `-O2` (x86-64, Cortex-M0, msp430, AVR). Encode time on an msp430 simulator (instructions
-per encode, `-Os` / `-O2`): +17 % to +21 % for encoders made of small integer fields (a 13-field packet header, a
-SEQUENCE OF 256 small integers in uPER), +10 % to +14 % for the ACN SEQUENCE OF, below +0.5 % for OCTET STRING
-contents, which are written in blocks. Instructions are not cycles, and these encoders were called without their
-constraint check, which the percentages do not include.
+The checks are a comparison per write in the runtime (the buffer size and the overflow flag) and one call at the end
+of each encoder. Measured on the PUS-C test grammars and a small benchmark, `.text` of the runtime and the generated
+codecs with `-DNDEBUG`: +2 % to +6 % at `-Os` and -2 % to +5 % at `-O2` (x86-64, Cortex-M0, msp430, AVR). Encode time
+on an msp430 simulator (instructions per encode, `-Os` / `-O2`): +19 % to +23 % for encoders made of small integer
+fields (a 13-field packet header, a SEQUENCE OF 256 small integers in uPER), +13 % to +16 % for the ACN SEQUENCE OF,
+below +0.5 % for OCTET STRING contents, which are written in blocks. Instructions are not cycles, and these encoders
+were called without their constraint check, which the percentages do not include.
 
 ## Automatic tests
 

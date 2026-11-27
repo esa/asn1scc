@@ -5,7 +5,8 @@
    - full buffer: TRUE, error code 0, the encoded bits and bytes pinned (the same wire as before the checks); from start
      bits 1 .. 7 a buffer of exactly the bytes needed gives the same end and bytes as a larger one;
    - every buffer shorter than the encoding, from start bit 0 .. 7: FALSE, ERR_BITSTREAM_OVERFLOW, position inside
-     the buffer, guards intact. Covers the uPER and ACN integer writers, the leading zeros (a move without a write),
+     the buffer, guards intact, and the bits before the position equal those of the full encoding (the stream freezes
+     at the first refused write; not for the --acn-v2 types that write a value again at a saved position). Covers the uPER and ACN integer writers, the leading zeros (a move without a write),
      an octet string write, an align-to-next word and dword, CONTAINING contents in a temporary stream (uPER, legacy ACN) or in
      place with the region length written again from positions (--acn-v2), and a --acn-v2 deferred size determinant
      patched after the contents were refused;
@@ -26,6 +27,14 @@
 #include "022.h"
 
 #define GUARD 8
+
+/* -DWIRE_ACNV2 (runWireTests.sh, --acn-v2 output): the CONTAINING regions and the deferred determinant are written
+   again at saved positions after their contents, so a short buffer holds a placeholder there */
+#if defined(WIRE_ACNV2)
+#define IN_ORDER_V2 0
+#else
+#define IN_ORDER_V2 1
+#endif
 #define GUARD_BYTE 0xA5
 
 typedef flag (*enc_t)(const void* pVal, BitStream* pBitStrm, int* pErrCode, flag bCheckConstraints);
@@ -76,7 +85,23 @@ static void report(const char* name, const char* row, long k, int s, const Outco
 }
 
 /* The full encoding (expected bits and bytes), then every shorter buffer from start bits 0 .. 7. */
-static void check_type(const char* name, enc_t f, const void* v, long nBits, const byte* expected)
+#if defined(ASN1SCC_CHECKED_WRITES)
+/* Bits [from, to) of a and b are equal */
+static int same_bits(const byte* a, const byte* b, long from, long to)
+{
+    long i;
+    for (i = from; i < to; i++) {
+        int m = 0x80 >> (i % 8);
+        if ((a[i / 8] & m) != (b[i / 8] & m))
+            return 0;
+    }
+    return 1;
+}
+#endif
+
+/* bInOrder: the encoder writes every bit once, in stream order (no value written again at a saved position), so the
+   bits a short buffer holds before the frozen position are those of the full encoding */
+static void check_type(const char* name, enc_t f, const void* v, long nBits, const byte* expected, int bInOrder)
 {
     long n = (nBits + 7) / 8;
     long k;
@@ -101,8 +126,10 @@ static void check_type(const char* name, enc_t f, const void* v, long nBits, con
             if (k == 0 && s != 0)
                 continue;   /* no bit s in an empty buffer */
             o = encode_into(f, v, k, s, TRUE);
-            if (o.ok || o.err != ERR_BITSTREAM_OVERFLOW || o.pos > k * 8 || o.pos < 0 || !o.guardsOk)
+            if (o.ok || o.err != ERR_BITSTREAM_OVERFLOW || o.pos > k * 8 || o.pos < s || !o.guardsOk)
                 report(name, "short", k, s, &o);
+            else if (bInOrder && o.pos <= 64 * 8 && !same_bits(o.data, full.data, s, o.pos))
+                report(name, "short, not a prefix of the encoding", k, s, &o);
         }
         /* exactly the bytes the encoding needs from bit s: TRUE, the same end and bytes as in the larger buffer */
         o = encode_into(f, v, nFrom, s, TRUE);
@@ -113,6 +140,7 @@ static void check_type(const char* name, enc_t f, const void* v, long nBits, con
 #else
     (void)k;
     (void)s;
+    (void)bInOrder;
 #endif
 }
 
@@ -265,35 +293,35 @@ int main(void)
     outer.payload.data.arr[0] = 1; outer.payload.data.arr[1] = 2; outer.payload.data.arr[2] = 3;
     outer.payload.data.arr[3] = 4; outer.payload.data.arr[4] = 5;
 
-    check_type("U32 uPER", (enc_t)U32_Encode, &u32, 32, u32Bytes);
-    check_type("U32 ACN", (enc_t)U32_ACN_Encode, &u32, 32, u32Bytes);
-    check_type("Pair uPER", (enc_t)Pair_Encode, &pair, 40, pairBytes);
-    check_type("Pair ACN", (enc_t)Pair_ACN_Encode, &pair, 40, pairBytes);
-    check_type("Q uPER", (enc_t)Q_Encode, &q, 2, qBytes);
-    check_type("Q ACN", (enc_t)Q_ACN_Encode, &q, 2, qBytes);
-    check_type("Rec uPER", (enc_t)Rec_Encode, &rec, 44, recBytes);
-    check_type("Rec ACN", (enc_t)Rec_ACN_Encode, &rec, 44, recBytes);
-    check_type("Al uPER", (enc_t)Al_Encode, &al, 24, alUperBytes);
-    check_type("Al ACN", (enc_t)Al_ACN_Encode, &al, 32, alAcnBytes);
-    check_type("Ad uPER", (enc_t)Ad_Encode, &ad, 24, alUperBytes);
-    check_type("Ad ACN", (enc_t)Ad_ACN_Encode, &ad, 48, adAcnBytes);
-    check_type("Box uPER", (enc_t)Box_Encode, &box, 72, boxUperBytes);
-    check_type("Box ACN", (enc_t)Box_ACN_Encode, &box, 68, boxAcnBytes);
-    check_type("Box2 uPER", (enc_t)Box2_Encode, &box2, 72, boxUperBytes);
-    check_type("Box2 ACN", (enc_t)Box2_ACN_Encode, &box2, 72, box2AcnBytes);
-    check_type("Bits uPER", (enc_t)Bits_Encode, &bits, 64, bitsUperBytes);
-    check_type("Bits ACN", (enc_t)Bits_ACN_Encode, &bits, 59, bitsAcnBytes);
-    check_type("Outer uPER", (enc_t)Outer_Encode, &outer, 53, outerUperBytes);
-    check_type("Outer ACN", (enc_t)Outer_ACN_Encode, &outer, 64, outerAcnBytes);
+    check_type("U32 uPER", (enc_t)U32_Encode, &u32, 32, u32Bytes, 1);
+    check_type("U32 ACN", (enc_t)U32_ACN_Encode, &u32, 32, u32Bytes, 1);
+    check_type("Pair uPER", (enc_t)Pair_Encode, &pair, 40, pairBytes, 1);
+    check_type("Pair ACN", (enc_t)Pair_ACN_Encode, &pair, 40, pairBytes, 1);
+    check_type("Q uPER", (enc_t)Q_Encode, &q, 2, qBytes, 1);
+    check_type("Q ACN", (enc_t)Q_ACN_Encode, &q, 2, qBytes, 1);
+    check_type("Rec uPER", (enc_t)Rec_Encode, &rec, 44, recBytes, 1);
+    check_type("Rec ACN", (enc_t)Rec_ACN_Encode, &rec, 44, recBytes, 1);
+    check_type("Al uPER", (enc_t)Al_Encode, &al, 24, alUperBytes, 1);
+    check_type("Al ACN", (enc_t)Al_ACN_Encode, &al, 32, alAcnBytes, 1);
+    check_type("Ad uPER", (enc_t)Ad_Encode, &ad, 24, alUperBytes, 1);
+    check_type("Ad ACN", (enc_t)Ad_ACN_Encode, &ad, 48, adAcnBytes, 1);
+    check_type("Box uPER", (enc_t)Box_Encode, &box, 72, boxUperBytes, 1);
+    check_type("Box ACN", (enc_t)Box_ACN_Encode, &box, 68, boxAcnBytes, IN_ORDER_V2);
+    check_type("Box2 uPER", (enc_t)Box2_Encode, &box2, 72, boxUperBytes, 1);
+    check_type("Box2 ACN", (enc_t)Box2_ACN_Encode, &box2, 72, box2AcnBytes, IN_ORDER_V2);
+    check_type("Bits uPER", (enc_t)Bits_Encode, &bits, 64, bitsUperBytes, 1);
+    check_type("Bits ACN", (enc_t)Bits_ACN_Encode, &bits, 59, bitsAcnBytes, IN_ORDER_V2);
+    check_type("Outer uPER", (enc_t)Outer_Encode, &outer, 53, outerUperBytes, 1);
+    check_type("Outer ACN", (enc_t)Outer_ACN_Encode, &outer, 64, outerAcnBytes, IN_ORDER_V2);
 
 #if defined(ASN1SCC_CHECKED_WRITES)
     /* U32 = 0 is 32 leading zero bits (a move without a write): in 2 bytes the unchecked move ended at byte 2 and the
        encoder returned TRUE */
     check_row("U32 uPER", (enc_t)U32_Encode, &u32, 2, TRUE, FALSE, ERR_BITSTREAM_OVERFLOW, 0);
     check_row("U32 ACN", (enc_t)U32_ACN_Encode, &u32, 3, TRUE, FALSE, ERR_BITSTREAM_OVERFLOW, 0);
-    /* the zeros of x do not fit, y does: written at bit 0 (the unchecked zeros moved past the buffer and y was written
-       there); with 4 bytes x fits and y does not */
-    check_row("Pair uPER", (enc_t)Pair_Encode, &pair, 2, TRUE, FALSE, ERR_BITSTREAM_OVERFLOW, 8);
+    /* the zeros of x do not fit: the stream is frozen at bit 0 and y, which would fit, is not written (the unchecked
+       zeros moved past the buffer and y was written there); with 4 bytes x fits and y does not */
+    check_row("Pair uPER", (enc_t)Pair_Encode, &pair, 2, TRUE, FALSE, ERR_BITSTREAM_OVERFLOW, 0);
     check_row("Pair ACN", (enc_t)Pair_ACN_Encode, &pair, 4, TRUE, FALSE, ERR_BITSTREAM_OVERFLOW, 32);
     /* a (8 bits) and the length (4 bits) fit, the 4 octets do not: FALSE with error code 0 before. A streaming build
        writes an octet array byte by byte: the first octet fits there */
@@ -308,24 +336,22 @@ int main(void)
     check_row("Al ACN", (enc_t)Al_ACN_Encode, &al, 1, TRUE, FALSE, ERR_BITSTREAM_OVERFLOW, 8);
     check_row("Al ACN", (enc_t)Al_ACN_Encode, &al, 2, TRUE, FALSE, ERR_BITSTREAM_OVERFLOW, 16);
     check_row("Al ACN", (enc_t)Al_ACN_Encode, &al, 3, TRUE, FALSE, ERR_BITSTREAM_OVERFLOW, 24);
-    /* align-to-next dword: in 3 bytes the padding (3 bytes) is refused and b and c, which fit after a, are still
-       written (later writes are not suppressed; the result is FALSE and the bytes are undefined); in 4 bytes the
-       padding fits and b does not */
-    check_row("Ad ACN", (enc_t)Ad_ACN_Encode, &ad, 3, TRUE, FALSE, ERR_BITSTREAM_OVERFLOW, 24);
+    /* align-to-next dword: in 3 bytes the padding (3 bytes) is refused and the stream stays after a (b and c would
+       fit there, they are not written); in 4 bytes the padding fits and b does not */
+    check_row("Ad ACN", (enc_t)Ad_ACN_Encode, &ad, 3, TRUE, FALSE, ERR_BITSTREAM_OVERFLOW, 8);
     check_row("Ad ACN", (enc_t)Ad_ACN_Encode, &ad, 4, TRUE, FALSE, ERR_BITSTREAM_OVERFLOW, 32);
     check_containing_maximum();
 #if WORD_SIZE == 8 && defined(NDEBUG)
     /* 2^40 in INTEGER (0 .. 3): the constraint check rejects it with the type's own error code; encoded without the
        check (bCheckConstraints FALSE), the 2-bit field gets -39 leading zeros: before, the position moved 39 bits
-       back and the 41 value bits were written before the buffer (TRUE, error code 0). Now the move is refused and
-       the value bits that fit are written inside the buffer (FALSE): all 41 in 8 bytes, the first one in 1 byte (the
-       unchecked writes returned TRUE at bit 2 there, after writing before the buffer). Not with assertions on: the
-       range assertion of the integer encoder stops the program, as before. */
+       back and the 41 value bits were written before the buffer (TRUE, error code 0; TRUE at bit 2 in a 1-byte buffer).
+       Now the move is refused and the stream is frozen at bit 0: nothing is written (FALSE). Not with assertions on:
+       the range assertion of the integer encoder stops the program, as before. */
     q = (Q)1 << 40;
     check_row("Q uPER checked", (enc_t)Q_Encode, &q, 8, TRUE, FALSE, ERR_Q, 0);
-    check_row("Q uPER unchecked", (enc_t)Q_Encode, &q, 8, FALSE, FALSE, ERR_BITSTREAM_OVERFLOW, 41);
-    check_row("Q ACN unchecked", (enc_t)Q_ACN_Encode, &q, 8, FALSE, FALSE, ERR_BITSTREAM_OVERFLOW, 41);
-    check_row("Q uPER unchecked", (enc_t)Q_Encode, &q, 1, FALSE, FALSE, ERR_BITSTREAM_OVERFLOW, 1);
+    check_row("Q uPER unchecked", (enc_t)Q_Encode, &q, 8, FALSE, FALSE, ERR_BITSTREAM_OVERFLOW, 0);
+    check_row("Q ACN unchecked", (enc_t)Q_ACN_Encode, &q, 8, FALSE, FALSE, ERR_BITSTREAM_OVERFLOW, 0);
+    check_row("Q uPER unchecked", (enc_t)Q_Encode, &q, 1, FALSE, FALSE, ERR_BITSTREAM_OVERFLOW, 0);
     q = 2;
 #endif
 #endif

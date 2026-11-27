@@ -353,6 +353,10 @@ static inline AcnBitStreamPos Acn_BitStream_GetPos(const BitStream* bs) {
 }
 
 static inline void Acn_BitStream_SetPos(BitStream* bs, AcnBitStreamPos p) {
+    /* a frozen encoder stream (a write did not fit) keeps its position: a value written again at a saved position
+       would be refused anyway, and the stream stays where the first refused write was */
+    if (BITSTREAM_FROZEN(bs))
+        return;
     bs->currentByte = p.currentByte;
     bs->currentBit = p.currentBit;
 }

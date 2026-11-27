@@ -53,22 +53,29 @@ flag BitStream_AppendByte0(BitStream* pBitStrm, byte v);
 asn1SccSint BitStream_GetLength(BitStream* pBitStrm);
 /* Bound checks of the encoder writes (on unless ASN1SCC_UNCHECKED_WRITES, see asn1crt.h). A write or a position
    move that does not fit in the buffer sets pBitStrm->overflow and neither writes nor moves; the encoder then
-   returns FALSE. Not in an ASN1SCC_STREAMING build with a push callback: there the buffer is a chunk that is pushed
-   (and starts again at byte 0) whenever it is full. */
+   returns FALSE. The stream is frozen from then on: once overflow is set, no runtime function writes into the
+   buffer or moves the position (not even into the space left, nor a value written again at a saved position), so
+   the buffer holds the encoding up to the first refused write and the position stays there. In an ASN1SCC_STREAMING
+   build with a push callback the buffer is a chunk that is pushed (and starts again at byte 0) whenever it is full,
+   so the size is not checked there; the freeze applies. */
 #if !defined(ASN1SCC_CHECKED_WRITES)
+#define BITSTREAM_FROZEN(p) 0
 #define BITSTREAM_SHORT(p, nBytesAfterCurrent) 0
 #elif defined(ASN1SCC_STREAMING)
-#define BITSTREAM_SHORT(p, nBytesAfterCurrent) ((p)->pushDataPrm == NULL && (p)->currentByte + (nBytesAfterCurrent) >= (p)->count)
+#define BITSTREAM_FROZEN(p) ((p)->overflow)
+#define BITSTREAM_SHORT(p, nBytesAfterCurrent) ((p)->overflow || ((p)->pushDataPrm == NULL && (p)->currentByte + (nBytesAfterCurrent) >= (p)->count))
 #else
-#define BITSTREAM_SHORT(p, nBytesAfterCurrent) ((p)->currentByte + (nBytesAfterCurrent) >= (p)->count)
+#define BITSTREAM_FROZEN(p) ((p)->overflow)
+#define BITSTREAM_SHORT(p, nBytesAfterCurrent) ((p)->overflow || (p)->currentByte + (nBytesAfterCurrent) >= (p)->count)
 #endif
-/* nBits more bits do not fit after the current position (a position move that writes nothing) */
+/* nBits more bits do not fit after the current position (a position move that writes nothing), or the stream is
+   frozen */
 #if !defined(ASN1SCC_CHECKED_WRITES)
 #define BITSTREAM_SHORT_BITS(p, nBits) 0
 #elif defined(ASN1SCC_STREAMING)
-#define BITSTREAM_SHORT_BITS(p, nBits) ((p)->pushDataPrm == NULL && ((p)->count - (p)->currentByte) * 8 - (p)->currentBit < (long)(nBits))
+#define BITSTREAM_SHORT_BITS(p, nBits) ((p)->overflow || ((p)->pushDataPrm == NULL && ((p)->count - (p)->currentByte) * 8 - (p)->currentBit < (long)(nBits)))
 #else
-#define BITSTREAM_SHORT_BITS(p, nBits) (((p)->count - (p)->currentByte) * 8 - (p)->currentBit < (long)(nBits))
+#define BITSTREAM_SHORT_BITS(p, nBits) ((p)->overflow || ((p)->count - (p)->currentByte) * 8 - (p)->currentBit < (long)(nBits))
 #endif
 /* The final result of an encoder: FALSE with ERR_BITSTREAM_OVERFLOW when a write did not fit (an error code the
    encoder already set for its own FALSE is kept), else ret. */
