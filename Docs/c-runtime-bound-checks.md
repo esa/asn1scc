@@ -22,11 +22,12 @@ encoder already set for a failure of its own, and sets `ERR_BITSTREAM_OVERFLOW` 
 
 After a `FALSE` result with `overflow` set, the position is where the first refused write would have started, and the
 buffer up to that position holds the encoding as far as it got: for an encoder that writes every bit once, in stream
-order, these are the first bits of the full encoding. The `--acn-v2` encoders also write some values a second time, at
-a position saved before (a deferred determinant, the length of an OCTET / BIT STRING CONTAINING region, written after
-the data that follows it); those second writes are refused too once the stream is frozen
-(`Acn_BitStream_SetPos` does not move a frozen stream), so such a field keeps the placeholder written first. The
-encoding is not usable either way: test the result.
+order, these are the first bits of the full encoding, and the rest of the buffer is as `BitStream_Init` left it
+(zeros; runs of zero bits and padding are skipped, not written, so the prefix matches only in a buffer zeroed that
+way). The `--acn-v2` encoders also write some values a second time, at a position saved before (a deferred
+determinant, the length of an OCTET / BIT STRING CONTAINING region, written after the data that follows it); those
+second writes are refused too once the stream is frozen (`Acn_BitStream_SetPos` does not move a frozen stream), so
+such a field keeps the placeholder written first. The encoding is not usable either way: test the result.
 
 **The `overflow` member of the `BitStream` is the test for "the buffer was too short"**, not the error code. A check of
 the generated code that runs after a refused write can fail on what that write left behind and report its own code: an

@@ -1097,7 +1097,8 @@ done
 # fit writes nothing and the encoder returns FALSE with ERR_BITSTREAM_OVERFLOW (-1), the position inside the buffer.
 # Every shorter buffer from start bits 0 .. 7 between guard bytes, rows with positions worked out by hand, the full
 # encodings byte-exact, the bits a short buffer holds equal to the start of the encoding (the stream freezes at the first
-# refused write; -DWIRE_ACNV2 names the types that write a value again at a saved position) (uPER and ACN, legacy and
+# refused write, also for the byte writers and the alignments: Fz / Fb / Fw / Fd; -DWIRE_ACNV2 names the types that
+# write a value again at a saved position) (uPER and ACN, legacy and
 # --acn-v2): with -DNDEBUG and ASan / UBSan (also -wordSize 4), with
 # assertions on (a short buffer must not stop the program), with ASN1SCC_STREAMING (no push callback; with one, chunk
 # buffers of 1 .. 8 bytes), and the opt-out ASN1SCC_UNCHECKED_WRITES (full buffers only).

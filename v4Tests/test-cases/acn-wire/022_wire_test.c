@@ -5,8 +5,10 @@
    - full buffer: TRUE, error code 0, the encoded bits and bytes pinned (the same wire as before the checks); from start
      bits 1 .. 7 a buffer of exactly the bytes needed gives the same end and bytes as a larger one;
    - every buffer shorter than the encoding, from start bit 0 .. 7: FALSE, ERR_BITSTREAM_OVERFLOW, position inside
-     the buffer, guards intact, and the bits before the position equal those of the full encoding (the stream freezes
-     at the first refused write; not for the --acn-v2 types that write a value again at a saved position). Covers the uPER and ACN integer writers, the leading zeros (a move without a write),
+     the buffer, guards intact, and the bits before the position equal those of the full encoding and no bit after
+     it is set (the stream freezes at the first refused write; the buffer is zeroed by BitStream_Init; not for the
+     --acn-v2 types that write a value again at a saved position). Fz / Fb / Fw / Fd pin the freeze of the byte
+     writers and of the alignments: a field that would fit after the first refused write is not written. Covers the uPER and ACN integer writers, the leading zeros (a move without a write),
      an octet string write, an align-to-next word and dword, CONTAINING contents in a temporary stream (uPER, legacy ACN) or in
      place with the region length written again from positions (--acn-v2), and a --acn-v2 deferred size determinant
      patched after the contents were refused;
@@ -86,6 +88,8 @@ static void report(const char* name, const char* row, long k, int s, const Outco
 
 /* The full encoding (expected bits and bytes), then every shorter buffer from start bits 0 .. 7. */
 #if defined(ASN1SCC_CHECKED_WRITES)
+static const byte zeros[64] = { 0 };
+
 /* Bits [from, to) of a and b are equal */
 static int same_bits(const byte* a, const byte* b, long from, long to)
 {
@@ -130,6 +134,8 @@ static void check_type(const char* name, enc_t f, const void* v, long nBits, con
                 report(name, "short", k, s, &o);
             else if (bInOrder && o.pos <= 64 * 8 && !same_bits(o.data, full.data, s, o.pos))
                 report(name, "short, not a prefix of the encoding", k, s, &o);
+            else if (bInOrder && k <= 64 && !same_bits(o.data, zeros, o.pos, k * 8))
+                report(name, "short, written after the frozen position", k, s, &o);
         }
         /* exactly the bytes the encoding needs from bit s: TRUE, the same end and bytes as in the larger buffer */
         o = encode_into(f, v, nFrom, s, TRUE);
@@ -182,6 +188,30 @@ static void check_containing_maximum(void)
         printf("EncodeContainingBits above the maximum: result %d, error code %d, overflow %d\n", (int)ok, err,
                (int)bs.overflow);
         failures++;
+    }
+}
+#endif
+
+#if defined(ASN1SCC_CHECKED_WRITES)
+/* BitStream_AppendByteArray is called by the generated code only through BitStream_EncodeOctetString_no_length,
+   which tests the freeze first: called directly on a frozen stream it must write nothing either. */
+static void check_frozen_byte_array(void)
+{
+    static const byte data[2] = { 0x5A, 0xA5 };
+    byte buf[4] = { 0, 0, 0, 0 };
+    BitStream bs;
+    flag ok;
+    int s;
+    for (s = 0; s < 8; s++) {
+        BitStream_Init(&bs, buf, sizeof(buf));
+        bs.currentBit = s;
+        BitStream_AppendNBitZero(&bs, 40);   /* does not fit: refused, the stream freezes at bit s */
+        ok = BitStream_AppendByteArray(&bs, data, 2);
+        if (ok || !bs.overflow || bs.currentByte != 0 || bs.currentBit != s || buf[0] != 0 || buf[1] != 0 || buf[2] != 0) {
+            printf("AppendByteArray on a frozen stream from bit %d: result %d, position %ld.%d\n", s, (int)ok,
+                   bs.currentByte, bs.currentBit);
+            failures++;
+        }
     }
 }
 #endif
@@ -255,6 +285,10 @@ int main(void)
     static Box2 box2;
     static Bits bits;
     static Outer outer;
+    static Fz fz;
+    static Fb fb;
+    static Fw fw;
+    static Fd fd;
 
     static const byte u32Bytes[] = { 0x00, 0x00, 0x00, 0x00 };
     static const byte pairBytes[] = { 0x00, 0x00, 0x00, 0x00, 0xA5 };
@@ -270,6 +304,12 @@ int main(void)
     static const byte bitsAcnBytes[] = { 0x30, 0x22, 0x60, 0x20, 0x40, 0x60, 0x86, 0x60 };
     static const byte outerUperBytes[] = { 0x44, 0x28, 0x08, 0x10, 0x18, 0x20, 0x28 };
     static const byte outerAcnBytes[] = { 0x00, 0x05, 0x44, 0x01, 0x02, 0x03, 0x04, 0x05 };
+    static const byte fzBytes[] = { 0x00, 0x00, 0x00, 0x00, 0x5A, 0x11, 0x22 };
+    static const byte fbUperBytes[] = { 0xA0, 0x00, 0x00, 0x00, 0x06, 0x60 };
+    static const byte fbAcnBytes[] = { 0xA0, 0x00, 0x00, 0x00, 0x00, 0x33 };
+    static const byte fwUperBytes[] = { 0x44, 0x00, 0x00, 0x00, 0x00, 0x33 };
+    static const byte fwAcnBytes[] = { 0x44, 0x00, 0x00, 0x00, 0x00, 0x00, 0x33 };
+    static const byte fdAcnBytes[] = { 0x44, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x33 };
 
     if (ERR_BITSTREAM_OVERFLOW != -1) {
         printf("ERR_BITSTREAM_OVERFLOW is %d\n", ERR_BITSTREAM_OVERFLOW);
@@ -292,6 +332,10 @@ int main(void)
     outer.payload.data.nCount = 5;
     outer.payload.data.arr[0] = 1; outer.payload.data.arr[1] = 2; outer.payload.data.arr[2] = 3;
     outer.payload.data.arr[3] = 4; outer.payload.data.arr[4] = 5;
+    fz.x = 0; fz.y = 0x5A; fz.z.arr[0] = 0x11; fz.z.arr[1] = 0x22;
+    fb.a = 5; fb.x = 0; fb.b = 0x33;
+    fw.a = 0x44; fw.x = 0; fw.b = 0x33;
+    fd.a = 0x44; fd.x = 0; fd.b = 0x33;
 
     check_type("U32 uPER", (enc_t)U32_Encode, &u32, 32, u32Bytes, 1);
     check_type("U32 ACN", (enc_t)U32_ACN_Encode, &u32, 32, u32Bytes, 1);
@@ -313,6 +357,14 @@ int main(void)
     check_type("Bits ACN", (enc_t)Bits_ACN_Encode, &bits, 59, bitsAcnBytes, IN_ORDER_V2);
     check_type("Outer uPER", (enc_t)Outer_Encode, &outer, 53, outerUperBytes, 1);
     check_type("Outer ACN", (enc_t)Outer_ACN_Encode, &outer, 64, outerAcnBytes, IN_ORDER_V2);
+    check_type("Fz uPER", (enc_t)Fz_Encode, &fz, 56, fzBytes, 1);
+    check_type("Fz ACN", (enc_t)Fz_ACN_Encode, &fz, 56, fzBytes, 1);
+    check_type("Fb uPER", (enc_t)Fb_Encode, &fb, 43, fbUperBytes, 1);
+    check_type("Fb ACN", (enc_t)Fb_ACN_Encode, &fb, 48, fbAcnBytes, 1);
+    check_type("Fw uPER", (enc_t)Fw_Encode, &fw, 48, fwUperBytes, 1);
+    check_type("Fw ACN", (enc_t)Fw_ACN_Encode, &fw, 56, fwAcnBytes, 1);
+    check_type("Fd uPER", (enc_t)Fd_Encode, &fd, 48, fwUperBytes, 1);
+    check_type("Fd ACN", (enc_t)Fd_ACN_Encode, &fd, 72, fdAcnBytes, 1);
 
 #if defined(ASN1SCC_CHECKED_WRITES)
     /* U32 = 0 is 32 leading zero bits (a move without a write): in 2 bytes the unchecked move ended at byte 2 and the
@@ -340,7 +392,17 @@ int main(void)
        fit there, they are not written); in 4 bytes the padding fits and b does not */
     check_row("Ad ACN", (enc_t)Ad_ACN_Encode, &ad, 3, TRUE, FALSE, ERR_BITSTREAM_OVERFLOW, 8);
     check_row("Ad ACN", (enc_t)Ad_ACN_Encode, &ad, 4, TRUE, FALSE, ERR_BITSTREAM_OVERFLOW, 32);
+    /* The freeze of the writers and moves that do not go through the size macros: the 32 leading zero bits of x are
+       refused and freeze the stream; what follows would fit and must not be written / moved: y [size 8, encoding
+       pos-int] (BitStream_AppendByte0) and z, a byte-aligned OCTET STRING (BitStream_EncodeOctetString_no_length),
+       in 3 bytes; the padding of b [align-to-next byte / word / dword] (Acn_AlignToNextByte / Word / DWord) */
+    check_row("Fz uPER", (enc_t)Fz_Encode, &fz, 3, TRUE, FALSE, ERR_BITSTREAM_OVERFLOW, 0);
+    check_row("Fz ACN", (enc_t)Fz_ACN_Encode, &fz, 3, TRUE, FALSE, ERR_BITSTREAM_OVERFLOW, 0);
+    check_row("Fb ACN", (enc_t)Fb_ACN_Encode, &fb, 4, TRUE, FALSE, ERR_BITSTREAM_OVERFLOW, 3);
+    check_row("Fw ACN", (enc_t)Fw_ACN_Encode, &fw, 3, TRUE, FALSE, ERR_BITSTREAM_OVERFLOW, 8);
+    check_row("Fd ACN", (enc_t)Fd_ACN_Encode, &fd, 4, TRUE, FALSE, ERR_BITSTREAM_OVERFLOW, 8);
     check_containing_maximum();
+    check_frozen_byte_array();
 #if WORD_SIZE == 8 && defined(NDEBUG)
     /* 2^40 in INTEGER (0 .. 3): the constraint check rejects it with the type's own error code; encoded without the
        check (bCheckConstraints FALSE), the 2-bit field gets -39 leading zeros: before, the position moved 39 bits
