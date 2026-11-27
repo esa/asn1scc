@@ -1,0 +1,23 @@
+-- Issue 208: the ACN minimum size of a SEQUENCE OF without an ACN size property is the minimum count times the
+-- element's MINIMUM size. Before, the element's maximum, so a fixed-count SEQUENCE OF of variable-size elements counted
+-- as fixed: as the element of a 'size deduced' SEQUENCE OF it was decoded with the fixed-element rule (count = bits /
+-- 36, valid values failed), and as a follower of a 'size deduced' component it was accepted with the trailing
+-- constant 36 (valid values failed); a SEQUENCE OF element of real minimum 5 bits passed the 8-bit rule. The last two
+-- are now rejected by the existing checks.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+    Elem  ::= CHOICE { ia INTEGER (0..3), ib INTEGER (0..127), ic INTEGER (0..65535) }
+    L2    ::= SEQUENCE (SIZE (2)) OF Elem
+    Lst   ::= SEQUENCE (SIZE (1..2)) OF Elem
+    Items ::= SEQUENCE (SIZE (0..3)) OF L2
+    Small ::= SEQUENCE (SIZE (0..3)) OF Lst
+    MyPDU ::= SEQUENCE { items Items }
+    Tail  ::= SEQUENCE { data OCTET STRING (SIZE (0..10)), tail L2 }
+    SmPDU ::= SEQUENCE { items Small }
+
+    pmin MyPDU ::= { items { { ia : 1, ia : 2 } } }
+    pmax MyPDU ::= { items { { ic : 65535, ic : 4660 }, { ib : 100, ia : 0 }, { ia : 3, ic : 0 } } }
+END
+
+--TCLS     Items [size deduced]  MyPDU [] { items [] }
+--TCLFC    Tail [] { data [size deduced], tail [] }  $$$ sample1.asn1:14:59: error: component 'tail' follows the 'size deduced' component 'data' and must be a non-optional, fixed-size component: its ACN encoding size is variable (8..36 bits)
+--TCLFC    Small [size deduced]  SmPDU [] { items [] }  $$$ sample1.asn1:12:14: error: 'size deduced' requires the SEQUENCE OF element to occupy at least 8 bits (its minimum ACN size is 5 bits)

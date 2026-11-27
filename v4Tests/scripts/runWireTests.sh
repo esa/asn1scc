@@ -1068,4 +1068,29 @@ for mode in "" "--acn-v2"; do
     echo "acn-wire 020 $mode OK"
 done
 
+# The ACN minimum size of a SEQUENCE OF without an ACN size property is the minimum count times the element's minimum
+# size (Issue 208: before, the element's maximum). CONTAINING regions of such contents: the embedded length range (R6 /
+# B1: 1..6 octets / 5..41 bits, was 3..6 / 21..41), FIXED regions of fixed-count contents that vary (R5, N1: now an
+# embedded length), and an --acn-v2 external-size region that took its contents as whole octets (E3). Byte-exact from
+# bit 0 and bit 3, REQUIRED_BITS and end positions pinned, regions above the new maximum rejected (error code and
+# position); legacy and --acn-v2; C with -DNDEBUG and ASan / UBSan into buffers of exactly the octets needed, Ada plain
+# and with -gnata.
+for mode in "" "--acn-v2"; do
+    out=$work/acn021$mode
+    mkdir "$out"
+    run_compiler -c -ACN -equal $mode -o "$out" "$root/test-cases/acn-wire/021.asn1" "$root/test-cases/acn-wire/021.acn"
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror -DNDEBUG -fsanitize=address,undefined \
+        -fno-sanitize-recover=undefined -I "$out" "$out"/*.c "$root/test-cases/acn-wire/021_wire_test.c" -o "$out/wire_test"
+    "$out/wire_test"
+    echo "acn-wire 021 $mode OK"
+    for gnata in "" "-gnata"; do
+        out=$work/acn021ada$mode$gnata
+        mkdir "$out"
+        run_compiler -Ada -ACN -equal $mode -o "$out" "$root/test-cases/acn-wire/021.asn1" "$root/test-cases/acn-wire/021.acn"
+        cp "$root/test-cases/acn-wire/021_wire_test.adb" "$out/wire_test.adb"
+        (cd "$out" && gnatmake -q -gnat2012 $gnata wire_test.adb && ./wire_test)
+        echo "acn-wire 021 (Ada) $mode $gnata OK"
+    done
+done
+
 echo "acn-v2 wire checks passed"

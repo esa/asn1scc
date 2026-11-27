@@ -1,0 +1,38 @@
+-- C_ADA_ONLY (Python encodes an inline CONTAINING site without its octet / bit string, the experimental backends are not checked on this file)
+-- Issue 208: the ACN minimum size of a SEQUENCE OF without an ACN size property is the minimum count times the
+-- element's MINIMUM size. Before, the element's maximum: the region of an OCTET / BIT STRING (CONTAINING X) had a
+-- length range above the real one (Lst: 3..6 octets instead of 1..6), so the encoder of a short value encoded a length
+-- below the range (C read past a mask table) or failed, and a fixed count of variable elements made the region fixed
+-- (L2: 5 octets, S: 5 octets) although the contents take 1..5 / 2..5 octets; with an external size (E3) --acn-v2 took
+-- the contents as 5 whole octets and wrote no padding. The value assignments are automatic test values (shortest and
+-- longest contents). Byte-exact tests: v4Tests/test-cases/acn-wire/021.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
+    Elem ::= CHOICE { ia INTEGER (0..3), ib INTEGER (0..127), oc OCTET STRING (SIZE (0..2)) }
+    Lst  ::= SEQUENCE (SIZE (1..2)) OF Elem
+    L2   ::= SEQUENCE (SIZE (2)) OF Elem
+    Sm   ::= CHOICE { sa INTEGER (0..3), sb INTEGER (0..127) }
+    Ls   ::= SEQUENCE (SIZE (1..2)) OF Sm
+    Pair ::= SEQUENCE (SIZE (2)) OF Ls
+    S    ::= SEQUENCE { h BOOLEAN, ll Pair }
+    S3   ::= SEQUENCE { l L2 }
+
+    MyPDU ::= SEQUENCE {
+        o   OCTET STRING (CONTAINING Lst),
+        f   OCTET STRING (CONTAINING L2),
+        b   BIT STRING (CONTAINING Lst),
+        n   OCTET STRING (CONTAINING S),
+        z   INTEGER (0..255)
+    }
+    -- a type of its own: legacy C declares the locals of an external-size CONTAINING update and of an inline CONTAINING
+    -- with the same names in one function (-Wshadow), a defect independent of Issue 208
+    E3 ::= SEQUENCE { e OCTET STRING (CONTAINING S3), z INTEGER (0..255) }
+
+    pmin MyPDU ::= { o { ia : 1 }, f { ia : 1, ia : 2 }, b { ia : 3 }, n { h TRUE, ll { { sa : 0 }, { sa : 1 } } }, z 170 }
+    pmax MyPDU ::= { o { oc : '1234'H, oc : '5678'H }, f { oc : '1234'H, oc : '5678'H }, b { oc : '1234'H, oc : '5678'H },
+                     n { h FALSE, ll { { sb : 100, sb : 101 }, { sb : 102, sb : 103 } } }, z 255 }
+    emin E3 ::= { e { l { ia : 1, ia : 2 } }, z 170 }
+    emid E3 ::= { e { l { ib : 5, ia : 3 } }, z 85 }
+    emax E3 ::= { e { l { oc : '1234'H, oc : '5678'H } }, z 255 }
+END
+
+--TCLS     MyPDU[] E3 [] { elen INTEGER [size 8, encoding pos-int], e [size elen], z [] }

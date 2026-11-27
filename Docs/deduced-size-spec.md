@@ -150,6 +150,10 @@ Note on `acnMinSizeInBits/acnMaxSizeInBits`: in `AcnEncodingClasses.GetOctetBitS
 (`AcnEncodingClasses.fs:232-248`) the new arm computes
 `SZ_EC_Deduced, asn1Min*internalMinSize, asn1Max*internalMaxSize` — no determinant or
 terminator overhead, i.e. the same size arithmetic as the external-field arm.
+The fixed-size and embedded-length arms also take the element's **minimum** for the minimum (Issue 208; before,
+its maximum), so A4 and R2 (b) see the real minimum of a SEQUENCE OF of variable-size elements: a fixed-count
+SEQUENCE OF of variable-size elements is not "fixed" (R2 rejects it as a follower), and an element whose real
+minimum is below 8 bits is rejected by A4.
 
 ### 4.2 Placement (region) rules — checked per usage path
 

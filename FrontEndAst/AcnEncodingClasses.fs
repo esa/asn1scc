@@ -237,12 +237,12 @@ let GetOctetBitSeqofEncodingClass (alignment: AcnAlignment option) errLoc (p  : 
         match  p.sizeProp with
         | None                  ->
                 match hasNCount with
-                | false  -> SZ_EC_FIXED_SIZE, asn1Min*internalMaxSize, asn1Max*internalMaxSize
+                | false  -> SZ_EC_FIXED_SIZE, asn1Min*internalMinSize, asn1Max*internalMaxSize
                 | true ->
                     let lenSize  = GetNumberOfBitsForNonNegativeInteger(asn1Max-asn1Min)
-                    SZ_EC_LENGTH_EMBEDDED lenSize, asn1Min*internalMaxSize + lenSize, asn1Max*internalMaxSize + lenSize
-            //let minSizeInBits, maxSizeInBits = uPER.getSizeableTypeSize asn1Min asn1Max internalMaxSize
-            //SZ_EC_uPER, minSizeInBits, maxSizeInBits
+                    SZ_EC_LENGTH_EMBEDDED lenSize, asn1Min*internalMinSize + lenSize, asn1Max*internalMaxSize + lenSize
+            // Minimum = minimum count x the element's MINIMUM size, as in the arms below (Issue 208: the element's maximum
+            // made the CONTAINING region ranges of a SEQUENCE OF of variable-size elements too narrow or falsely fixed).
         | Some p                ->
             match p with
             | SzExternalField p     -> SZ_EC_ExternalField p, asn1Min*internalMinSize, asn1Max*internalMaxSize

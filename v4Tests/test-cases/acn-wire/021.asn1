@@ -1,0 +1,33 @@
+-- Issue 208: the ACN minimum size of a SEQUENCE OF without an ACN size property is the minimum count times the
+-- element's MINIMUM size (it was the element's maximum). A CONTAINING region takes its length range from the contents'
+-- ACN sizes, so with contents of 4..20-bit elements (Elem):
+--  - R6 / B1 (Lst, 1..2 elements, 5..41 bits): the region length range was 3..6 octets (BIT: 21..41 bits), the
+--    encoder of a shorter value encoded a length below the range (C read past a mask table; legacy returned FALSE
+--    with error code 0 or TRUE with a garbage length; acn-v2 wrote a length its decoder rejects). Now 1..6 octets
+--    (3-bit field) / 5..41 bits (6-bit field);
+--  - R5 (L2, exactly 2 elements, 8..40 bits): the region was FIXED at 5 octets; legacy wrote the contents' octets and
+--    its decoder read 5 (valid values failed), acn-v2 dropped the padding (a 13-bit "OCTET" region). Now a 3-bit
+--    length field + 1..5 octets;
+--  - N1 (a SEQUENCE holding a fixed-count SEQUENCE OF of variable elements, 7..39 bits): FIXED 5 octets (legacy
+--    failed, acn-v2 padded and worked), now a 2-bit length field + 2..5 octets;
+--  - E3 (external size, `o [size n]`, contents a SEQUENCE around L2): acn-v2 took the contents as 5 whole octets and
+--    wrote no padding (V2: a 29-bit stream that decoded to another value); now = legacy.
+-- ACN wire change (Issue 208, option A of its wire question): every value of R6 / B1 / R5 / N1 gets new bytes; REQUIRED_BITS
+-- R6 58 -> 59, B1 54 -> 55, R5 48 -> 51, N1 48 -> 50.
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 021_wire_test.c (-DNDEBUG, ASan / UBSan, buffers of
+-- exactly the bytes needed) / 021_wire_test.adb (with and without -gnata), legacy and --acn-v2.
+ACN-WIRE-SEQOF-MIN DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+    Elem ::= CHOICE { ia INTEGER (0..3), ib INTEGER (0..127), oc OCTET STRING (SIZE (0..2)) }
+    Lst  ::= SEQUENCE (SIZE (1..2)) OF Elem
+    L2   ::= SEQUENCE (SIZE (2)) OF Elem
+    Sm   ::= CHOICE { sa INTEGER (0..3), sb INTEGER (0..127) }
+    Ls   ::= SEQUENCE (SIZE (1..2)) OF Sm
+    Pair ::= SEQUENCE (SIZE (2)) OF Ls
+    S    ::= SEQUENCE { h BOOLEAN, ll Pair }
+    S3   ::= SEQUENCE { l L2 }
+    R6   ::= SEQUENCE { o OCTET STRING (CONTAINING Lst), z INTEGER (0..255) }
+    R5   ::= SEQUENCE { o OCTET STRING (CONTAINING L2), z INTEGER (0..255) }
+    B1   ::= SEQUENCE { o BIT STRING (CONTAINING Lst), z INTEGER (0..255) }
+    N1   ::= SEQUENCE { o OCTET STRING (CONTAINING S), z INTEGER (0..255) }
+    E3   ::= SEQUENCE { o OCTET STRING (CONTAINING S3), z INTEGER (0..255) }
+END

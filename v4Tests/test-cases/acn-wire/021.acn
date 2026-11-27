@@ -1,0 +1,4 @@
+-- E3: an external size field (the region of 'o' in octets, set by the encoder).
+ACN-WIRE-SEQOF-MIN DEFINITIONS ::= BEGIN
+    E3 [] { n INTEGER [size 8, encoding pos-int], o [size n], z [] }
+END
