@@ -5,7 +5,8 @@
 -- below the range (C read past a mask table) or failed, and a fixed count of variable elements made the region fixed
 -- (L2: 5 octets, S: 5 octets) although the contents take 1..5 / 2..5 octets; with an external size (E3) --acn-v2 took
 -- the contents as 5 whole octets and wrote no padding. The value assignments are automatic test values (shortest and
--- longest contents). Byte-exact tests: v4Tests/test-cases/acn-wire/021.
+-- longest contents). Byte-exact tests: v4Tests/test-cases/acn-wire/021. A fixed [size 5] on n (contents 7..39 bits)
+-- is now rejected: the region is no longer fixed (--acn-v2 accepted it and padded to 5 octets).
 TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
     Elem ::= CHOICE { ia INTEGER (0..3), ib INTEGER (0..127), oc OCTET STRING (SIZE (0..2)) }
     Lst  ::= SEQUENCE (SIZE (1..2)) OF Elem
@@ -36,3 +37,4 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
 END
 
 --TCLS     MyPDU[] E3 [] { elen INTEGER [size 8, encoding pos-int], e [size elen], z [] }
+--TCLFC    MyPDU [] { o [], f [], b [], n [size 5], z [] }  $$$ sample1.acn:4:32: error: The size constraints of the ASN.1  allows variable items (2 .. 5). Therefore, you should either remove the size property (in which case the size determinant will be encoded automatically exactly like uPER), or use a an Integer field as size determinant

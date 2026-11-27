@@ -2,7 +2,8 @@
    ASan / UBSan; Issue 208): CONTAINING regions whose contents are SEQUENCE OFs of variable-size elements. Each value is
    encoded with ACN from bit 0 into a heap buffer of exactly REQUIRED_BYTES and from bit 3 into a buffer of exactly
    (3 + REQUIRED_BITS + 7) / 8 octets: the result, the error code, the end bit position and the bytes are pinned (from
-   bit 3: the bit-0 bytes shifted by 3, since a region is whole octets from its own first bit), REQUIRED_BITS pinned,
+   bit 3: the bit-0 bytes shifted by 3, since a region is whole octets from its own first bit; the octets after the end
+   stay zero), REQUIRED_BITS pinned,
    then decoded from the written octets only (Equal, end position). Rejected rows: a region length above the new
    maximum, decoded from exactly REQUIRED_BYTES: FALSE, the region's error code, the position after the length field.
    Before the fix: R6 / B1 short values were not encodable (C read past a mask table), R5 / N1 legacy values failed to
@@ -59,6 +60,9 @@ static void shifted(const byte* src, int nBits, int off, byte* dst)
         CHECK(e_ == 0);                                                                   \
         CHECK(s_.currentByte * 8 + s_.currentBit == (OFF) + (nBits));                     \
         CHECK(memcmp(buf_, exp_, (size_t)used_) == 0);                                    \
+        for (int k_ = used_; k_ < size_; k_++) {                                          \
+            CHECK(buf_[k_] == 0); /* nothing written after the end position */            \
+        }                                                                                 \
         BitStream_AttachBuffer(&s_, buf_, used_);                                         \
         s_.currentBit = (OFF);                                                            \
         memset(&dec_, 0, sizeof dec_);                                                    \

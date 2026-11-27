@@ -1,9 +1,10 @@
 --  Checks of 021.asn1 / 021.acn in Ada (run by v4Tests/scripts/runWireTests.sh, legacy and --acn-v2, with and without
 --  -gnata; Issue 208): the rows of 021_wire_test.c. Each value is encoded with the _aux encoder from bit 0 into a stream
 --  of exactly REQUIRED_BYTES and from bit 3 into one of (3 + REQUIRED_BITS + 7) / 8 octets: success, end bit position
---  and bytes pinned (from bit 3 the bit-0 bytes shifted by 3), REQUIRED_BITS pinned; then decoded from the same stream
---  holding only the written octets (Equal, end position). Rejected rows: a region length above the new maximum,
---  decoded from exactly REQUIRED_BYTES: failure, the region's error code, the position after the length field.
+--  and bytes pinned (from bit 3 the bit-0 bytes shifted by 3; the octets after the end stay zero), REQUIRED_BITS
+--  pinned; then decoded from the same stream holding only the written octets (Equal, end position). Rejected rows: a
+--  region length above the new maximum, decoded from exactly REQUIRED_BYTES: failure, the region's error code, the
+--  position after the length field.
 with Ada.Command_Line;
 with Ada.Text_IO;
 with Interfaces; use type Interfaces.Unsigned_8;
@@ -60,6 +61,10 @@ procedure Wire_Test is
          end if;
          if S.Current_Bit_Pos /= Off + Bits or else S.Buffer (1 .. E'Length) /= E then
             Fail (Name & Natural'Image (Off) & ": encoded bytes" & Natural'Image (S.Current_Bit_Pos));
+         end if;
+         --  nothing written after the end position
+         if (for some K in E'Length + 1 .. S.Buffer'Last => S.Buffer (K) /= 0) then
+            Fail (Name & Natural'Image (Off) & ": octets after the end");
          end if;
          S.Buffer := (others => 0);
          S.Buffer (1 .. E'Length) := E;

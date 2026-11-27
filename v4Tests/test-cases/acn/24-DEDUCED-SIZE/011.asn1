@@ -3,7 +3,8 @@
 -- as fixed: as the element of a 'size deduced' SEQUENCE OF it was decoded with the fixed-element rule (count = bits /
 -- 36, valid values failed), and as a follower of a 'size deduced' component it was accepted with the trailing
 -- constant 36 (valid values failed); a SEQUENCE OF element of real minimum 5 bits passed the 8-bit rule. The last two
--- are now rejected by the existing checks.
+-- are now rejected by the existing checks, and so is T1: a CONTAINING of S (7..39 bits) was a fixed 5-octet region,
+-- which --acn-v2 padded (it worked there, legacy failed); the region now has a length field (18..42 bits).
 TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
     Elem  ::= CHOICE { ia INTEGER (0..3), ib INTEGER (0..127), ic INTEGER (0..65535) }
     L2    ::= SEQUENCE (SIZE (2)) OF Elem
@@ -13,11 +14,17 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS::= BEGIN
     MyPDU ::= SEQUENCE { items Items }
     Tail  ::= SEQUENCE { data OCTET STRING (SIZE (0..10)), tail L2 }
     SmPDU ::= SEQUENCE { items Small }
+    Sm    ::= CHOICE { sa INTEGER (0..3), sb INTEGER (0..127) }
+    Ls    ::= SEQUENCE (SIZE (1..2)) OF Sm
+    Pair  ::= SEQUENCE (SIZE (2)) OF Ls
+    S     ::= SEQUENCE { h BOOLEAN, ll Pair }
+    T1    ::= SEQUENCE { data OCTET STRING (SIZE (0..10)), o OCTET STRING (CONTAINING S) }
 
     pmin MyPDU ::= { items { { ia : 1, ia : 2 } } }
     pmax MyPDU ::= { items { { ic : 65535, ic : 4660 }, { ib : 100, ia : 0 }, { ia : 3, ic : 0 } } }
 END
 
 --TCLS     Items [size deduced]  MyPDU [] { items [] }
---TCLFC    Tail [] { data [size deduced], tail [] }  $$$ sample1.asn1:14:59: error: component 'tail' follows the 'size deduced' component 'data' and must be a non-optional, fixed-size component: its ACN encoding size is variable (8..36 bits)
---TCLFC    Small [size deduced]  SmPDU [] { items [] }  $$$ sample1.asn1:12:14: error: 'size deduced' requires the SEQUENCE OF element to occupy at least 8 bits (its minimum ACN size is 5 bits)
+--TCLFC    Tail [] { data [size deduced], tail [] }  $$$ sample1.asn1:15:59: error: component 'tail' follows the 'size deduced' component 'data' and must be a non-optional, fixed-size component: its ACN encoding size is variable (8..36 bits)
+--TCLFC    Small [size deduced]  SmPDU [] { items [] }  $$$ sample1.asn1:13:14: error: 'size deduced' requires the SEQUENCE OF element to occupy at least 8 bits (its minimum ACN size is 5 bits)
+--TCLFC    T1 [] { data [size deduced], o [] }  $$$ sample1.asn1:21:59: error: component 'o' follows the 'size deduced' component 'data' and must be a non-optional, fixed-size component: its ACN encoding size is variable (18..42 bits)
