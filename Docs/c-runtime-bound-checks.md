@@ -7,7 +7,7 @@ does not fit:
 
 - writes nothing and leaves the position where it was, so the position never passes the end of the buffer;
 - sets the member `overflow` of the `BitStream` (it stays set until the next `BitStream_Init` / `BitStream_AttachBuffer`);
-- makes the encoder return `FALSE` with the error code `ERR_BITSTREAM_OVERFLOW` (`asn1crt.h`, value `-1`).
+- makes the encoder return `FALSE`, usually with the error code `ERR_BITSTREAM_OVERFLOW` (`asn1crt.h`, value `-1`).
 
 Every generated encoder ends with
 
@@ -16,9 +16,16 @@ Every generated encoder ends with
 ```
 
 which returns `ret` when nothing overflowed. After an overflow it returns `FALSE`; it keeps an error code that the
-encoder already set for a failure of its own (for example a constraint violation), and sets `ERR_BITSTREAM_OVERFLOW`
-otherwise. The writes after the one that did not fit are still made when they fit, so after an overflow the bytes of
-the buffer are undefined; only the result counts.
+encoder already set for a failure of its own, and sets `ERR_BITSTREAM_OVERFLOW` otherwise. The writes after the one
+that did not fit are still made when they fit, so after an overflow the bytes of the buffer are undefined; only the
+result counts.
+
+**The `overflow` member of the `BitStream` is the test for "the buffer was too short"**, not the error code. A check of
+the generated code that runs after a refused write can fail on what that write left behind and report its own code: an
+`--acn-v2` length field shared by the CONTAINING regions of several SEQUENCE OF elements, for example, is patched with
+each region's length computed from positions; when the contents of a later element were refused, its length differs
+from the first one's and the encoder returns the code of that consistency check, with `overflow` set. A program that
+must tell "buffer too small" from "invalid value" tests `overflow` after a `FALSE` result.
 
 ## When it matters
 
@@ -45,7 +52,13 @@ stores error codes in an unsigned field should map it explicitly.
 
 The member `overflow` was added at the end of `BitStream`. Every unit that includes `asn1crt.h` must be compiled
 again with the new runtime. A `BitStream` set up with `BitStream_Init` / `BitStream_AttachBuffer` (or the `...2`
-variants) has it cleared; a zero-initialized structure has it cleared too.
+variants) has it cleared; a zero-initialized structure has it cleared too. A `BitStream` whose members are set one by
+one without these functions and without zero-initialization has an indeterminate `overflow`, and its encoders may
+return `FALSE` with `ERR_BITSTREAM_OVERFLOW` for no reason: set `overflow = FALSE` too, or use the functions.
+
+Reusing a stream: after a failed encode, setting `currentByte` / `currentBit` back by hand does not clear `overflow`,
+so every later encode into that stream fails as well. Call `BitStream_Init` / `BitStream_AttachBuffer` again (or clear
+`overflow`) before the next encode.
 
 ## Streaming (`ASN1SCC_STREAMING`)
 
@@ -63,9 +76,11 @@ variants) has it cleared; a zero-initialized structure has it cleared too.
 
 Compiling every unit (runtime and generated code) with `-DASN1SCC_UNCHECKED_WRITES` restores the unchecked writes of
 earlier versions: the write functions and position moves do not test the buffer size, and `BitStream_EncodeResult`
-is `ret` (no call). What stays: the `overflow` member, a negative number of leading zero bits is still refused (and
-the encoder result then ignores it), and the runtime functions that already returned a result set the flag when they
-refuse a write. The automatic tests do not cover this configuration (their short-buffer sweep is off), so the
+is `ret` (no call). What stays: the `overflow` member; a negative number of leading zero bits is still refused (and
+the encoder result then ignores it); the runtime functions that already returned a result set the flag when they
+refuse a write; the uPER CONTAINING functions (`BitStream_EncodeContainingOctets` / `Bits`) still return `FALSE` when
+the flag is set; and the generated encoders of CONTAINING contents still call `BitStream_TakeOverflow` after encoding
+the contents into their temporary stream, so their code is a few bytes larger than with earlier versions. The automatic tests do not cover this configuration (their short-buffer sweep is off), so the
 coverage of the generated code is evidence for the default, checked runtime only.
 
 The decision whether the checks are on is made in one place, `asn1crt.h`:

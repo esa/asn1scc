@@ -1,0 +1,4 @@
+WIRE DEFINITIONS ::= BEGIN
+	PS <INTEGER:len> [] { items [] { [] { c [size len] } } }
+	TS [] { a [], n INTEGER [size 8, encoding pos-int], pl <n> [], tail [] }
+END

@@ -2,7 +2,8 @@
    v4Tests/scripts/runWireTests.sh, -uPER -ACN, legacy and --acn-v2, several builds).
    Every buffer of k bytes lies between two guard regions of 0xA5 bytes in one allocation; a row checks the result,
    the error code, the stream position (in bits) and the guards.
-   - full buffer: TRUE, error code 0, the encoded bits and bytes pinned (the same wire as before the checks);
+   - full buffer: TRUE, error code 0, the encoded bits and bytes pinned (the same wire as before the checks); from start
+     bits 1 .. 7 a buffer of exactly the bytes needed gives the same end and bytes as a larger one;
    - every buffer shorter than the encoding, from start bit 0 .. 7: FALSE, ERR_BITSTREAM_OVERFLOW, position inside
      the buffer, guards intact. Covers the uPER and ACN integer writers, the leading zeros (a move without a write),
      an octet string write, an align-to-next word and dword, CONTAINING contents in a temporary stream (uPER, legacy ACN) or in
@@ -16,7 +17,9 @@
      TRUE, every chunk inside its guards, the pushed bytes equal to the encoding (an align-to-next word is relative
      to the chunk, so with a chunk size that is not a multiple of the alignment only the result and the guards
      are checked);
-   - ASN1SCC_UNCHECKED_WRITES (the opt-out): the full-buffer rows only. */
+   - uPER CONTAINING contents above their computed maximum (runtime called directly): FALSE, ERR_BITSTREAM_OVERFLOW;
+   - ASN1SCC_UNCHECKED_WRITES (the opt-out): the full-buffer rows only.
+   A determinant shared by several consumers can report its own error code after a refused write: acn-wire/023. */
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -101,6 +104,11 @@ static void check_type(const char* name, enc_t f, const void* v, long nBits, con
             if (o.ok || o.err != ERR_BITSTREAM_OVERFLOW || o.pos > k * 8 || o.pos < 0 || !o.guardsOk)
                 report(name, "short", k, s, &o);
         }
+        /* exactly the bytes the encoding needs from bit s: TRUE, the same end and bytes as in the larger buffer */
+        o = encode_into(f, v, nFrom, s, TRUE);
+        if (!o.ok || o.err != 0 || o.pos != full.pos || !o.guardsOk ||
+            memcmp(o.data, full.data, (size_t)(nFrom < 64 ? nFrom : 64)) != 0)
+            report(name, "exact fit", nFrom, s, &o);
     }
 #else
     (void)k;
@@ -115,6 +123,38 @@ static void check_row(const char* name, enc_t f, const void* v, long k, flag bCh
     Outcome o = encode_into(f, v, k, 0, bCheck);
     if (o.ok != expected || o.err != expectedErr || o.pos != expectedPos || !o.guardsOk)
         report(name, "pinned", k, 0, &o);
+}
+#endif
+
+#if defined(ASN1SCC_CHECKED_WRITES)
+/* uPER OCTET / BIT STRING (CONTAINING X) whose contents are longer than the maximum the compiler computed for them
+   (a compiler defect; called directly): the runtime refuses them and sets the overflow flag, and the encoder result
+   is FALSE with ERR_BITSTREAM_OVERFLOW (before: FALSE with error code 0). */
+static void check_containing_maximum(void)
+{
+    static byte contents[4] = { 1, 2, 3, 4 };
+    byte buf[16];
+    BitStream bs;
+    int err;
+    flag ok;
+    BitStream_Init(&bs, buf, sizeof(buf));
+    ok = BitStream_EncodeContainingOctets(&bs, contents, 32, 3);
+    err = 0;
+    ok = BitStream_EncodeResult(&bs, ok, &err);
+    if (ok || err != ERR_BITSTREAM_OVERFLOW || !bs.overflow || bs.currentByte != 0 || bs.currentBit != 0) {
+        printf("EncodeContainingOctets above the maximum: result %d, error code %d, overflow %d\n", (int)ok, err,
+               (int)bs.overflow);
+        failures++;
+    }
+    BitStream_Init(&bs, buf, sizeof(buf));
+    ok = BitStream_EncodeContainingBits(&bs, contents, 32, 24);
+    err = 0;
+    ok = BitStream_EncodeResult(&bs, ok, &err);
+    if (ok || err != ERR_BITSTREAM_OVERFLOW || !bs.overflow || bs.currentByte != 0 || bs.currentBit != 0) {
+        printf("EncodeContainingBits above the maximum: result %d, error code %d, overflow %d\n", (int)ok, err,
+               (int)bs.overflow);
+        failures++;
+    }
 }
 #endif
 
@@ -273,6 +313,7 @@ int main(void)
        padding fits and b does not */
     check_row("Ad ACN", (enc_t)Ad_ACN_Encode, &ad, 3, TRUE, FALSE, ERR_BITSTREAM_OVERFLOW, 24);
     check_row("Ad ACN", (enc_t)Ad_ACN_Encode, &ad, 4, TRUE, FALSE, ERR_BITSTREAM_OVERFLOW, 32);
+    check_containing_maximum();
 #if WORD_SIZE == 8 && defined(NDEBUG)
     /* 2^40 in INTEGER (0 .. 3): the constraint check rejects it with the type's own error code; encoded without the
        check (bCheckConstraints FALSE), the 2-bit field gets -39 leading zeros: before, the position moved 39 bits

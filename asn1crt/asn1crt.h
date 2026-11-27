@@ -163,8 +163,9 @@ typedef struct BitStream_t {
 	   does not start at a byte boundary ends inside a byte and sets it while its contents are decoded. */
 	int unusedTailBits;
 	/* TRUE after an encoder write did not fit in the buffer (count bytes): that write wrote nothing and did not
-	   move the position, and the encoder returns FALSE with ERR_BITSTREAM_OVERFLOW. FALSE when a buffer is
-	   attached or initialized. */
+	   move the position, and the encoder returns FALSE, with ERR_BITSTREAM_OVERFLOW or with the code of a check
+	   that failed on what the refused write left behind: test this member to recognise a buffer that was too
+	   short. FALSE when a buffer is attached or initialized; a stream reused without that keeps it. */
 	flag overflow;
 } BitStream;
 

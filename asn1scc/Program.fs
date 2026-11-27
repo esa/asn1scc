@@ -73,7 +73,7 @@ with
             | XER_enc          -> "generates encoding and decoding functions for XML Encoding Rules (XER)"
             | ACN_enc          -> "generates encoding and decoding functions using the ASSERT ASN.1 encoding Control Notation"
             | Auto_test_cases  -> "create automatic test cases."
-            | Atc_Sweep_Budget _ -> "(with -atc, uPER and ACN) bytes decoded per test value by each decode fault sweep of the automatic tests (truncated and corrupted copies of the encoded value must be rejected; C: truncation and corruption, Ada: corruption). At most 128 positions at each end of the encoding are tried, at least 2. Default 1048576 (1 MB). For C the value can also be set when compiling the tests, with -DASN1SCC_SWEEP_BUDGET=<bytes>."
+            | Atc_Sweep_Budget _ -> "(with -atc, uPER and ACN) bytes decoded per test value by each decode fault sweep of the automatic tests (truncated and corrupted copies of the encoded value must be rejected; C: truncation and corruption, Ada: corruption; C also encodes the value into buffers shorter than its encoding, which must fail, with one more budget of encoded bytes). At most 128 positions at each end of the encoding are tried, at least 2. Default 1048576 (1 MB). For C the value can also be set when compiling the tests, with -DASN1SCC_SWEEP_BUDGET=<bytes>."
             | Out (_)          -> "directory where all files are produced."
             | Files (_)        -> "List of ASN.1 and ACN files to process."
             | Type_Prefix _    -> "adds 'prefix' to all generated C or Ada/SPARK data types."

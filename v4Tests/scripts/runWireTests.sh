@@ -1125,4 +1125,22 @@ for mode in "" "--acn-v2"; do
     done
 done
 
+# A determinant shared by several consumers (cycle 15k, --acn-v2): after a refused write the region length computed from
+# positions disagrees with the other element's, and the encoder returns its own error code with the overflow member of
+# the BitStream set (the authoritative test for a short buffer). -DNDEBUG + ASan / UBSan, assertions on, the opt-out.
+out=$work/acn023
+mkdir "$out"
+run_compiler -c -ACN --acn-v2 -o "$out" "$root/test-cases/acn-wire/023.asn1" "$root/test-cases/acn-wire/023.acn"
+for b in ndebug asserts unchecked; do
+    case $b in
+        ndebug) flags="-DNDEBUG -fsanitize=address,undefined -fno-sanitize-recover=undefined" ;;
+        asserts) flags="-fsanitize=address,undefined -fno-sanitize-recover=undefined" ;;
+        unchecked) flags="-DNDEBUG -DASN1SCC_UNCHECKED_WRITES" ;;
+    esac
+    cc -std=c11 -pedantic-errors -Wall -Wextra -Werror $flags -I "$out" "$out"/*.c \
+        "$root/test-cases/acn-wire/023_wire_test.c" -o "$out/wire_test_$b" -lm
+    "$out/wire_test_$b"
+    echo "acn-wire 023 --acn-v2 $b OK"
+done
+
 echo "acn-v2 wire checks passed"

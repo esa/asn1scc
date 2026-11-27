@@ -275,7 +275,9 @@ $ ./sample_test
 ```
 
 The encoders check every write against the size of the buffer: with a buffer shorter than the encoding they return
-`false` with the error code `ERR_BITSTREAM_OVERFLOW` and write nothing past its end. See
+`false`, write nothing past its end and set the member `overflow` of the `BitStream`; the error code is
+`ERR_BITSTREAM_OVERFLOW`, or the code of a check that failed on what the refused writes left behind, so test
+`overflow` to recognise a buffer that was too short. See
 [Docs/c-runtime-bound-checks.md](Docs/c-runtime-bound-checks.md) (also for the opt-out `ASN1SCC_UNCHECKED_WRITES`).
 
 Ada backend
@@ -546,7 +548,7 @@ supported only by C.
 |--------|-----------|-------------|----------|
 | `--auto-test-cases` | `-atc` | Generate automatic test cases that round-trip-encode and decode every type | All |
 | `--equal-func` | `-equal` | Generate equality-testing functions (automatically enabled by `-atc`) | All |
-| `--atc-sweep-budget <bytes>` | `-atcSweepBudget` | With `-atc` (uPER, ACN): bytes decoded per test value by each decode fault sweep of the automatic tests (default 1048576). See [Docs/automatic-test-decode-sweeps.md](Docs/automatic-test-decode-sweeps.md) | C, Ada |
+| `--atc-sweep-budget <bytes>` | `-atcSweepBudget` | With `-atc` (uPER, ACN): bytes decoded per test value by each decode fault sweep of the automatic tests, and in C bytes encoded by the short-buffer encode sweep (default 1048576). See [Docs/automatic-test-decode-sweeps.md](Docs/automatic-test-decode-sweeps.md) | C, Ada |
 | `--type-prefix <prefix>` | `-typePrefix` | Add a prefix to all generated data type names | C, Ada |
 | `--field-prefix <prefix>` | `-fp` | Add a prefix to component/alternative field names. Use `AUTO` to prefix only names that conflict with language keywords | All |
 | `--rename-policy <int>` | `-renamePolicy` | Policy for renaming enumerated values (0 = Ada-style, 1 = C-style, 2 = C-style with underscore, 3 = lower-case). Default: 0 for Ada/Python, 1 for C/Scala/Rust | All |

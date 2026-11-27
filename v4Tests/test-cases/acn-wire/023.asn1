@@ -1,0 +1,10 @@
+-- ACNV2_ONLY. Encoders into buffers that are too short, with a determinant shared by several consumers (cycle 15k):
+-- the region lengths of two SEQUENCE OF elements patch one length field. When the contents of the second element are
+-- refused, its region length (from positions) differs from the first one's and the shared-determinant check fails
+-- with its own error code: the overflow member of the BitStream is the test for "buffer too short".
+-- No directives: run by v4Tests/scripts/runWireTests.sh with 023_wire_test.c (--acn-v2 only).
+WIRE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+	Cont ::= SEQUENCE { v INTEGER (0 .. 255), w SEQUENCE (SIZE (0 .. 3)) OF INTEGER (0 .. 255) }
+	PS   ::= SEQUENCE { items SEQUENCE (SIZE (1 .. 2)) OF SEQUENCE { c OCTET STRING (CONTAINING Cont) } }
+	TS   ::= SEQUENCE { a INTEGER (0 .. 255), pl PS, tail INTEGER (0 .. 255) }
+END
