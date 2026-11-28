@@ -2000,10 +2000,13 @@ let private createDeferredReferenceFunction
                 raise (BugErrorException (sprintf "Issue 135: specialised CONTAINING site %s without an ACN function of its contents" t.id.AsString))
             | false, _ ->
                 let callTarget, callOutcome = encodeCallTarget lm t.id.ModName us codec t.id baseFncName
-                // cycle b4: the state of this body goes on (stgCall returns the state the reference function was created
-                // with, before its parents recorded their encoders: their encodeBodies / encodeCallOutcomes were lost)
-                let res, _ = stgCall callOutcome pp callTarget errCode
-                res, us
+                // cycle b4: stgCall returns the state the reference function was created with, before its parents
+                // recorded their encoders, so the parents' encoder bodies were lost (their callers kept calling the _aux).
+                // Only the maps of encodeCallTarget (Ada only: encodeBodies is empty for the other languages) go on
+                // from this body's state; the rest of the stale state is kept as before, because it also rolls back the
+                // error code counter, which renumbers error codes when fixed (C / Ada output change, separate issue)
+                let res, sCreated = stgCall callOutcome pp callTarget errCode
+                res, {sCreated with encodeBodies = us.encodeBodies; siteValidatorCalls = us.siteValidatorCalls; validatorSameValueCalls = us.validatorSameValueCalls}
         DAstACN.createAcnFunction r deps lm codec t typeDefinition isValidFunc
             (fun us e acnArgs nestingScope p -> funcBody us e acnArgs nestingScope p)
             (fun _atc -> true) soSparkAnnotations [] us
