@@ -2000,7 +2000,10 @@ let private createDeferredReferenceFunction
                 raise (BugErrorException (sprintf "Issue 135: specialised CONTAINING site %s without an ACN function of its contents" t.id.AsString))
             | false, _ ->
                 let callTarget, callOutcome = encodeCallTarget lm t.id.ModName us codec t.id baseFncName
-                stgCall callOutcome pp callTarget errCode
+                // cycle b4: the state of this body goes on (stgCall returns the state the reference function was created
+                // with, before its parents recorded their encoders: their encodeBodies / encodeCallOutcomes were lost)
+                let res, _ = stgCall callOutcome pp callTarget errCode
+                res, us
         DAstACN.createAcnFunction r deps lm codec t typeDefinition isValidFunc
             (fun us e acnArgs nestingScope p -> funcBody us e acnArgs nestingScope p)
             (fun _atc -> true) soSparkAnnotations [] us
