@@ -1,31 +1,17 @@
 --RUN_SPARK C_ADA_ONLY (Python, Rust: not needed for this Ada proof shape; types of another module, see 011)
--- Ada validator Posts and loop invariants: (1) the quantifier index of a `for all` (j1, j2) must not hide a package of
--- the same name (modules J1, J2): the facts name every function of another package as Standard.<package>.<name>;
--- (2) a PRESENT nested in a WITH COMPONENTS of a child, and in the WITH COMPONENT of a SEQUENCE OF site, is a fact too
--- (the encoder of the ALWAYS PRESENT child calls its body without looking at the flag); (3) a site SIZE that fixes the
--- size without saying so (`SIZE(1..2 ^ 2..3)`, `SIZE(1<..2)`) gives `Length = 2`, the constant the encoder loops to
--- (BOOLEAN elements: with an element validator, the automatic SIZE violation value is invalid in its extra element).
--- (Module names I1 / I2 would clash with the generated loop variables of master's code itself, not with these facts.)
+-- Ada validator Posts and loop invariants of nested SEQUENCE OFs: the quantifier index of a `for all` (j1, j2) must not
+-- hide a package of the same name (modules J1, J2): the facts name every function of another package as
+-- Standard.<package>.<name>. (Module names I1 / I2 would clash with the loop variables of master's validators and
+-- tests themselves, not with these facts.) See 016, 017, 019.
 TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
    IMPORTS N FROM J1 M FROM J2;
 
    Items  ::= SEQUENCE (SIZE(0..3)) OF N
    Nested ::= SEQUENCE (SIZE(1..2)) OF SEQUENCE (SIZE(0..2)) OF M
 
-   K   ::= INTEGER (1..5 | 8..10)
-   Rec ::= SEQUENCE { x K OPTIONAL, y K }
-   P   ::= SEQUENCE { r Rec, f BOOLEAN } (WITH COMPONENTS {..., r (WITH COMPONENTS {..., x PRESENT})})
-   L   ::= SEQUENCE (SIZE(0..3)) OF Rec
-   PL  ::= L (WITH COMPONENT (WITH COMPONENTS {..., x PRESENT}))
-   Fl  ::= SEQUENCE (SIZE(0..3)) OF BOOLEAN
-
    MyPDU ::= SEQUENCE {
       its    Items,
-      nst    Nested,
-      pp     P,
-      ppl    PL,
-      xs     Fl (SIZE(1..2 ^ 2..3)),
-      ys     Fl (SIZE(1<..2))
+      nst    Nested
    }
 END
 

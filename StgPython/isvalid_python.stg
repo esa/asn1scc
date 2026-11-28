@@ -213,7 +213,7 @@ if ret:
         ret = Asn1ConstraintValidResult(is_valid=True)
 >>
 
-StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement, sElemIdx, soElemFacts) ::= <<
 <i> = 0
 while ret and <i> \< <if(!bIsFixedSize)><p><sAcc>n_count<else><nFixedSize><endif>:
     <sInnerStatement>

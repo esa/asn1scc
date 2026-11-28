@@ -153,14 +153,9 @@ end if;
 
 
 
-StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
-<i> := <p>.Data'First;
-while ret.Success and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif> loop
-    pragma Loop_Invariant (<i> \>= <p>.Data'First and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif>);
-    pragma Loop_Variant (Increases => <i>);
-    <sInnerStatement>
-    <i> := <i>+1;
-end loop;
+/* soElemFacts (cycle b4a, round 2): the facts of an element constraint's check (WITH COMPONENT), as in sequenceOf2 */
+StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement, sElemIdx, soElemFacts) ::= <<
+<sequenceOf2(p=p, sAcc=sAcc, i=i, bIsFixedSize=bIsFixedSize, nFixedSize=nFixedSize, sInnerStatement=sInnerStatement, sElemIdx=sElemIdx, soElemFacts=soElemFacts)>
 >>
 
 

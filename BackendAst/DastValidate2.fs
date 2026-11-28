@@ -430,6 +430,107 @@ let private seqChildPresenceExp (l:LanguageMacros) (p:CodegenScope) (ch:Asn1Chil
         | false, false -> "0"
     l.isvalid.Sequence_optional_child_always_present_or_absent_expr (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) (l.lg.getAsn1ChildBackendName ch) flag
 
+/// Cycle b4a: drops the facts that state nothing (an OPTIONAL child, a CHOICE or a SEQUENCE OF without facts below)
+let rec pruneFacts (fs:ValidatorFact list) : ValidatorFact list =
+    fs |> List.choose (fun f ->
+        match f with
+        | VfExp _ -> Some f
+        | VfOptional o ->
+            match pruneFacts o.childFacts with
+            | []  -> None
+            | cfs -> Some (VfOptional {o with childFacts = cfs})
+        | VfCase c ->
+            let alts = c.alternatives |> List.map (fun (w, x) -> w, pruneFacts x)
+            match alts |> List.forall (fun (_, x) -> x.IsEmpty) with
+            | true  -> None
+            | false -> Some (VfCase {c with alternatives = alts})
+        | VfForAll a ->
+            match pruneFacts a.elementFacts with
+            | []  -> None
+            | efs -> Some (VfForAll {a with elementFacts = efs}))
+
+/// Cycle b4a: the facts as one boolean expression (Ada), one fact per line; None when there is none
+let rec renderFacts (lm:LanguageMacros) (fs:ValidatorFact list) : string option =
+    let one (f:ValidatorFact) =
+        match f with
+        | VfExp s      -> s
+        | VfOptional o -> lm.isvalid.ValidatorFactOptional o.p o.sAcc o.sChName (renderFactsOrTrue lm o.childFacts)
+        | VfCase c     ->
+            let alts = c.alternatives |> List.map (fun (w, x) -> lm.isvalid.ValidatorFactCaseAlt w (renderFactsOrTrue lm x))
+            lm.isvalid.ValidatorFactCase c.p c.sAcc alts
+        | VfForAll a   -> lm.isvalid.ValidatorFactForAll a.p a.sAcc a.sIdx a.bIsFixedSize a.nFixedSize (renderFactsOrTrue lm a.elementFacts)
+    match pruneFacts fs with
+    | [] -> None
+    | pfs -> Some (lm.isvalid.ValidatorFactsAnd (pfs |> List.map one))
+and private renderFactsOrTrue (lm:LanguageMacros) (fs:ValidatorFact list) =
+    match renderFacts lm fs with
+    | Some s -> s
+    | None   -> lm.lg.TrueLiteral
+
+/// Cycle b4a: the facts the checks of a constraint establish at p, built along the same structure as the checks
+/// (anyConstraint2ValidationCodeBlock and the WITH COMPONENT(S) arms) and with the same helpers: the presence flag of a
+/// child marked PRESENT (seqChildPresenceExp, the check's own expression; Fable F1: the encoder of an ALWAYS PRESENT
+/// child does not look at the flag), the facts of a child's own constraint at the child (under its presence flag when
+/// it is OPTIONAL: sequence_OptionalChild wraps that check), and those of an element constraint for every element (the
+/// bounds of StatementForLoop). Only conjuncts give facts (WITH COMPONENT(S), intersection, before an extension marker);
+/// nothing under a union, a negation or an exception, whose checks do not establish them. Each fact comes from a check
+/// that is always emitted (a presence test) or from a nested fact, so a fact never outlives its check.
+let rec constraintFacts (l:LanguageMacros) (t:Asn1Type) (ac:Asn1AcnAst.AnyConstraint) (p:CodegenScope) : ValidatorFact list =
+    match t.ActualType.Kind, ac with
+    | Sequence o, Asn1AcnAst.SeqConstraint c            -> sequenceConstraintFacts l o.Asn1Children [c] p
+    | SequenceOf o, Asn1AcnAst.SequenceOfConstraint c   -> sequenceOfElementFacts l o.baseInfo o.childType [c] p
+    | _                                                 -> []
+
+and sequenceConstraintFacts (l:LanguageMacros) (children:Asn1Child list) (cons:SeqConstraint list) (p:CodegenScope) : ValidatorFact list =
+    let rec one (c:SeqConstraint) =
+        match c with
+        | SeqOrChWithComponentsConstraint (_, ncs) ->
+            ncs |> List.collect (fun nc ->
+                let ch = children |> Seq.find(fun x -> x.Name.Value = nc.Name.Value)
+                let presence =
+                    match nc.Mark with
+                    | Asn1Ast.MarkPresent   -> [VfExp (seqChildPresenceExp l p ch true)]
+                    | Asn1Ast.NoMark
+                    | Asn1Ast.MarkOptional
+                    | Asn1Ast.MarkAbsent    -> []
+                let nested =
+                    match nc.Constraint with
+                    | None    -> []
+                    | Some ac ->
+                        let c_name = l.lg.getAsn1ChildBackendName ch
+                        let child_arg = l.lg.getSeqChild p.accessPath c_name ch.Type.isIA5String ch.Optionality.IsSome
+                        match constraintFacts l ch.Type ac {p with accessPath = child_arg}, ch.Optionality with
+                        | [], _       -> []
+                        | fs, None    -> fs
+                        | fs, Some _  -> [VfOptional {ValidatorFactOptional.p = p.accessPath.joined l.lg; sAcc = l.lg.getAccess p.accessPath; sChName = c_name; childFacts = fs}]
+                presence @ nested)
+        | SeqOrChIntersectionConstraint (_, c1, c2) -> one c1 @ one c2
+        | SeqOrChRootConstraint (_, c1)             -> one c1
+        | SeqOrChUnionConstraint _
+        | SeqOrChAllExceptConstraint _
+        | SeqOrChExceptConstraint _
+        | SeqOrChRootConstraint2 _
+        | SeqOrChSingleValueConstraint _            -> []
+    cons |> List.collect one
+
+and sequenceOfElementFacts (l:LanguageMacros) (o:Asn1AcnAst.SequenceOf) (child:Asn1Type) (cons:SequenceOfConstraint list) (p:CodegenScope) : ValidatorFact list =
+    let rec one (c:SequenceOfConstraint) =
+        match c with
+        | SeqOfSeqWithComponentConstraint (_, ac, _) ->
+            let j = sprintf "j%d" (p.accessPath.SequenceOfLevel + 1)
+            match constraintFacts l child ac {p with accessPath = l.lg.getArrayItem p.accessPath j child.isIA5String} with
+            | []  -> []
+            | efs -> [VfForAll {ValidatorFactForAll.p = p.accessPath.joined l.lg; sAcc = l.lg.getAccess p.accessPath; bIsFixedSize = o.isFixedSize; nFixedSize = o.minSize.uper; sIdx = j; elementFacts = efs}]
+        | SeqOfSizeIntersectionConstraint (_, c1, c2) -> one c1 @ one c2
+        | SeqOfSizeRootConstraint (_, c1)             -> one c1
+        | SeqOfSizeConstraint _
+        | SeqOfSizeUnionConstraint _
+        | SeqOfSizeAllExceptConstraint _
+        | SeqOfSizeExceptConstraint _
+        | SeqOfSizeRootConstraint2 _
+        | SeqOfSizeSingleValueConstraint _            -> []
+    cons |> List.collect one
+
 let rec anyConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (erLoc:SrcLoc) (t:Asn1Type) (ac:AnyConstraint) st =
     match t.ActualType.Kind, ac with
     | Integer o, IntegerTypeConstraint c        -> integerConstraint2ValidationCodeBlock r l (o.baseInfo.intClass) c st
@@ -591,81 +692,25 @@ and sequenceOfConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageM
                 let fnc, ns = anyConstraint2ValidationCodeBlock r l loc child c s
                 let ch_arg = l.lg.getArrayItem p.accessPath i child.isIA5String
                 let childCheck p = fnc ({p with accessPath = ch_arg})
+                // cycle b4a (round 2): the facts of the element constraint at element j<level> (the Post states them
+                // for every element: sequenceOfElementFacts), carried by the loop for the elements already checked
+                let sIdx = sprintf "j%d" ii
+                let soElemFacts =
+                    match l.lg.validatorPostconditions with
+                    | true  -> renderFacts l (constraintFacts l child c {p with accessPath = l.lg.getArrayItem p.accessPath sIdx child.isIA5String})
+                    | false -> None
+                let loop st = statementForLoop (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) i o.isFixedSize o.minSize.uper st sIdx soElemFacts
                 let ret =
                     match childCheck p with
-                    | VCBExpression  exp -> VCBStatement (statementForLoop (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) i o.isFixedSize o.minSize.uper (expressionToStatement exp), [lv])
-                    | VCBStatement   (stat, lv2)-> VCBStatement (statementForLoop (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) i o.isFixedSize o.minSize.uper stat, lv::lv2)
+                    | VCBExpression  exp -> VCBStatement (loop (expressionToStatement exp), [lv])
+                    | VCBStatement   (stat, lv2)-> VCBStatement (loop stat, lv::lv2)
                     | VCBTrue            -> VCBTrue
-                    | VCBFalse           -> VCBStatement (statementForLoop (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) i o.isFixedSize o.minSize.uper (expressionToStatement "FALSE"), [lv])
+                    | VCBFalse           -> VCBStatement (loop (expressionToStatement "FALSE"), [lv])
                 ret), s)
         c
         st
 
 
-
-/// Cycle b4a: the facts the checks of a constraint establish at p, built along the same structure as the checks
-/// (anyConstraint2ValidationCodeBlock and the WITH COMPONENT(S) arms) and with the same helpers: the presence flag of a
-/// child marked PRESENT (seqChildPresenceExp, the check's own expression; Fable F1: the encoder of an ALWAYS PRESENT
-/// child does not look at the flag), the facts of a child's own constraint at the child (under its presence flag when
-/// it is OPTIONAL: sequence_OptionalChild wraps that check), and those of an element constraint for every element (the
-/// bounds of StatementForLoop). Only conjuncts give facts (WITH COMPONENT(S), intersection, before an extension marker);
-/// nothing under a union, a negation or an exception, whose checks do not establish them. Each fact comes from a check
-/// that is always emitted (a presence test) or from a nested fact, so a fact never outlives its check.
-let rec constraintFacts (l:LanguageMacros) (t:Asn1Type) (ac:Asn1AcnAst.AnyConstraint) (p:CodegenScope) : ValidatorFact list =
-    match t.ActualType.Kind, ac with
-    | Sequence o, Asn1AcnAst.SeqConstraint c            -> sequenceConstraintFacts l o.Asn1Children [c] p
-    | SequenceOf o, Asn1AcnAst.SequenceOfConstraint c   -> sequenceOfElementFacts l o.baseInfo o.childType [c] p
-    | _                                                 -> []
-
-and sequenceConstraintFacts (l:LanguageMacros) (children:Asn1Child list) (cons:SeqConstraint list) (p:CodegenScope) : ValidatorFact list =
-    let rec one (c:SeqConstraint) =
-        match c with
-        | SeqOrChWithComponentsConstraint (_, ncs) ->
-            ncs |> List.collect (fun nc ->
-                let ch = children |> Seq.find(fun x -> x.Name.Value = nc.Name.Value)
-                let presence =
-                    match nc.Mark with
-                    | Asn1Ast.MarkPresent   -> [VfExp (seqChildPresenceExp l p ch true)]
-                    | Asn1Ast.NoMark
-                    | Asn1Ast.MarkOptional
-                    | Asn1Ast.MarkAbsent    -> []
-                let nested =
-                    match nc.Constraint with
-                    | None    -> []
-                    | Some ac ->
-                        let c_name = l.lg.getAsn1ChildBackendName ch
-                        let child_arg = l.lg.getSeqChild p.accessPath c_name ch.Type.isIA5String ch.Optionality.IsSome
-                        match constraintFacts l ch.Type ac {p with accessPath = child_arg}, ch.Optionality with
-                        | [], _       -> []
-                        | fs, None    -> fs
-                        | fs, Some _  -> [VfOptional {ValidatorFactOptional.p = p.accessPath.joined l.lg; sAcc = l.lg.getAccess p.accessPath; sChName = c_name; childFacts = fs}]
-                presence @ nested)
-        | SeqOrChIntersectionConstraint (_, c1, c2) -> one c1 @ one c2
-        | SeqOrChRootConstraint (_, c1)             -> one c1
-        | SeqOrChUnionConstraint _
-        | SeqOrChAllExceptConstraint _
-        | SeqOrChExceptConstraint _
-        | SeqOrChRootConstraint2 _
-        | SeqOrChSingleValueConstraint _            -> []
-    cons |> List.collect one
-
-and sequenceOfElementFacts (l:LanguageMacros) (o:Asn1AcnAst.SequenceOf) (child:Asn1Type) (cons:SequenceOfConstraint list) (p:CodegenScope) : ValidatorFact list =
-    let rec one (c:SequenceOfConstraint) =
-        match c with
-        | SeqOfSeqWithComponentConstraint (_, ac, _) ->
-            let j = sprintf "j%d" (p.accessPath.SequenceOfLevel + 1)
-            match constraintFacts l child ac {p with accessPath = l.lg.getArrayItem p.accessPath j child.isIA5String} with
-            | []  -> []
-            | efs -> [VfForAll {ValidatorFactForAll.p = p.accessPath.joined l.lg; sAcc = l.lg.getAccess p.accessPath; bIsFixedSize = o.isFixedSize; nFixedSize = o.minSize.uper; sIdx = j; elementFacts = efs}]
-        | SeqOfSizeIntersectionConstraint (_, c1, c2) -> one c1 @ one c2
-        | SeqOfSizeRootConstraint (_, c1)             -> one c1
-        | SeqOfSizeConstraint _
-        | SeqOfSizeUnionConstraint _
-        | SeqOfSizeAllExceptConstraint _
-        | SeqOfSizeExceptConstraint _
-        | SeqOfSizeRootConstraint2 _
-        | SeqOfSizeSingleValueConstraint _            -> []
-    cons |> List.collect one
 
 let rec private seqOfHasSizeConstraint (c:SequenceOfConstraint) : bool =
     match c with
@@ -753,43 +798,6 @@ let prependComment (soComment:string option) (vs:ValidationStatement) =
 /// `j1` hid a package `J1`; ILangGeneric.validatorFactName, Ada: `Standard.<package>.<name>`)
 let factCall (l:LanguageMacros) (arg:string) (fncName:string) (soTypeCasting:string option) =
     VfExp (l.isvalid.call_base_type_func_exp arg (l.lg.validatorFactName fncName) (soTypeCasting |> Option.map l.lg.validatorFactName))
-
-/// Cycle b4a: drops the facts that state nothing (an OPTIONAL child, a CHOICE or a SEQUENCE OF without facts below)
-let rec pruneFacts (fs:ValidatorFact list) : ValidatorFact list =
-    fs |> List.choose (fun f ->
-        match f with
-        | VfExp _ -> Some f
-        | VfOptional o ->
-            match pruneFacts o.childFacts with
-            | []  -> None
-            | cfs -> Some (VfOptional {o with childFacts = cfs})
-        | VfCase c ->
-            let alts = c.alternatives |> List.map (fun (w, x) -> w, pruneFacts x)
-            match alts |> List.forall (fun (_, x) -> x.IsEmpty) with
-            | true  -> None
-            | false -> Some (VfCase {c with alternatives = alts})
-        | VfForAll a ->
-            match pruneFacts a.elementFacts with
-            | []  -> None
-            | efs -> Some (VfForAll {a with elementFacts = efs}))
-
-/// Cycle b4a: the facts as one boolean expression (Ada), one fact per line; None when there is none
-let rec renderFacts (lm:LanguageMacros) (fs:ValidatorFact list) : string option =
-    let one (f:ValidatorFact) =
-        match f with
-        | VfExp s      -> s
-        | VfOptional o -> lm.isvalid.ValidatorFactOptional o.p o.sAcc o.sChName (renderFactsOrTrue lm o.childFacts)
-        | VfCase c     ->
-            let alts = c.alternatives |> List.map (fun (w, x) -> lm.isvalid.ValidatorFactCaseAlt w (renderFactsOrTrue lm x))
-            lm.isvalid.ValidatorFactCase c.p c.sAcc alts
-        | VfForAll a   -> lm.isvalid.ValidatorFactForAll a.p a.sAcc a.sIdx a.bIsFixedSize a.nFixedSize (renderFactsOrTrue lm a.elementFacts)
-    match pruneFacts fs with
-    | [] -> None
-    | pfs -> Some (lm.isvalid.ValidatorFactsAnd (pfs |> List.map one))
-and private renderFactsOrTrue (lm:LanguageMacros) (fs:ValidatorFact list) =
-    match renderFacts lm fs with
-    | Some s -> s
-    | None   -> lm.lg.TrueLiteral
 
 /// Cycle b4a: the facts of a part of a validator body: only when the part is a check (a part that is always true or
 /// implied by the typedef is not emitted as a check; the parents skip it)

@@ -183,9 +183,9 @@ let StatementExceptExpression (sStat1:string) (sExp2:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "isvalid_rust" "StatementExceptExpression" [("sStat1",(if sStat1 = null then null else ST.StrHelper sStat1:>Object) );("sExp2",(if sExp2 = null then null else ST.StrHelper sExp2:>Object) )]
 
-let StatementForLoop (p:string) (sAcc:string) (i:string) (bIsFixedSize:bool) (nFixedSize:BigInteger) (sInnerStatement:string) =
+let StatementForLoop (p:string) (sAcc:string) (i:string) (bIsFixedSize:bool) (nFixedSize:BigInteger) (sInnerStatement:string) (sElemIdx:string) (soElemFacts:string option) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "isvalid_rust" "StatementForLoop" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("i",i :>Object);("bIsFixedSize",bIsFixedSize :>Object);("nFixedSize",nFixedSize :>Object);("sInnerStatement",(if sInnerStatement = null then null else ST.StrHelper sInnerStatement:>Object) )]
+    ST.call "isvalid_rust" "StatementForLoop" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("i",i :>Object);("bIsFixedSize",bIsFixedSize :>Object);("nFixedSize",nFixedSize :>Object);("sInnerStatement",(if sInnerStatement = null then null else ST.StrHelper sInnerStatement:>Object) );("sElemIdx",(if sElemIdx = null then null else ST.StrHelper sElemIdx:>Object) );("soElemFacts",(if soElemFacts.IsNone then null else ST.StrHelper soElemFacts.Value:>Object) )]
 
 let Print_AlphabetCheckFunc (sFuncName:string) (arrsAlphaConBody:seq<string>) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true

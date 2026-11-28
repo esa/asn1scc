@@ -211,7 +211,7 @@ if ret.isRight then
             Right(0)
 >>
 
-StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement, sElemIdx, soElemFacts) ::= <<
 <i> = 0
 (while(ret.isRight && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif>) {
     decreases(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif> - <i>)

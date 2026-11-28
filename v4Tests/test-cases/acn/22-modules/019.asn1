@@ -1,0 +1,23 @@
+--RUN_SPARK C_ADA_ONLY (Python, Rust: not needed for this Ada proof shape; types of another module, see 011)
+-- Ada validator Posts: (1) a PRESENT nested in a WITH COMPONENTS of a child, and in the WITH COMPONENT of a SEQUENCE OF
+-- site (with the quantified invariant of that element loop), is a fact too: the encoder of the ALWAYS PRESENT child
+-- calls its body without looking at the flag; (2) a site SIZE that fixes the size without saying so
+-- (`SIZE(1..2 ^ 2..3)`, `SIZE(1<..2)`) gives `Length = 2`, the constant the encoder loops to (BOOLEAN elements: with an
+-- element validator, the automatic SIZE violation value is invalid in its extra element). See 016, 017, 018.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   K   ::= INTEGER (1..5 | 8..10)
+   Rec ::= SEQUENCE { x K OPTIONAL, y K }
+   P   ::= SEQUENCE { r Rec, f BOOLEAN } (WITH COMPONENTS {..., r (WITH COMPONENTS {..., x PRESENT})})
+   L   ::= SEQUENCE (SIZE(0..3)) OF Rec
+   PL  ::= L (WITH COMPONENT (WITH COMPONENTS {..., x PRESENT}))
+   Fl  ::= SEQUENCE (SIZE(0..3)) OF BOOLEAN
+
+   MyPDU ::= SEQUENCE {
+      pp     P,
+      ppl    PL,
+      xs     Fl (SIZE(1..2 ^ 2..3)),
+      ys     Fl (SIZE(1<..2))
+   }
+END
+
+--TCLS     MyPDU[]

@@ -233,7 +233,7 @@ if ret {
 }
 >>
 
-StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+StatementForLoop(p, sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement, sElemIdx, soElemFacts) ::= <<
 let mut <i>: usize = 0;
 while ret && <i> \< <if(!bIsFixedSize)><p><sAcc>n_count as usize<else><nFixedSize><endif> {
     <sInnerStatement>

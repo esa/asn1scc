@@ -95,8 +95,8 @@ type IIsValid_rust() =
             isvalid_rust.ExpressionExceptStatement  sExp1 sStat2 
         override this.StatementExceptExpression  (sStat1:string) (sExp2:string) =
             isvalid_rust.StatementExceptExpression  sStat1 sExp2 
-        override this.StatementForLoop  (p:string) (sAcc:string) (i:string) (bIsFixedSize:bool) (nFixedSize:BigInteger) (sInnerStatement:string) =
-            isvalid_rust.StatementForLoop  p sAcc i bIsFixedSize nFixedSize sInnerStatement 
+        override this.StatementForLoop  (p:string) (sAcc:string) (i:string) (bIsFixedSize:bool) (nFixedSize:BigInteger) (sInnerStatement:string) (sElemIdx:string) (soElemFacts:string option) =
+            isvalid_rust.StatementForLoop  p sAcc i bIsFixedSize nFixedSize sInnerStatement sElemIdx soElemFacts 
         override this.Print_AlphabetCheckFunc  (sFuncName:string) (arrsAlphaConBody:seq<string>) =
             isvalid_rust.Print_AlphabetCheckFunc  sFuncName arrsAlphaConBody 
         override this.SingleValConstraint  (p:string) (v:string) =
