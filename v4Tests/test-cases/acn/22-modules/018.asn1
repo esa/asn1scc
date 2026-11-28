@@ -5,7 +5,7 @@
 -- named Standard (a type here, a value in J2) must not break the module packages either (no Standard. prefix).
 -- Not covered: an ENUMERATED item `standard` (master's automatic test units use Standard.<package>, cycle 15h, and do
 -- not compile then), module names I1 / I2 (they clash with the loop variables of master's own validators and tests).
--- See 016, 017, 019, 020, 021.
+-- See 016, 017, 019 .. 022.
 TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
    IMPORTS N FROM J1 M FROM J2;
 

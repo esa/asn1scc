@@ -1,0 +1,14 @@
+--RUN_SPARK C_ADA_ONLY (Python, Rust: not needed for this Ada proof shape)
+-- Ada validator Posts: a WITH COMPONENT nested in a WITH COMPONENT gives a `for all` inside a `for all`, each element
+-- loop with its quantified invariant (two nested policy blocks). See 016 .. 021.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   K   ::= INTEGER (1..5 | 8..10)
+   Rec ::= SEQUENCE { x K OPTIONAL, y K }
+   L   ::= SEQUENCE (SIZE(0..3)) OF Rec
+   LL  ::= SEQUENCE (SIZE(1..2)) OF L
+   PLL ::= LL (WITH COMPONENT (WITH COMPONENT (WITH COMPONENTS {..., x PRESENT})))
+
+   MyPDU ::= SEQUENCE { fpll PLL }
+END
+
+--TCLS     MyPDU[]

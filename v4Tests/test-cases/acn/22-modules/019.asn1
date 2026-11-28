@@ -3,7 +3,7 @@
 -- site (with the quantified invariant of that element loop), is a fact too: the encoder of the ALWAYS PRESENT child
 -- calls its body without looking at the flag; (2) a site SIZE that fixes the size without saying so
 -- (`SIZE(1..2 ^ 2..3)`, `SIZE(1<..2)`) gives `Length = 2`, the constant the encoder loops to (BOOLEAN elements: with an
--- element validator, the automatic SIZE violation value is invalid in its extra element). See 016 .. 018, 020, 021.
+-- element validator, the automatic SIZE violation value is invalid in its extra element). See 016 .. 018, 020 .. 022.
 TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
    K   ::= INTEGER (1..5 | 8..10)
    Rec ::= SEQUENCE { x K OPTIONAL, y K }

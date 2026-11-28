@@ -4,7 +4,7 @@
 -- ALWAYS PRESENT child, every arm of an inline CHOICE. The private encoder bodies require a valid value (Pre); the
 -- same-package parent bodies that call them (also for an ALWAYS PRESENT child) prove it from their own Pre and the
 -- validator's Post; a split encoder whose body cannot fail states that it succeeds on a valid value (Post).
--- SEQUENCE OF shapes: 017; names: 018; nested PRESENT and SIZE shapes: 019 .. 021.
+-- SEQUENCE OF shapes: 017; names: 018; nested PRESENT and SIZE shapes: 019 .. 022.
 TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
    IMPORTS Num, Name, Rec FROM MOD-B;
 

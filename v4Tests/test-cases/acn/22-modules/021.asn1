@@ -3,7 +3,7 @@
 -- OPTIONAL child, and a WITH COMPONENT site on an imported SEQUENCE OF (`for all` next to MOD_B.L_IsConstraintValid).
 -- A site SIZE that fixes the size of a list with a validated element (the encoder loops to the constant and calls the
 -- element's body) is not in the corpus: master's automatic SIZE-violation value of such a site is invalid in its
--- extra element (the test fails on master). See 016 .. 020.
+-- extra element (the test fails on master). See 016 .. 020, 022.
 TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
    IMPORTS Rec, L FROM MOD-B;
    PL  ::= L (WITH COMPONENT (WITH COMPONENTS {..., x PRESENT}))
