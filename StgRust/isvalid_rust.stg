@@ -117,7 +117,7 @@ ret = false;
 EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue, arrsErrorCodeComments) ::= <<
 pub const <sErrCode>: i32 = <nErrValue>;  /*<arrsErrorCodeComments : {x|<x>}; separator = "\n">*/
 >>
-EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes) ::= <<
+EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, soPostFacts) ::= <<
 <arrsErrcodes; separator="\n">
 >>
 
@@ -302,7 +302,7 @@ ret = <arrsConstraints; separator=" && ">;
 call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret = <sFuncName>(&<p>, pErrCode);"
 call_superclass_func(p, sFuncName, soTypeCasting) ::= "ret = <sFuncName>(&<p>, pErrCode);"
 
-call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(&<p>, pErrCode)"
+call_base_type_func_exp(p, sFuncName, soTypeCasting) ::= "<sFuncName>(&<p>, pErrCode)"
 
 
 
@@ -387,7 +387,7 @@ while ret && <i> \< <if(!bIsFixedSize)><p><sAcc>n_count as usize<else><nFixedSiz
 <endif>
 >>
 
-sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement, sElemIdx, soElemFacts) ::= <<
 let mut <i>: usize = 0;
 while ret && <i> \< <if(!bIsFixedSize)><p><sAcc>n_count as usize<else><nFixedSize><endif> {
     <sInnerStatement>
@@ -416,3 +416,11 @@ bit_string_equal(<nFixedSize>, &<p><sAccess>arr, &<sOctArrayLiteral>)
 objId_equal(p, sObjIdLiteral)::=<<
 *(<p>) == <sObjIdLiteral>
 >>
+
+
+/* Cycle b4a (kappa-P): the facts of a validator's Post. Ada only (ILangGeneric.validatorPostconditions); never called here. */
+ValidatorFactsAnd(arrsFacts) ::= ""
+ValidatorFactOptional(p, sAcc, sChName, sFacts) ::= ""
+ValidatorFactCase(p, sAcc, arrsAlts) ::= ""
+ValidatorFactCaseAlt(sPresent, sFacts) ::= ""
+ValidatorFactForAll(p, sAcc, sIdx, bIsFixedSize, nFixedSize, sFacts) ::= ""

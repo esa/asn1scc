@@ -733,6 +733,35 @@ type DecoderValidationModel =
     | DecodersCallEveryValidation
     | DecodersSkipAlwaysValidGuardOthers
 
+/// Cycle b4a (kappa-P, George 2026-11-28): what the success of a validator implies about its value, built by the same
+/// function that builds the statement which establishes it (one per child / constraint), rendered as the validator's
+/// `Post` (Ada, ILangGeneric.validatorPostconditions). A fact only names what the body checks on the path to success.
+type ValidatorFact =
+    | VfExp    of string                                                // a boolean expression: a child validator's
+                                                                        // Success, a presence flag, a site SIZE
+    | VfOptional of ValidatorFactOptional                               // OPTIONAL child: its facts under its presence
+    | VfCase   of ValidatorFactCase                                     // CHOICE: the facts of each alternative
+    | VfForAll of ValidatorFactForAll                                   // SEQUENCE OF: the facts of every element
+and ValidatorFactOptional = {
+    p            : string                                               // the SEQUENCE (as Sequence_OptionalChild)
+    sAcc         : string
+    sChName      : string
+    childFacts   : ValidatorFact list
+}
+and ValidatorFactCase = {
+    p            : string                                               // the CHOICE (p, sAcc of the `choice` macro)
+    sAcc         : string
+    alternatives : (string * ValidatorFact list) list                   // present-when name, facts
+}
+and ValidatorFactForAll = {
+    p            : string                                               // the SEQUENCE OF and its bounds, as in the
+    sAcc         : string                                               // validator loop (sequenceOf2)
+    bIsFixedSize : bool
+    nFixedSize   : BigInteger
+    sIdx         : string                                               // the quantified index (j<level>)
+    elementFacts : ValidatorFact list                                   // the facts of element sIdx
+}
+
 type IsValidFunction = {
     errCodes            : ErrorCode list
     funcName            : string option               // the name of the function. Valid only for TASes)
@@ -747,6 +776,7 @@ type IsValidFunction = {
     nonEmbeddedChildrenValidFuncs  : IsValidFunction list         //a list with the first level child funcs which are not embedded by this
                                                        //IsValidFunction but the the function is called
     outcome             : ValidationOutcome
+    postFacts           : CodegenScope -> ValidatorFact list    // cycle b4a: what success implies ([] when AlwaysValid)
 }
 
 

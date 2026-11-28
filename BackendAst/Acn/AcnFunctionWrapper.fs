@@ -353,6 +353,13 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                     | Encode, _, _, _
                     | Decode, _, _, _ -> false
                 let bodyFuncName = funcName + "_Body"
+                // cycle b4a (kappa-P): a split encoder whose body cannot fail succeeds on every valid value (it validates
+                // and calls the body, whose Post states result.Success); stated in its contract for the callers of other
+                // packages
+                let soSparkAnnotations =
+                    match lm.lg.validatorPostconditions && bSplit && not bodyOutcome.canFail, isValidFuncName, soSparkAnnotations with
+                    | true, Some vf, Some _ -> Some (lm.acn.sparkAnnotationsEncValidSucceeds typeDefinitionName vf varName)
+                    | _, _, _               -> soSparkAnnotations
                 // coverage step 12b: what a call of this encoder does, for the parents' joins
                 let ns1a =
                     match codec with
@@ -480,11 +487,14 @@ let createAcnFunction (r: Asn1AcnAst.AstRoot)
                 let func =
                     match bSplit, content with
                     | true, Some bodyResult ->
-                        // the body states result.Success in its contract when it cannot fail; the _aux keeps its own
+                        // the body states result.Success in its contract when it cannot fail; the _aux keeps its own.
+                        // Cycle b4a (kappa-P): the body requires a valid value (its callers validated it: the _aux, the
+                        // bodies of the same package after their own validation, DAstUtilFunctions.encodeCallTarget)
                         let soBodyAnnotations =
-                            match bodyOutcome.canFail, soSparkAnnotations with
-                            | false, Some _ -> Some (lm.acn.sparkAnnotationsAlwaysSucceeds typeDefinitionName)
-                            | _, _          -> soSparkAnnotations
+                            match lm.lg.validatorPostconditions, isValidFuncName, bodyOutcome.canFail, soSparkAnnotations with
+                            | true, Some vf, bCanFail, Some _ -> Some (lm.acn.sparkAnnotationsEncBody typeDefinitionName vf varName (not bCanFail))
+                            | _, _, false, Some _             -> Some (lm.acn.sparkAnnotationsAlwaysSucceeds typeDefinitionName)
+                            | _, _, _, _                      -> soSparkAnnotations
                         let body = lm.uper.EmitEncodeBodyProcedure varName bodyFuncName typeDefinitionName lvars (encodeResultInit false bodyResult.funcBody) soBodyAnnotations bodyResult.bBsIsUnReferenced bodyResult.bValIsUnReferenced (bodyResult.funcBody.Contains "nCurOffset")
                         let callBody = lm.uper.call_base_type_func varName bodyFuncName codec
                         let aux = EmitTypeAssignment_primitive varName sStar funcName isValidFuncName typeDefinitionName Seq.empty callBody soSparkAnnotations sInitialExp prms prmNames (t.acnMaxSizeInBits = 0I) false false false soValInitFuncName funcDefAnnots precondAnnots postcondAnnots false bAlwaysSucceeds false bValidityCannotFail codec

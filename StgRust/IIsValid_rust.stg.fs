@@ -43,8 +43,8 @@ type IIsValid_rust() =
             isvalid_rust.convertVCBFalseToStatementAndUpdateErrCode  sErrCode 
         override this.EmitTypeAssignment_composite_def_err_code  (sErrCode:string) (nErrValue:BigInteger) (arrsErrorCodeComments:seq<string>) =
             isvalid_rust.EmitTypeAssignment_composite_def_err_code  sErrCode nErrValue arrsErrorCodeComments 
-        override this.EmitTypeAssignment_composite_def  (sVarName:string) (sStar:string) (sFuncName:string) (sTypeDefName:string) (arrsErrcodes:seq<string>) =
-            isvalid_rust.EmitTypeAssignment_composite_def  sVarName sStar sFuncName sTypeDefName arrsErrcodes 
+        override this.EmitTypeAssignment_composite_def  (sVarName:string) (sStar:string) (sFuncName:string) (sTypeDefName:string) (arrsErrcodes:seq<string>) (soPostFacts:string option) =
+            isvalid_rust.EmitTypeAssignment_composite_def  sVarName sStar sFuncName sTypeDefName arrsErrcodes soPostFacts 
         override this.EmitTypeAssignment_composite  (sVarName:string) (sPtrPrefix:string) (sPtrSuffix:string) (sFuncName:string) (sTypeDefName:string) (sContent:string) (arrsAlphaFuncs:seq<string>) (arrsLocalVars:seq<string>) (bUnreferenced:bool) =
             isvalid_rust.EmitTypeAssignment_composite  sVarName sPtrPrefix sPtrSuffix sFuncName sTypeDefName sContent arrsAlphaFuncs arrsLocalVars bUnreferenced 
         override this.GetEnumIndexByName  (sEnumValuesArray:string) (sEnumValuesArrayCount:string) (sExp:string) (bBinarySearch:bool) =
@@ -135,8 +135,8 @@ type IIsValid_rust() =
             isvalid_rust.call_base_type_func  p sFuncName soTypeCasting 
         override this.call_superclass_func  (p:string) (sFuncName:string) (soTypeCasting:string option) =
             isvalid_rust.call_superclass_func  p sFuncName soTypeCasting 
-        override this.call_base_type_func_exp  (p:string) (sFuncName:string) =
-            isvalid_rust.call_base_type_func_exp  p sFuncName 
+        override this.call_base_type_func_exp  (p:string) (sFuncName:string) (soTypeCasting:string option) =
+            isvalid_rust.call_base_type_func_exp  p sFuncName soTypeCasting 
         override this.Sequence_OptionalChild  (p:string) (sAcc:string) (sChName:string) (sInnerStatement:string) =
             isvalid_rust.Sequence_OptionalChild  p sAcc sChName sInnerStatement 
         override this.Sequence_optional_child_always_present_or_absent  (p:string) (sAcc:string) (sChName:string) (sErrCode:string) (sPresOrAbs:string) =
@@ -155,8 +155,8 @@ type IIsValid_rust() =
             isvalid_rust.choice  p sAccess arrsChildren sErrCodeForInvalidCase 
         override this.sequenceOf  (p:string) (sAcc:string) (i:string) (bIsFixedSize:bool) (nFixedSize:BigInteger) (soIsValidSizeExp:string option) (soErrCode:string option) (soInnerStatement:string option) =
             isvalid_rust.sequenceOf  p sAcc i bIsFixedSize nFixedSize soIsValidSizeExp soErrCode soInnerStatement 
-        override this.sequenceOf2  (p:string) (sAcc:string) (i:string) (bIsFixedSize:bool) (nFixedSize:BigInteger) (sInnerStatement:string) =
-            isvalid_rust.sequenceOf2  p sAcc i bIsFixedSize nFixedSize sInnerStatement 
+        override this.sequenceOf2  (p:string) (sAcc:string) (i:string) (bIsFixedSize:bool) (nFixedSize:BigInteger) (sInnerStatement:string) (sElemIdx:string) (soElemFacts:string option) =
+            isvalid_rust.sequenceOf2  p sAcc i bIsFixedSize nFixedSize sInnerStatement sElemIdx soElemFacts 
         override this.octet_var_string_equal  (p:string) (sAccess:string) (nVarLength:BigInteger) (sOctArrayLiteral:string) =
             isvalid_rust.octet_var_string_equal  p sAccess nVarLength sOctArrayLiteral 
         override this.octet_fix_string_equal  (p:string) (sAccess:string) (nFixedSize:BigInteger) (nVarLength:BigInteger) (sOctArrayLiteral:string) =
@@ -167,3 +167,13 @@ type IIsValid_rust() =
             isvalid_rust.bit_fix_string_equal  p sAccess nFixedSize nVarLength sOctArrayLiteral sBitArrayLiteral 
         override this.objId_equal  (p:string) (sObjIdLiteral:string) =
             isvalid_rust.objId_equal  p sObjIdLiteral 
+        override this.ValidatorFactsAnd  (arrsFacts:seq<string>) =
+            isvalid_rust.ValidatorFactsAnd  arrsFacts 
+        override this.ValidatorFactOptional  (p:string) (sAcc:string) (sChName:string) (sFacts:string) =
+            isvalid_rust.ValidatorFactOptional  p sAcc sChName sFacts 
+        override this.ValidatorFactCase  (p:string) (sAcc:string) (arrsAlts:seq<string>) =
+            isvalid_rust.ValidatorFactCase  p sAcc arrsAlts 
+        override this.ValidatorFactCaseAlt  (sPresent:string) (sFacts:string) =
+            isvalid_rust.ValidatorFactCaseAlt  sPresent sFacts 
+        override this.ValidatorFactForAll  (p:string) (sAcc:string) (sIdx:string) (bIsFixedSize:bool) (nFixedSize:BigInteger) (sFacts:string) =
+            isvalid_rust.ValidatorFactForAll  p sAcc sIdx bIsFixedSize nFixedSize sFacts 

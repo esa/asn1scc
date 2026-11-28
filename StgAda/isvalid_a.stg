@@ -169,9 +169,11 @@ EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue, arrsErrorCodeComm
 <sErrCode>:constant Integer := <nErrValue>; <arrsErrorCodeComments : {x|-- <x>}; separator = "\n">
 >>
 
-EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes) ::= <<
+/* soPostFacts (cycle b4a): what the success of the function implies about its value (ValidatorFactsAnd). */
+EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, soPostFacts) ::= <<
 <arrsErrcodes; separator="\n">
-function <sFuncName>(<sVarName> : <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT;
+function <sFuncName>(<sVarName> : <sTypeDefName>) return <rtlModuleName()>.ASN1_RESULT<if(soPostFacts)><\n>with Post => (if <sFuncName>'Result.Success then
+                 <soPostFacts>)<endif>;
 >>
 
 EmitTypeAssignment_composite(sVarName, sPtrPrefix, sPtrSuffix, sFuncName, sTypeDefName, sContent, arrsAlphaFuncs, arrsLocalVars, bUnreferenced) ::= <<
@@ -230,7 +232,7 @@ stringContainsChar(sStrVal, p) ::= "<rtlModuleName()>.encoding.stringContainsCha
 
 call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret := <sFuncName>(<if(soTypeCasting)><soTypeCasting>(<p>)<else><p><endif>);"
 call_superclass_func(p, sFuncName, soTypeCasting) ::= "<call_base_type_func(p=p, sFuncName=sFuncName, soTypeCasting=soTypeCasting)>"
-call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>).Success"
+call_base_type_func_exp(p, sFuncName, soTypeCasting) ::= "<sFuncName>(<if(soTypeCasting)><soTypeCasting>(<p>)<else><p><endif>).Success"
 
 
 SingleValConstraint(p, v) ::= "(<p> = <v>)"
@@ -280,14 +282,34 @@ end loop;
 <endif>
 >>
 
-sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+/* soElemFacts (cycle b4a): the facts of element sElemIdx when the validator's Post states them for every element
+   (ValidatorFactForAll); the loop then carries them for the elements already checked. That invariant validates every
+   earlier element again at each iteration (quadratic under -gnata): gnatprove proves it, and the block's policy keeps
+   it (and the bounds invariant of this loop) from running; the Post, checked once per call, states it for the list. */
+sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement, sElemIdx, soElemFacts) ::= <<
 <i> := <p>.Data'First;
+<if(soElemFacts)>
+declare
+    -- proved, not checked at run time: see the Post of this function
+    pragma Assertion_Policy (Loop_Invariant => Ignore);
+begin
+    while ret.Success and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif> loop
+        pragma Loop_Invariant (<i> \>= <p>.Data'First and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif>);
+        pragma Loop_Invariant ((for all <sElemIdx> in <p>.Data'First .. <i> - 1 =>
+                                <soElemFacts>));
+        pragma Loop_Variant (Increases => <i>);
+        <sInnerStatement>
+        <i> := <i>+1;
+    end loop;
+end;
+<else>
 while ret.Success and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif> loop
     pragma Loop_Invariant (<i> \>= <p>.Data'First and <i> \<= <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif>);
     pragma Loop_Variant (Increases => <i>);
     <sInnerStatement>
     <i> := <i>+1;
 end loop;
+<endif>
 >>
 
 
@@ -435,4 +457,34 @@ bit_fix_string_equal(p, sAccess, nFixedSize, nVarLength, sOctArrayLiteral, sBitA
 
 objId_equal(p, sObjIdLiteral)::=<<
 <rtlModuleName()>.ObjectIdentifier_equal(<p>, <sObjIdLiteral>)
+>>
+
+
+/* Cycle b4a (kappa-P): the facts of a validator's Post, one per line. Each is built by the F# function that builds the
+   statement establishing it (DastValidate2): a child validator's Success (call_base_type_func_exp), the presence flag of
+   an ALWAYS PRESENT child (Sequence_optional_child_always_present_or_absent_expr), a site SIZE (ExpEqual); OPTIONAL
+   children under the test of Sequence_OptionalChild, CHOICE alternatives under the case of choice, SEQUENCE OF elements
+   for every index of the loop of sequenceOf2. */
+ValidatorFactsAnd(arrsFacts) ::= <<
+<arrsFacts; separator="\nand ">
+>>
+
+ValidatorFactOptional(p, sAcc, sChName, sFacts) ::= <<
+(if <p>.Exist.<sChName> = 1 then
+    <sFacts>)
+>>
+
+ValidatorFactCase(p, sAcc, arrsAlts) ::= <<
+(case <p>.kind is
+    <arrsAlts; separator=",\n">)
+>>
+
+ValidatorFactCaseAlt(sPresent, sFacts) ::= <<
+when <sPresent> =>
+    <sFacts>
+>>
+
+ValidatorFactForAll(p, sAcc, sIdx, bIsFixedSize, nFixedSize, sFacts) ::= <<
+(for all <sIdx> in <p>.Data'First .. <if(bIsFixedSize)><nFixedSize><else><p>.Length<endif> =>
+    <sFacts>)
 >>

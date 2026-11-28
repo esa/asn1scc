@@ -1549,3 +1549,8 @@ sequence_presence_optChild_noErrCode(p, sChName, soExistVar) ::= ""
 sparkAnnotationsAlwaysSucceeds(sTypeDefName) ::= ""
 
 BooleanPatternNoErrCode(p, bTruePattern, arrsBits) ::= ""
+
+
+/* Cycle b4a (kappa-P): Ada only (ILangGeneric.validatorPostconditions); never called here. */
+sparkAnnotationsEncValidSucceeds(sTypeDefName, sValidator, sVarName) ::= ""
+sparkAnnotationsEncBody(sTypeDefName, sValidator, sVarName, bAlwaysSucceeds) ::= ""

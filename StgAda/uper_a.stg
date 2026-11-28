@@ -1301,6 +1301,33 @@ with
 >>
 
 
+/* Cycle b4a (kappa-P): the contract of a split encoder whose body cannot fail (sparkAnnotations_encode + its success on
+   a valid value: the _aux validates and calls the body), and of that body, which requires a valid value. */
+sparkAnnotationsEncValidSucceeds(sTypeDefName, sValidator, sVarName) ::= <<
+with
+    Pre => bs.Current_Bit_Pos \< Natural'Last - <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
+      and then bs.Size_In_Bytes \< Positive'Last / 8
+      and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING \<= bs.Size_In_Bytes * 8,
+       Post =>
+         (bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Old and bs.Current_Bit_Pos \<= bs.Current_Bit_Pos'Old + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING)
+       and (if <sValidator>(<sVarName>).Success then result.Success)
+>>
+
+sparkAnnotationsEncBody(sTypeDefName, sValidator, sVarName, bAlwaysSucceeds) ::= <<
+with
+    Pre => bs.Current_Bit_Pos \< Natural'Last - <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
+      and then bs.Size_In_Bytes \< Positive'Last / 8
+      and then bs.Current_Bit_Pos + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING \<= bs.Size_In_Bytes * 8
+      and then <sValidator>(<sVarName>).Success,
+       Post =>
+<if(bAlwaysSucceeds)>
+         result.Success and bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Old and bs.Current_Bit_Pos \<= bs.Current_Bit_Pos'Old + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
+<else>
+         bs.Current_Bit_Pos \>= bs.Current_Bit_Pos'Old and bs.Current_Bit_Pos \<= bs.Current_Bit_Pos'Old + <sTypeDefName>_REQUIRED_BITS_FOR_ENCODING
+<endif>
+>>
+
+
 /* Coverage step 10b: fixed-size OCTET / BIT STRING (not fragmented, no alignment option): the RTL call cannot fail
    (its Post states success), so no failure branch. */
 octet_FixedSize_noCheck(p, sAcc, nFixedSize) ::= <<

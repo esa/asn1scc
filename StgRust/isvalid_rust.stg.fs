@@ -79,9 +79,9 @@ let EmitTypeAssignment_composite_def_err_code (sErrCode:string) (nErrValue:BigIn
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "isvalid_rust" "EmitTypeAssignment_composite_def_err_code" [("sErrCode",(if sErrCode = null then null else ST.StrHelper sErrCode:>Object) );("nErrValue",nErrValue :>Object);("arrsErrorCodeComments",(arrsErrorCodeComments|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object)]
 
-let EmitTypeAssignment_composite_def (sVarName:string) (sStar:string) (sFuncName:string) (sTypeDefName:string) (arrsErrcodes:seq<string>) =
+let EmitTypeAssignment_composite_def (sVarName:string) (sStar:string) (sFuncName:string) (sTypeDefName:string) (arrsErrcodes:seq<string>) (soPostFacts:string option) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "isvalid_rust" "EmitTypeAssignment_composite_def" [("sVarName",(if sVarName = null then null else ST.StrHelper sVarName:>Object) );("sStar",(if sStar = null then null else ST.StrHelper sStar:>Object) );("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("sTypeDefName",(if sTypeDefName = null then null else ST.StrHelper sTypeDefName:>Object) );("arrsErrcodes",(arrsErrcodes|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object)]
+    ST.call "isvalid_rust" "EmitTypeAssignment_composite_def" [("sVarName",(if sVarName = null then null else ST.StrHelper sVarName:>Object) );("sStar",(if sStar = null then null else ST.StrHelper sStar:>Object) );("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("sTypeDefName",(if sTypeDefName = null then null else ST.StrHelper sTypeDefName:>Object) );("arrsErrcodes",(arrsErrcodes|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("soPostFacts",(if soPostFacts.IsNone then null else ST.StrHelper soPostFacts.Value:>Object) )]
 
 let EmitTypeAssignment_composite (sVarName:string) (sPtrPrefix:string) (sPtrSuffix:string) (sFuncName:string) (sTypeDefName:string) (sContent:string) (arrsAlphaFuncs:seq<string>) (arrsLocalVars:seq<string>) (bUnreferenced:bool) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
@@ -263,9 +263,9 @@ let call_superclass_func (p:string) (sFuncName:string) (soTypeCasting:string opt
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "isvalid_rust" "call_superclass_func" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("soTypeCasting",(if soTypeCasting.IsNone then null else ST.StrHelper soTypeCasting.Value:>Object) )]
 
-let call_base_type_func_exp (p:string) (sFuncName:string) =
+let call_base_type_func_exp (p:string) (sFuncName:string) (soTypeCasting:string option) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "isvalid_rust" "call_base_type_func_exp" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) )]
+    ST.call "isvalid_rust" "call_base_type_func_exp" [("p",p :>Object);("sFuncName",(if sFuncName = null then null else ST.StrHelper sFuncName:>Object) );("soTypeCasting",(if soTypeCasting.IsNone then null else ST.StrHelper soTypeCasting.Value:>Object) )]
 
 let Sequence_OptionalChild (p:string) (sAcc:string) (sChName:string) (sInnerStatement:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
@@ -303,9 +303,9 @@ let sequenceOf (p:string) (sAcc:string) (i:string) (bIsFixedSize:bool) (nFixedSi
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "isvalid_rust" "sequenceOf" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("i",i :>Object);("bIsFixedSize",bIsFixedSize :>Object);("nFixedSize",nFixedSize :>Object);("soIsValidSizeExp",(if soIsValidSizeExp.IsNone then null else ST.StrHelper soIsValidSizeExp.Value:>Object) );("soErrCode",(if soErrCode.IsNone then null else ST.StrHelper soErrCode.Value:>Object) );("soInnerStatement",(if soInnerStatement.IsNone then null else ST.StrHelper soInnerStatement.Value:>Object) )]
 
-let sequenceOf2 (p:string) (sAcc:string) (i:string) (bIsFixedSize:bool) (nFixedSize:BigInteger) (sInnerStatement:string) =
+let sequenceOf2 (p:string) (sAcc:string) (i:string) (bIsFixedSize:bool) (nFixedSize:BigInteger) (sInnerStatement:string) (sElemIdx:string) (soElemFacts:string option) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
-    ST.call "isvalid_rust" "sequenceOf2" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("i",i :>Object);("bIsFixedSize",bIsFixedSize :>Object);("nFixedSize",nFixedSize :>Object);("sInnerStatement",(if sInnerStatement = null then null else ST.StrHelper sInnerStatement:>Object) )]
+    ST.call "isvalid_rust" "sequenceOf2" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("i",i :>Object);("bIsFixedSize",bIsFixedSize :>Object);("nFixedSize",nFixedSize :>Object);("sInnerStatement",(if sInnerStatement = null then null else ST.StrHelper sInnerStatement:>Object) );("sElemIdx",(if sElemIdx = null then null else ST.StrHelper sElemIdx:>Object) );("soElemFacts",(if soElemFacts.IsNone then null else ST.StrHelper soElemFacts.Value:>Object) )]
 
 let octet_var_string_equal (p:string) (sAccess:string) (nVarLength:BigInteger) (sOctArrayLiteral:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
@@ -326,4 +326,24 @@ let bit_fix_string_equal (p:string) (sAccess:string) (nFixedSize:BigInteger) (nV
 let objId_equal (p:string) (sObjIdLiteral:string) =
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "isvalid_rust" "objId_equal" [("p",p :>Object);("sObjIdLiteral",(if sObjIdLiteral = null then null else ST.StrHelper sObjIdLiteral:>Object) )]
+
+let ValidatorFactsAnd (arrsFacts:seq<string>) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "isvalid_rust" "ValidatorFactsAnd" [("arrsFacts",(arrsFacts|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object)]
+
+let ValidatorFactOptional (p:string) (sAcc:string) (sChName:string) (sFacts:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "isvalid_rust" "ValidatorFactOptional" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("sChName",(if sChName = null then null else ST.StrHelper sChName:>Object) );("sFacts",(if sFacts = null then null else ST.StrHelper sFacts:>Object) )]
+
+let ValidatorFactCase (p:string) (sAcc:string) (arrsAlts:seq<string>) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "isvalid_rust" "ValidatorFactCase" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("arrsAlts",(arrsAlts|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object)]
+
+let ValidatorFactCaseAlt (sPresent:string) (sFacts:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "isvalid_rust" "ValidatorFactCaseAlt" [("sPresent",(if sPresent = null then null else ST.StrHelper sPresent:>Object) );("sFacts",(if sFacts = null then null else ST.StrHelper sFacts:>Object) )]
+
+let ValidatorFactForAll (p:string) (sAcc:string) (sIdx:string) (bIsFixedSize:bool) (nFixedSize:BigInteger) (sFacts:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "isvalid_rust" "ValidatorFactForAll" [("p",p :>Object);("sAcc",(if sAcc = null then null else ST.StrHelper sAcc:>Object) );("sIdx",(if sIdx = null then null else ST.StrHelper sIdx:>Object) );("bIsFixedSize",bIsFixedSize :>Object);("nFixedSize",nFixedSize :>Object);("sFacts",(if sFacts = null then null else ST.StrHelper sFacts:>Object) )]
 

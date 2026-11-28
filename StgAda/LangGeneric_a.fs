@@ -521,6 +521,8 @@ type LangGeneric_a() =
         override _.multiAcnUpdateDefaultWhenNoSource = true
         // coverage step 14q (Q3 b): <X>_Encode_Body_aux, called by the encoders of the same package after their validation
         override _.encoderBodySplit = true
+        // cycle b4a (kappa-P): validator Posts, _aux "valid => success" conjuncts, body validity Pres
+        override _.validatorPostconditions = true
         // What the Ada encode templates write to result (coverage step 12b; gnatprove checks the assertions).
         override _.encodeTemplateOutcome t =
             match t with

@@ -419,6 +419,17 @@ let bitStringConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageM
     fnc, ns
 
 
+/// The presence test of an ALWAYS PRESENT / ABSENT child of a SEQUENCE (WITH COMPONENTS); for PRESENT also a fact of the
+/// validator's Post (cycle b4a, sequenceConstraintFacts)
+let private seqChildPresenceExp (l:LanguageMacros) (p:CodegenScope) (ch:Asn1Child) (bPresent:bool) =
+    let flag =
+        match bPresent, l.lg.usesBooleanPresenceBits with
+        | true,  true  -> l.lg.TrueLiteral
+        | true,  false -> "1"
+        | false, true  -> l.lg.FalseLiteral
+        | false, false -> "0"
+    l.isvalid.Sequence_optional_child_always_present_or_absent_expr (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) (l.lg.getAsn1ChildBackendName ch) flag
+
 let rec anyConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (erLoc:SrcLoc) (t:Asn1Type) (ac:AnyConstraint) st =
     match t.ActualType.Kind, ac with
     | Integer o, IntegerTypeConstraint c        -> integerConstraint2ValidationCodeBlock r l (o.baseInfo.intClass) c st
@@ -441,7 +452,6 @@ let rec anyConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot)  (l:LanguageMac
     | _                                         -> raise(SemanticError(erLoc, "Invalid combination of type/constraint type"))
 
 and sequenceConstraint2ValidationCodeBlock (r: Asn1AcnAst.AstRoot) (l: LanguageMacros) (typeId: ReferenceToType) (children: Asn1Child list) valToStrFunc (c: SeqConstraint) st =
-    let child_always_present_or_absentExp   = l.isvalid.Sequence_optional_child_always_present_or_absent_expr
     let sequence_OptionalChild              = l.isvalid.Sequence_OptionalChild
     let expressionToStatement                 = l.isvalid.ExpressionToStatement
 
@@ -475,18 +485,15 @@ and sequenceConstraint2ValidationCodeBlock (r: Asn1AcnAst.AstRoot) (l: LanguageM
 
                 newChildCheckFnc
 
-        let isAbsentFlag = if l.lg.usesBooleanPresenceBits then l.lg.FalseLiteral else "0"
-        let isPresentFlag = if l.lg.usesBooleanPresenceBits then l.lg.TrueLiteral else "1"
-
         let presentAbsent =
             match nc.Mark with
             | Asn1Ast.NoMark        -> []
             | Asn1Ast.MarkOptional  -> []
             | Asn1Ast.MarkAbsent    ->
-                let isExp = (fun (p:CodegenScope) -> VCBExpression (child_always_present_or_absentExp (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) (l.lg.getAsn1ChildBackendName ch)  isAbsentFlag))
+                let isExp = (fun (p:CodegenScope) -> VCBExpression (seqChildPresenceExp l p ch false))
                 [isExp]
             | Asn1Ast.MarkPresent    ->
-                let isExp = (fun (p:CodegenScope) -> VCBExpression (child_always_present_or_absentExp (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) (l.lg.getAsn1ChildBackendName ch)  isPresentFlag))
+                let isExp = (fun (p:CodegenScope) -> VCBExpression (seqChildPresenceExp l p ch true))
                 [isExp]
 
         presentAbsent@[childCheck], ns
@@ -596,6 +603,70 @@ and sequenceOfConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageM
 
 
 
+/// Cycle b4a: the children a SEQUENCE constraint requires present, where the validator checks the mark as a conjunct
+/// (WITH COMPONENTS, also inside an intersection or before an extension marker; nothing under a union, a negation or an
+/// exception, whose checks do not establish the flag)
+let rec private seqConstraintPresentChildren (c:SeqConstraint) : string list =
+    match c with
+    | SeqOrChWithComponentsConstraint (_, ncs) ->
+        ncs |> List.choose (fun nc ->
+            match nc.Mark with
+            | Asn1Ast.MarkPresent   -> Some nc.Name.Value
+            | Asn1Ast.NoMark
+            | Asn1Ast.MarkOptional
+            | Asn1Ast.MarkAbsent    -> None)
+    | SeqOrChIntersectionConstraint (_, c1, c2) -> seqConstraintPresentChildren c1 @ seqConstraintPresentChildren c2
+    | SeqOrChRootConstraint (_, c1)             -> seqConstraintPresentChildren c1
+    | SeqOrChUnionConstraint _
+    | SeqOrChAllExceptConstraint _
+    | SeqOrChExceptConstraint _
+    | SeqOrChRootConstraint2 _
+    | SeqOrChSingleValueConstraint _            -> []
+
+/// Cycle b4a: the facts the checks of these SEQUENCE constraints establish: the presence flag of every child marked
+/// PRESENT (Fable F1: the encoder of an ALWAYS PRESENT child does not look at the flag, so the callee's validity needs it)
+let sequenceConstraintFacts (l:LanguageMacros) (children:Asn1Child list) (cons:SeqConstraint list) (p:CodegenScope) : ValidatorFact list =
+    cons |> List.collect seqConstraintPresentChildren |> List.distinct |>
+    List.map (fun name ->
+        let ch = children |> Seq.find (fun x -> x.Name.Value = name)
+        VfExp (seqChildPresenceExp l p ch true))
+
+let rec private sizeRangeFixes (c:PosIntTypeConstraint) : UInt32 option =
+    match c with
+    | RangeSingleValueConstraint (_, v)                 -> Some v
+    | RangeConstraint (_, a, b, true, true) when a = b  -> Some a
+    | RangeIntersectionConstraint (_, c1, c2)           -> match sizeRangeFixes c1 with Some n -> Some n | None -> sizeRangeFixes c2
+    | RangeRootConstraint (_, c1)                       -> sizeRangeFixes c1
+    | RangeConstraint _
+    | RangeUnionConstraint _
+    | RangeAllExceptConstraint _
+    | RangeExceptConstraint _
+    | RangeRootConstraint2 _
+    | RangeConstraint_val_MAX _
+    | RangeConstraint_MIN_val _                         -> None
+
+let rec private seqOfConstraintFixes (c:SequenceOfConstraint) : UInt32 option =
+    match c with
+    | SeqOfSizeConstraint (_, ic)                       -> sizeRangeFixes ic
+    | SeqOfSizeIntersectionConstraint (_, c1, c2)       -> match seqOfConstraintFixes c1 with Some n -> Some n | None -> seqOfConstraintFixes c2
+    | SeqOfSizeRootConstraint (_, c1)                   -> seqOfConstraintFixes c1
+    | SeqOfSizeUnionConstraint _
+    | SeqOfSizeAllExceptConstraint _
+    | SeqOfSizeExceptConstraint _
+    | SeqOfSizeRootConstraint2 _
+    | SeqOfSizeSingleValueConstraint _
+    | SeqOfSeqWithComponentConstraint _                 -> None
+
+/// Cycle b4a: `Length = N` when the validator checks a SIZE of these SEQUENCE OF constraints that fixes N (not when the
+/// typedef holds it: sequenceOfConstraint2ValidationCodeBlock emits no check then). A reference site with a fixed SIZE
+/// on a variable-size typedef (`ls Lst (SIZE(2))`): its encoder loops to the constant, so a caller's proof needs it.
+let sequenceOfConstraintFacts (l:LanguageMacros) (typedefFixed:bool) (cons:SequenceOfConstraint list) (p:CodegenScope) : ValidatorFact list =
+    match typedefFixed with
+    | true  -> []
+    | false ->
+        cons |> List.choose seqOfConstraintFixes |> List.distinct |>
+        List.map (fun n -> VfExp (l.isvalid.ExpEqual (l.lg.Length (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath)) (n.ToString())))
+
 let getIntSimplifiedConstraints (r:Asn1AcnAst.AstRoot) isUnsigned (allCons  : IntegerTypeConstraint list) =
     allCons
 
@@ -617,15 +688,16 @@ type IsValidAux = {
 
 }
 
+/// isValidStatement: the child's check at the parent's scope and the facts it establishes (cycle b4a), built together
 type SeqCompIsValidAux =
     | IsValidEmbedded of {|
-                            isValidStatement  : CodegenScope -> ValidationStatement
+                            isValidStatement  : CodegenScope -> ValidationStatement * ValidatorFact list
                             localVars         : LocalVariable list
                             alphaFuncs        : AlphaFunc list
                             childErrCodes     : ErrorCode list
                          |}
     | IsValidProcCall of {|
-                            isValidStatement    : CodegenScope -> ValidationStatement
+                            isValidStatement    : CodegenScope -> ValidationStatement * ValidatorFact list
                             chidIsValidFunction : IsValidFunction
                         |}
     // coverage step 11b: the child's function always succeeds, so the parent does not call it
@@ -653,7 +725,56 @@ let prependComment (soComment:string option) (vs:ValidationStatement) =
         | ValidationStatementImplied (st, lv) -> ValidationStatementImplied (comment + "\n" + st, lv)
 
 
-let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1AcnAst.Asn1Type)  (fncBodyE : ErrorCode->CodegenScope->ValidationStatement) (typeDefinition:TypeDefinitionOrReference) (alphaFuncs : AlphaFunc list) (localVars : LocalVariable list) (childErrCodes : ErrorCode list) nonEmbeddedChildrenValidFuncs errorCodeComment (us:State)  =
+/// Cycle b4a: drops the facts that state nothing (an OPTIONAL child, a CHOICE or a SEQUENCE OF without facts below)
+let rec pruneFacts (fs:ValidatorFact list) : ValidatorFact list =
+    fs |> List.choose (fun f ->
+        match f with
+        | VfExp _ -> Some f
+        | VfOptional o ->
+            match pruneFacts o.childFacts with
+            | []  -> None
+            | cfs -> Some (VfOptional {o with childFacts = cfs})
+        | VfCase c ->
+            let alts = c.alternatives |> List.map (fun (w, x) -> w, pruneFacts x)
+            match alts |> List.forall (fun (_, x) -> x.IsEmpty) with
+            | true  -> None
+            | false -> Some (VfCase {c with alternatives = alts})
+        | VfForAll a ->
+            match pruneFacts a.elementFacts with
+            | []  -> None
+            | efs -> Some (VfForAll {a with elementFacts = efs}))
+
+/// Cycle b4a: the facts as one boolean expression (Ada), one fact per line; None when there is none
+let rec renderFacts (lm:LanguageMacros) (fs:ValidatorFact list) : string option =
+    let one (f:ValidatorFact) =
+        match f with
+        | VfExp s      -> s
+        | VfOptional o -> lm.isvalid.ValidatorFactOptional o.p o.sAcc o.sChName (renderFactsOrTrue lm o.childFacts)
+        | VfCase c     ->
+            let alts = c.alternatives |> List.map (fun (w, x) -> lm.isvalid.ValidatorFactCaseAlt w (renderFactsOrTrue lm x))
+            lm.isvalid.ValidatorFactCase c.p c.sAcc alts
+        | VfForAll a   -> lm.isvalid.ValidatorFactForAll a.p a.sAcc a.sIdx a.bIsFixedSize a.nFixedSize (renderFactsOrTrue lm a.elementFacts)
+    match pruneFacts fs with
+    | [] -> None
+    | pfs -> Some (lm.isvalid.ValidatorFactsAnd (pfs |> List.map one))
+and private renderFactsOrTrue (lm:LanguageMacros) (fs:ValidatorFact list) =
+    match renderFacts lm fs with
+    | Some s -> s
+    | None   -> lm.lg.TrueLiteral
+
+/// Cycle b4a: the facts of a part of a validator body: only when the part is a check (a part that is always true or
+/// implied by the typedef is not emitted as a check; the parents skip it)
+let factsIfChecked (vs:ValidationStatement, fs:ValidatorFact list) : ValidatorFact list =
+    match vs with
+    | ValidationStatementTrue _
+    | ValidationStatementImplied _ -> []
+    | ValidationStatementFalse _
+    | ValidationStatement _        -> fs
+
+/// fncBodyE (cycle b4a): the body of the function and what its success implies about the value, built together: the
+/// function that builds a part's statement returns the facts that statement establishes (ValidatorFact). The facts are
+/// rendered as the function's Post when ILangGeneric.validatorPostconditions (Ada) and the function may fail.
+let createIsValidFunctionWithFacts (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1AcnAst.Asn1Type)  (fncBodyE : ErrorCode->CodegenScope->ValidationStatement*(ValidatorFact list)) (typeDefinition:TypeDefinitionOrReference) (alphaFuncs : AlphaFunc list) (localVars : LocalVariable list) (childErrCodes : ErrorCode list) nonEmbeddedChildrenValidFuncs errorCodeComment (us:State)  =
     let emitTasFnc    = lm.isvalid.EmitTypeAssignment_composite
     let emitTasFncDef = lm.isvalid.EmitTypeAssignment_composite_def
     let defErrCode    = lm.isvalid.EmitTypeAssignment_composite_def_err_code
@@ -662,7 +783,7 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
     let errCodeName         = ToC ("ERR_" + ((t.id.AcnAbsPath |> Seq.skip 1 |> Seq.StrJoin("-")).Replace("#","elm")))
     let errCode, ns = getNextValidErrorCode us errCodeName errorCodeComment ""
 
-    let funcBody = fncBodyE errCode
+    let funcBody (p:CodegenScope) = fst (fncBodyE errCode p)
     let errCodes = errCode::childErrCodes
     let sf = lm.lg.getTypeBasedSuffix FunctionType.IsValidFunctionType t.Kind
     let p  = lm.lg.getParamTypeSuffix t sf Encode
@@ -672,6 +793,12 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
         | ValidationStatementImplied _ -> AlwaysValid
         | ValidationStatementFalse  _
         | ValidationStatement       _ -> MayBeInvalid
+    // cycle b4a: what success implies (nothing for a function that cannot fail: it gets no Post)
+    let postFacts (p:CodegenScope) =
+        match lm.lg.validatorPostconditions, outcome with
+        | true, MayBeInvalid -> pruneFacts (snd (fncBodyE errCode p))
+        | true, AlwaysValid
+        | false, _           -> []
     let varName = p.accessPath.rootId
     let sStar = lm.lg.getStar p.accessPath
     let sPtrPrefix = lm.lg.getPtrPrefix p.accessPath
@@ -693,7 +820,7 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
                     | None -> []
                     | Some s -> s.Split('\n') |> Seq.toList
                 let arrsErrcodes = errCodes |> List.map(fun s -> defErrCode s.errCodeName (BigInteger s.errCodeValue) (split s.comment))
-                let fncH = emitTasFncDef varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition) arrsErrcodes
+                let fncH = emitTasFncDef varName sStar funcName  (lm.lg.getLongTypedefName typeDefinition) arrsErrcodes (renderFacts lm (postFacts p))
                 Some fnc, Some fncH
     let ret =
         {
@@ -707,6 +834,7 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
             anonymousVariables          = []
             nonEmbeddedChildrenValidFuncs          = nonEmbeddedChildrenValidFuncs
             outcome                     = outcome
+            postFacts                   = postFacts
         }
     // coverage step 14p: callers (references) look the outcome up by the name of the function they call
     let ns =
@@ -719,6 +847,10 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
                      validatorSameValueCalls = ns.validatorSameValueCalls.Remove key}
         | None    -> ns
     Some ret, ns
+
+/// A validator whose body states no fact about the value (primitive types)
+let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1AcnAst.Asn1Type)  (fncBodyE : ErrorCode->CodegenScope->ValidationStatement) (typeDefinition:TypeDefinitionOrReference) (alphaFuncs : AlphaFunc list) (localVars : LocalVariable list) (childErrCodes : ErrorCode list) nonEmbeddedChildrenValidFuncs errorCodeComment (us:State)  =
+    createIsValidFunctionWithFacts r lm t (fun e p -> fncBodyE e p, []) typeDefinition alphaFuncs localVars childErrCodes nonEmbeddedChildrenValidFuncs errorCodeComment us
 
 let funcBody l fncs (e:ErrorCode) (p:CodegenScope) =
     let combinedVcb = fncs |> List.map (fun fnc -> fnc p) |> (ValidationCodeBlock_Multiple_And l)
@@ -954,10 +1086,11 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Ac
 
     let vcbs, ns2 = o.cons |> Asn1Fold.foldMap(fun cs c -> sequenceOfConstraint2ValidationCodeBlock r l t.id o (typedefIsFixedSize r t) (childType:Asn1Type) equalFunc c cs) us
 
-    let chp (p:CodegenScope) = 
-        let i = sprintf "i%d" (p.accessPath.SequenceOfLevel + 1)
-        {p with accessPath = l.lg.getArrayItem p.accessPath i childType.isIA5String}
+    let elementScope (p:CodegenScope) (idx:string) =
+        {p with accessPath = l.lg.getArrayItem p.accessPath idx childType.isIA5String}
+    let chp (p:CodegenScope) = elementScope p (sprintf "i%d" (p.accessPath.SequenceOfLevel + 1))
 
+    // the check of the element at a scope and the facts it establishes there (cycle b4a)
     let childFunc, childErrCodes, childAlphaFuncs, childLocalVars, nonEmbeddedChildValidFuncs, soNotCheckedComment =
         match childType.isValidFunction with
         | None ->   None, [], [], [], [], None
@@ -968,11 +1101,12 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Ac
                 let kept = match l.lg.keepsUncalledChildValidators with true -> [cvf] | false -> []
                 None, [], [], [], kept, Some (l.isvalid.validation_comment "the elements are not checked: their type cannot hold an invalid value")
             | Some fncName, MayBeInvalid  ->
-                let f1 (p:CodegenScope)  =
-                    ValidationStatement (callBaseTypeFunc (l.lg.getPointer (chp p).accessPath)  fncName None, [])
+                let f1 (ep:CodegenScope)  =
+                    let arg = l.lg.getPointer ep.accessPath
+                    ValidationStatement (callBaseTypeFunc arg fncName None, []), [VfExp (l.isvalid.call_base_type_func_exp arg fncName None)]
                 Some f1, [], [], [], [cvf], None
             | None, _          ->
-                let f1 (p:CodegenScope)  =  cvf.funcBody (chp p)
+                let f1 (ep:CodegenScope)  =  cvf.funcBody ep, cvf.postFacts ep
                 Some f1, cvf.errCodes, cvf.alphaFuncs, cvf.localVariables, [], None
 
     let sizeEnforced = (not o.cons.IsEmpty) && sizeEnforcedByTypedef r l t typeDefinition o.isFixedSize (o.cons |> List.forall seqOfSizeIsOneInterval)
@@ -987,19 +1121,35 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Ac
             match soImpliedSize with
             | Some _ -> [], []
             | None   -> convertMultipleVCBsToStatementAndSetErrorCode l p errCode vcbs |> List.unzip
-        let childCheck =
+        // cycle b4a: when the loop checks the elements, the facts of element j<level> (the same function as the check):
+        // the Post states them for every element, the loop invariant for the elements already checked
+        let sIdx = sprintf "j%d" ii
+        let elementFacts () =
+            match l.lg.validatorPostconditions, childFunc with
+            | true, Some chFunc -> pruneFacts (factsIfChecked (chFunc (elementScope p sIdx)))
+            | true, None
+            | false, _          -> []
+        let childCheck, funFacts =
             match childFunc with
-            | None -> []
+            | None -> [], []
             | Some chFunc ->
-                let innerStatement = chFunc p
+                let innerStatement, _ = chFunc (chp p)
+                let loop st clv =
+                    let efs = elementFacts ()
+                    let soElemFacts = renderFacts l efs
+                    let facts =
+                        match efs with
+                        | []  -> []
+                        | _   -> [VfForAll {ValidatorFactForAll.p = p.accessPath.joined l.lg; sAcc = l.lg.getAccess p.accessPath; bIsFixedSize = o.isFixedSize; nFixedSize = o.minSize.uper; sIdx = sIdx; elementFacts = efs}]
+                    [sequenceOf (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) i o.isFixedSize o.minSize.uper st sIdx soElemFacts, lv::clv], facts
                 match innerStatement with
                 | ValidationStatementTrue   (_,_)
-                | ValidationStatementImplied (_,_) -> []    // see elementsComment
-                | ValidationStatementFalse  (st,clv)  -> [sequenceOf (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) i o.isFixedSize o.minSize.uper st, lv::clv]
-                | ValidationStatement       (st,clv)  -> [sequenceOf (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) i o.isFixedSize o.minSize.uper st, lv::clv]
+                | ValidationStatementImplied (_,_) -> [], []    // see elementsComment
+                | ValidationStatementFalse  (st,clv)  -> loop st clv
+                | ValidationStatement       (st,clv)  -> loop st clv
         let childCheck, lllvs2 = childCheck |> List.unzip
         let elementsComment =
-            match soNotCheckedComment, childFunc |> Option.map (fun chFunc -> chFunc p) with
+            match soNotCheckedComment, childFunc |> Option.map (fun chFunc -> fst (chFunc (chp p))) with
             | Some c, _                                  -> Some c
             | None, Some (ValidationStatementTrue _)
             | None, Some (ValidationStatementImplied _)  -> Some (l.isvalid.validation_comment "the elements are not checked: their type cannot hold an invalid value")
@@ -1012,10 +1162,10 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Ac
             | None, Some st  -> ValidationStatementImplied (st + "\n" + l.isvalid.convertVCBTRUEToStatementAndUpdateErrCode (), [])
             | Some s, None   -> ValidationStatement (s, (lllvs@lllvs2) |> List.collect id)
             | Some s, Some st -> ValidationStatement (st + "\n" + s, (lllvs@lllvs2) |> List.collect id)
-        prependComment elementsComment body
+        prependComment elementsComment body, funFacts
 
     let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
-    createIsValidFunction r l t funBody  typeDefinition childAlphaFuncs childLocalVars childErrCodes nonEmbeddedChildValidFuncs (Some errorCodeComment) ns2
+    createIsValidFunctionWithFacts r l t funBody  typeDefinition childAlphaFuncs childLocalVars childErrCodes nonEmbeddedChildValidFuncs (Some errorCodeComment) ns2
 
 
 let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Sequence) (typeDefinition:TypeDefinitionOrReference) (children:SeqChildInfo list)  (us:State)  =
@@ -1029,26 +1179,32 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1Acn
         | Some (isValidFunction)    ->
             let func =
                 (*component's is validation statement. If the component has a separate function then make a call otherwise embed the code*)
+                (* with the facts the check establishes (cycle b4a): the callee's success, or the embedded body's facts *)
                 fun (p:CodegenScope)  ->
                     let newArg = l.lg.getSeqChild p.accessPath c_name child.Type.isIA5String child.Optionality.IsSome
                     let newArg = if l.lg.usesWrappedOptional && newArg.isOptional then newArg.asLast else newArg
                     let chp = {p with accessPath = newArg}
                     match isValidFunction.funcName with
                     | Some fncName  ->
-                        ValidationStatement (callBaseTypeFunc (l.lg.getPointer chp.accessPath)  fncName None, [])
+                        let arg = l.lg.getPointer chp.accessPath
+                        ValidationStatement (callBaseTypeFunc arg fncName None, []), [VfExp (l.isvalid.call_base_type_func_exp arg fncName None)]
                     | None ->
-                        isValidFunction.funcBody chp
+                        isValidFunction.funcBody chp, isValidFunction.postFacts chp
             let childFnc =
                 (*handle optionality*)
                 match child.Optionality with
                 | Some _    ->
                     let newFunc =
                         (fun (p:CodegenScope) ->
-                            match func p with
-                            | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (sequence_OptionalChild (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) c_name st, lv)
-                            | ValidationStatementFalse  (st,lv)  -> ValidationStatement (sequence_OptionalChild (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) c_name st, lv)
-                            | ValidationStatement       (st,lv)  -> ValidationStatement (sequence_OptionalChild (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) c_name st, lv)
-                            | ValidationStatementImplied (st,lv) -> ValidationStatementImplied (sequence_OptionalChild (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) c_name st, lv) )
+                            let vs, facts = func p
+                            let st =
+                                match vs with
+                                | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (sequence_OptionalChild (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) c_name st, lv)
+                                | ValidationStatementFalse  (st,lv)  -> ValidationStatement (sequence_OptionalChild (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) c_name st, lv)
+                                | ValidationStatement       (st,lv)  -> ValidationStatement (sequence_OptionalChild (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) c_name st, lv)
+                                | ValidationStatementImplied (st,lv) -> ValidationStatementImplied (sequence_OptionalChild (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) c_name st, lv)
+                            // the facts hold when the child is present (the test of Sequence_OptionalChild)
+                            st, [VfOptional {ValidatorFactOptional.p = p.accessPath.joined l.lg; sAcc = l.lg.getAccess p.accessPath; sChName = c_name; childFacts = factsIfChecked (vs, facts)}])
                     newFunc
                 | None      -> func
             (*return new local variables, errorcodes or alphaFuncs*)
@@ -1086,22 +1242,24 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1Acn
 
     let funBody (errCode: ErrorCode) (p:CodegenScope) =
         // per child: Choice1Of2 = its check, Choice2Of2 = its name when it is not checked (cannot be invalid)
+        // (cycle b4a: with the facts of each check)
         let checkOrSkip =
             List.zip childNames childrenContent |>
             List.map(fun (name, z) ->
-                let statementOrSkip vs =
+                let statementOrSkip (vs, facts) =
                     match vs with
                     | ValidationStatementTrue _
                     | ValidationStatementImplied _ -> Choice2Of2 name
                     | ValidationStatementFalse  (st,lv)
-                    | ValidationStatement       (st,lv) -> Choice1Of2 (st, lv)
+                    | ValidationStatement       (st,lv) -> Choice1Of2 ((st, lv), facts)
                 match z with
                 | IsValidNotCalled c -> Choice2Of2 c.childName
                 | IsValidEmbedded c  -> statementOrSkip (c.isValidStatement p)
                 | IsValidProcCall c  -> statementOrSkip (c.isValidStatement p))
         let notCalled = checkOrSkip |> List.choose (fun x -> match x with Choice2Of2 name -> Some name | Choice1Of2 _ -> None)
+        let checks, childrenFacts = checkOrSkip |> List.choose (fun x -> match x with Choice1Of2 c -> Some c | Choice2Of2 _ -> None) |> List.unzip
         let childrenChecks, lv =
-            let aaa, lv = checkOrSkip |> List.choose (fun x -> match x with Choice1Of2 c -> Some c | Choice2Of2 _ -> None) |> List.unzip
+            let aaa, lv = checks |> List.unzip
             aaa |> DAstUtilFunctions.nestItems_ret l  |> Option.toList, (lv |> List.collect id)
         let with_component_check, lv2 =
             convertMultipleVCBsToStatementAndSetErrorCode l p errCode vcbs |>
@@ -1110,11 +1268,16 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1Acn
             match (childrenChecks@with_component_check) |> DAstUtilFunctions.nestItems_ret l  with
             | None   -> convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName
             | Some s ->ValidationStatement (s, lv@(lv2 |>List.collect id))
-        prependComment (notCheckedComment l notCalled) body
+        // the WITH COMPONENTS checks (with_component_check) establish the presence of the children marked PRESENT
+        let constraintFacts =
+            match with_component_check with
+            | [] -> []
+            | _  -> sequenceConstraintFacts l asn1Children o.cons p
+        prependComment (notCheckedComment l notCalled) body, (childrenFacts |> List.collect id) @ constraintFacts
 
 
     let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
-    createIsValidFunction r l t funBody  typeDefinition alphaFuncs localVars childrenErrCodes nonEmbeddedChildrenValidFuncs (Some errorCodeComment) ns2
+    createIsValidFunctionWithFacts r l t funBody  typeDefinition alphaFuncs localVars childrenErrCodes nonEmbeddedChildrenValidFuncs (Some errorCodeComment) ns2
 
 let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.Choice) (typeDefinition:TypeDefinitionOrReference) (defOrRef:TypeDefinitionOrReference) (children:ChChildInfo list) (baseTypeValFunc : IsValidFunction option) (us:State)  =
     let choice_OptionalChild              = l.isvalid.Choice_OptionalChild
@@ -1135,28 +1298,33 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
             let childFnc =
                 let newFunc =
                     (fun (p:CodegenScope) ->
-                        ValidationStatement (choice_child presentWhenName (always_true_statement()) false c_name sChoiceTypeName sChildTypeName, []))
+                        ValidationStatement (choice_child presentWhenName (always_true_statement()) false c_name sChoiceTypeName sChildTypeName, []), [])
                 newFunc
             Some(IsValidEmbedded {|isValidStatement = childFnc; localVars = []; alphaFuncs = []; childErrCodes = [] |}), us
         | Some (isValidFunction)    ->
             let func =
                 (*alternative's is validation statement. If the alternative has a separate function then make a call otherwise embed the code*)
+                (* with the facts the check establishes (cycle b4a), as for a SEQUENCE child *)
                 fun (p:CodegenScope)  ->
                     let chp = {p with accessPath = l.lg.getChChild p.accessPath c_name child.chType.isIA5String}
                     match isValidFunction.funcName with
                     | Some fncName ->
-                        ValidationStatement (callBaseTypeFunc (l.lg.getPointer  chp.accessPath)  fncName None, [])
+                        let arg = l.lg.getPointer  chp.accessPath
+                        ValidationStatement (callBaseTypeFunc arg  fncName None, []), [VfExp (l.isvalid.call_base_type_func_exp arg fncName None)]
                     | None ->
-                        isValidFunction.funcBody chp
+                        isValidFunction.funcBody chp, isValidFunction.postFacts chp
             let childFnc =
                 let newFunc =
                     (fun (p:CodegenScope) ->
                         let localTmpVarName = ""
-                        match func p with
-                        | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_child presentWhenName st true c_name sChoiceTypeName sChildTypeName, lv)
+                        let vs, facts = func p
+                        // the facts hold when the alternative is selected: the arm of the case (VfCase, funBody below)
+                        let facts = factsIfChecked (vs, facts)
+                        match vs with
+                        | ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_child presentWhenName st true c_name sChoiceTypeName sChildTypeName, lv), facts
                         | ValidationStatementFalse   (st,lv)
                         | ValidationStatement   (st,lv)
-                        | ValidationStatementImplied (st,lv) -> ValidationStatement (choice_child presentWhenName st false c_name sChoiceTypeName sChildTypeName, lv) )
+                        | ValidationStatementImplied (st,lv) -> ValidationStatement (choice_child presentWhenName st false c_name sChoiceTypeName sChildTypeName, lv), facts )
                         //| ValidationStatementTrue   (st,lv)  -> ValidationStatementTrue (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv)
                         //| ValidationStatementFalse  (st,lv)  -> ValidationStatement (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv)
                         //| ValidationStatement       (st,lv)  -> ValidationStatement (choice_OptionalChild (p.arg.joined l.lg) localTmpVarName (l.lg.getAccess p.arg) presentWhenName st, lv) )
@@ -1213,80 +1381,82 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
       | true  ->
         prependComment
             (Some (l.isvalid.validation_comment "no alternative can hold an invalid value, and the selector can only name an alternative"))
-            (convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName)
+            (convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName), []
       | false ->
-        let choice_switch_check, lv1 =
-            let childrenChecks, lv1 =
-                childrenContent |>
-                List.choose(fun z ->
+        // (cycle b4a: the facts of each arm, under its present-when name)
+        let choice_switch_check, lv1, armFacts =
+            let childrenChecks, armFacts =
+                List.zip children childrenContent |>
+                List.choose(fun (child, z) ->
+                    let arm (vs, facts) =
+                        match vs with
+                        | ValidationStatementTrue st
+                        | ValidationStatementFalse  st
+                        | ValidationStatement       st
+                        | ValidationStatementImplied st -> Some (st, (l.lg.presentWhenName (Some defOrRef) child, facts))
                     match z with
                     | IsValidNotCalled _ -> None    // only when no alternative is checked (that body is above)
-                    | IsValidEmbedded c ->
-                        match c.isValidStatement p with
-                        | ValidationStatementTrue st
-                        | ValidationStatementFalse  st
-                        | ValidationStatement       st
-                        | ValidationStatementImplied st -> Some st
-                    | IsValidProcCall c ->
-                        match c.isValidStatement p with
-                        | ValidationStatementTrue st
-                        | ValidationStatementFalse  st
-                        | ValidationStatement       st
-                        | ValidationStatementImplied st -> Some st) |>
+                    | IsValidEmbedded c -> arm (c.isValidStatement p)
+                    | IsValidProcCall c -> arm (c.isValidStatement p)) |>
                 List.unzip
+            let childrenChecks, lv1 = childrenChecks |> List.unzip
             //aaa |> DAstUtilFunctions.nestItems_ret l  |> Option.toList, (lv1|> List.collect id)
             let choice_switch_check =
                 choice_check_children (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) childrenChecks errCode.errCodeName
 
-            [choice_switch_check],(lv1|> List.collect id)
+            [choice_switch_check],(lv1|> List.collect id), armFacts
 
         let with_component_check, lv2 =
             let a, b = convertMultipleVCBsToStatementAndSetErrorCode l p errCode vcbs |> List.unzip
             a, (b |> List.collect id)
+        let facts = [VfCase {ValidatorFactCase.p = p.accessPath.joined l.lg; sAcc = l.lg.getAccess p.accessPath; alternatives = armFacts}]
         match (with_component_check@choice_switch_check) |> DAstUtilFunctions.nestItems_ret l  with
-        | None   -> convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName
-        | Some s ->ValidationStatement (s, lv1@lv2)
+        | None   -> convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName, []
+        | Some s ->ValidationStatement (s, lv1@lv2), facts
 
     let errorCodeComment = o.cons |> List.map(fun z -> z.ASN1) |> Seq.StrJoin ""
-    createIsValidFunction r l t funBody  typeDefinition alphaFuncs localVars childrenErrCodes nonEmbeddedChildrenValidFuncs (Some errorCodeComment) ns2
+    createIsValidFunctionWithFacts r l t funBody  typeDefinition alphaFuncs localVars childrenErrCodes nonEmbeddedChildrenValidFuncs (Some errorCodeComment) ns2
 
 
 /// t: the reference type; its actual type (the merged type) decides the typedef layout of a sizeable type.
-let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (refTypeId:ReferenceToType) (refCons:Asn1AcnAst.AnyConstraint list) (typeDefinition:TypeDefinitionOrReference) (resolvedType:Asn1Type)  (us:State)  =
+/// Cycle b4a: also the facts the checks of the site constraints establish (sequenceConstraintFacts, sequenceOfConstraintFacts)
+let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (refTypeId:ReferenceToType) (refCons:Asn1AcnAst.AnyConstraint list) (typeDefinition:TypeDefinitionOrReference) (resolvedType:Asn1Type)  (us:State) : ((CodegenScope -> ValidationCodeBlock) list * (CodegenScope -> ValidatorFact list)) * State =
+    let noFacts (fncs, ns) = (fncs, (fun (_:CodegenScope) -> [])), ns
     match resolvedType.Kind with
     | Sequence sq    ->
         let asn1Children = sq.children |> List.choose(fun c -> match c with Asn1Child x -> Some x | AcnChild _ -> None)
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.SeqConstraint z -> Some z | _ -> None )
         let valToStrFunc (p:CodegenScope) (v:Asn1AcnAst.SeqValue) = VCBTrue
-        cons |> Asn1Fold.foldMap(fun cs c -> sequenceConstraint2ValidationCodeBlock r l refTypeId asn1Children valToStrFunc  c cs) us
+        let fncs, ns = cons |> Asn1Fold.foldMap(fun cs c -> sequenceConstraint2ValidationCodeBlock r l refTypeId asn1Children valToStrFunc  c cs) us
+        (fncs, sequenceConstraintFacts l asn1Children cons), ns
     | ReferenceType rt    ->
         createReferenceTypeFunction_this_type r l t refTypeId refCons typeDefinition rt.resolvedType  us
     | Integer rt ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.IntegerTypeConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap (fun us c -> integerConstraint2ValidationCodeBlock r l (rt.baseInfo.intClass) c us) us
+        cons |> Asn1Fold.foldMap (fun us c -> integerConstraint2ValidationCodeBlock r l (rt.baseInfo.intClass) c us) us |> noFacts
     | Real o ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.RealTypeConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap (fun us c -> realConstraint2ValidationCodeBlock l o.baseInfo.acnEncodingClass c us) us
+        cons |> Asn1Fold.foldMap (fun us c -> realConstraint2ValidationCodeBlock l o.baseInfo.acnEncodingClass c us) us |> noFacts
     | Boolean _ ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.BoolConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap (fun us c -> booleanConstraint2ValidationCodeBlock l c us) us
+        cons |> Asn1Fold.foldMap (fun us c -> booleanConstraint2ValidationCodeBlock l c us) us |> noFacts
     | OctetString oc ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.OctetStringConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap (fun us c -> octetStringConstraint2ValidationCodeBlock r l  refTypeId oc.baseInfo (typedefIsFixedSize r t.ActualType) resolvedType.equalFunction c us) us
+        cons |> Asn1Fold.foldMap (fun us c -> octetStringConstraint2ValidationCodeBlock r l  refTypeId oc.baseInfo (typedefIsFixedSize r t.ActualType) resolvedType.equalFunction c us) us |> noFacts
     | BitString bs ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.BitStringConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap (fun us c -> bitStringConstraint2ValidationCodeBlock r l  refTypeId bs.baseInfo (typedefIsFixedSize r t.ActualType) resolvedType.equalFunction c us) us
+        cons |> Asn1Fold.foldMap (fun us c -> bitStringConstraint2ValidationCodeBlock r l  refTypeId bs.baseInfo (typedefIsFixedSize r t.ActualType) resolvedType.equalFunction c us) us |> noFacts
     | IA5String st ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.IA5StringConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap (fun us c -> ia5StringConstraint2ValidationCodeBlock r  l refTypeId st.baseInfo.maxSize.uper c us) {us with alphaIndex=0; alphaFuncs=[]}
+        cons |> Asn1Fold.foldMap (fun us c -> ia5StringConstraint2ValidationCodeBlock r  l refTypeId st.baseInfo.maxSize.uper c us) {us with alphaIndex=0; alphaFuncs=[]} |> noFacts
     | ObjectIdentifier _ ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.ObjectIdConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap (fun us c -> objIdConstraint2ValidationCodeBlock r l c us) us
+        cons |> Asn1Fold.foldMap (fun us c -> objIdConstraint2ValidationCodeBlock r l c us) us |> noFacts
     | TimeType tt   ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.TimeConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap (fun us c -> timeConstraint2ValidationCodeBlock l (l.lg.typeDef tt.baseInfo.typeDef) c us) us
+        cons |> Asn1Fold.foldMap (fun us c -> timeConstraint2ValidationCodeBlock l (l.lg.typeDef tt.baseInfo.typeDef) c us) us |> noFacts
     | NullType _    ->
-        [],us
+        ([], (fun (_:CodegenScope) -> [])), us
     | Enumerated en  ->
         match r.args.isEnumEfficientEnabled en.baseInfo.items.Length with
         | false ->
@@ -1300,15 +1470,17 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
                         fun (p: CodegenScope) ->
                             fnc {p with accessPath = l.lg.adjustEnumAccessForValidation p.accessPath})
                 else fncs
-            fncs, ns
-        | true  -> createEfficientEnumValidation r l en.baseInfo us
+            (fncs, ns) |> noFacts
+        | true  -> createEfficientEnumValidation r l en.baseInfo us |> noFacts
     | Choice ch ->
         let valToStrFunc (p:CodegenScope) (v:Asn1AcnAst.ChValue) = VCBTrue
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.ChoiceConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap(fun cs c -> choiceConstraint2ValidationCodeBlock r l refTypeId ch.children valToStrFunc typeDefinition  c cs) us
+        cons |> Asn1Fold.foldMap(fun cs c -> choiceConstraint2ValidationCodeBlock r l refTypeId ch.children valToStrFunc typeDefinition  c cs) us |> noFacts
     | SequenceOf sqo ->
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.SequenceOfConstraint z -> Some z | _ -> None )
-        cons |> Asn1Fold.foldMap(fun cs c -> sequenceOfConstraint2ValidationCodeBlock r l refTypeId sqo.baseInfo (typedefIsFixedSize r t.ActualType) sqo.childType resolvedType.equalFunction c cs) us
+        let typedefFixed = typedefIsFixedSize r t.ActualType
+        let fncs, ns = cons |> Asn1Fold.foldMap(fun cs c -> sequenceOfConstraint2ValidationCodeBlock r l refTypeId sqo.baseInfo typedefFixed sqo.childType resolvedType.equalFunction c cs) us
+        (fncs, sequenceOfConstraintFacts l typedefFixed cons), ns
 
 
 /// Issue 184: an extension marker with additions (rangeAdd) / any extension marker (rangeRoot) in a range constraint.
@@ -1392,7 +1564,7 @@ let private discardedAdditionsRoot (r:Asn1AcnAst.AstRoot) (t:Asn1AcnAst.Asn1Type
 let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (o:Asn1AcnAst.ReferenceType) (typeDefinition:TypeDefinitionOrReference) (resolvedType:Asn1Type)  (us:State)  =
     let callBaseTypeFunc = l.isvalid.call_base_type_func
     let callSuperclassFunc = l.isvalid.call_superclass_func
-    let vcbs,us = createReferenceTypeFunction_this_type r l t t.id (discardedAdditionsRoot r t o @ o.refCons) typeDefinition resolvedType us
+    let (vcbs, siteFacts),us = createReferenceTypeFunction_this_type r l t t.id (discardedAdditionsRoot r t o @ o.refCons) typeDefinition resolvedType us
 
     let moduleName, typeDefinitionName, typeDefinitionName0 =
         match typeDefinition with
@@ -1500,36 +1672,42 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
         let with_component_check, lv2 =
             convertMultipleVCBsToStatementAndSetErrorCode l p errCode vcbs |>
             List.unzip
+        // cycle b4a: the facts the checks of the site constraints establish (nothing when none is emitted)
+        let constraintFacts =
+            match with_component_check with
+            | [] -> []
+            | _  -> siteFacts p
 
         match resolvedType.isValidFunction with
         | Some _ when referencedNotCalled && siteRangeEnforced && (impliedCheck l vcbs errorCodeComment0 p).IsSome ->
             let comment = l.isvalid.validation_comment "the referenced type is not checked: it cannot hold an invalid value"
             let st = (impliedCheck l vcbs errorCodeComment0 p).Value
-            ValidationStatementImplied (comment + "\n" + st + "\n" + l.isvalid.convertVCBTRUEToStatementAndUpdateErrCode (), [])
+            ValidationStatementImplied (comment + "\n" + st + "\n" + l.isvalid.convertVCBTRUEToStatementAndUpdateErrCode (), []), []
         | Some _ when referencedNotCalled ->
             let comment = l.isvalid.validation_comment "the referenced type is not checked: it cannot hold an invalid value"
             match (with_component_check) |> DAstUtilFunctions.nestItems_ret l  with
-            | None   -> prependComment (Some comment) (convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName)
-            | Some s -> ValidationStatement (comment + "\n" + s, (lv2 |>List.collect id))
+            | None   -> prependComment (Some comment) (convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName), []
+            | Some s -> ValidationStatement (comment + "\n" + s, (lv2 |>List.collect id)), constraintFacts
         | Some _    ->
-            let funcBodyContent =
+            // cycle b4a: the referenced validator's success on the whole value (the call made first)
+            let funcBodyContent, callFacts =
               match p.accessPath.selectionType with
-              | ByPointer -> callSuperclassFunc (l.lg.getParamValue t p.accessPath Encode) baseFncName soTypeCasting
+              | ByPointer -> callSuperclassFunc (l.lg.getParamValue t p.accessPath Encode) baseFncName soTypeCasting, []
               | _ ->
                   let pp = (l.lg.getParamValue t p.accessPath Encode)
                   match pp with
-                  | "self" -> callSuperclassFunc (l.lg.getParamValue t p.accessPath Encode) baseFncName soTypeCasting
-                  | _ -> callBaseTypeFunc pp baseFncName soTypeCasting
+                  | "self" -> callSuperclassFunc (l.lg.getParamValue t p.accessPath Encode) baseFncName soTypeCasting, []
+                  | _ -> callBaseTypeFunc pp baseFncName soTypeCasting, [VfExp (l.isvalid.call_base_type_func_exp pp baseFncName soTypeCasting)]
                   
             match (funcBodyContent::with_component_check) |> DAstUtilFunctions.nestItems_ret l  with
-            | None   -> convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName
-            | Some s ->ValidationStatement (s, (lv2 |>List.collect id))
+            | None   -> convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName, []
+            | Some s ->ValidationStatement (s, (lv2 |>List.collect id)), callFacts @ constraintFacts
         | None      ->
             match (with_component_check) |> DAstUtilFunctions.nestItems_ret l  with
-            | None   -> convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName
-            | Some s ->ValidationStatement (s, (lv2 |>List.collect id))
+            | None   -> convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName, []
+            | Some s ->ValidationStatement (s, (lv2 |>List.collect id)), constraintFacts
 
-    let ret, ns = createIsValidFunction r l t funBody  typeDefinition [] [] [] [] (Some errorCodeComment0) ns
+    let ret, ns = createIsValidFunctionWithFacts r l t funBody  typeDefinition [] [] [] [] (Some errorCodeComment0) ns
     // cycle b4: the function of a reference type assignment calls the referenced validator first, on its whole value (the
     // site constraints are nested under its success: funBody above), so its success implies that validator's success
     let ns =

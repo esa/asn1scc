@@ -99,7 +99,7 @@ EmitTypeAssignment_composite_def_err_code(sErrCode, nErrValue, arrsErrorCodeComm
 @inline @cCode.inline val <sErrCode>: Int = <nErrValue> /*<arrsErrorCodeComments : {x|<x>}; separator = "\n"> */
 >>
 
-EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes) ::= <<
+EmitTypeAssignment_composite_def(sVarName, sStar, sFuncName, sTypeDefName, arrsErrcodes, soPostFacts) ::= <<
 <arrsErrcodes; separator="\n">
 >>
 
@@ -276,7 +276,7 @@ ret = <sErrCodeName>;
 
 call_base_type_func(p, sFuncName, soTypeCasting) ::= "ret = <sFuncName>(<p>)"
 call_superclass_func(p, sFuncName, soTypeCasting) ::= "<call_base_type_func(p=p, sFuncName=sFuncName, soTypeCasting=soTypeCasting)>"
-call_base_type_func_exp(p, sFuncName) ::= "<sFuncName>(<p>)"
+call_base_type_func_exp(p, sFuncName, soTypeCasting) ::= "<sFuncName>(<p>)"
 
 
 /* SEQUENCE start*/
@@ -346,7 +346,7 @@ for(<i> = 0; ret && <i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><
 <endif>
 >>
 
-sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement) ::= <<
+sequenceOf2(p,sAcc, i, bIsFixedSize, nFixedSize, sInnerStatement, sElemIdx, soElemFacts) ::= <<
 <i> = 0
 (while(<i> \< <if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif> && ret.isRight) {
     decreases(<if(!bIsFixedSize)><p><sAcc>nCount<else><nFixedSize><endif> - <i>)
@@ -376,3 +376,11 @@ BitString_equal(<nFixedSize>, <nVarLength>, <p><sAccess>arr, <sOctArrayLiteral>)
 objId_equal(p, sObjIdLiteral)::=<<
 ObjectIdentifier_equal(<p>, &<sObjIdLiteral>)
 >>
+
+
+/* Cycle b4a (kappa-P): the facts of a validator's Post. Ada only (ILangGeneric.validatorPostconditions); never called here. */
+ValidatorFactsAnd(arrsFacts) ::= ""
+ValidatorFactOptional(p, sAcc, sChName, sFacts) ::= ""
+ValidatorFactCase(p, sAcc, arrsAlts) ::= ""
+ValidatorFactCaseAlt(sPresent, sFacts) ::= ""
+ValidatorFactForAll(p, sAcc, sIdx, bIsFixedSize, nFixedSize, sFacts) ::= ""

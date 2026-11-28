@@ -932,6 +932,11 @@ type ILangGeneric () =
     default _.multiAcnUpdateDefaultWhenNoSource = false
     abstract member encoderBodySplit : bool
     default _.encoderBodySplit = false
+    /// Cycle b4a (kappa-P): validators state what their success implies about the value (`Post`, a quantified loop
+    /// invariant in SEQUENCE OF validators), split encoders that cannot fail on a valid value say so, and their bodies
+    /// require a valid value (Ada; the call sites are unchanged).
+    abstract member validatorPostconditions : bool
+    default _.validatorPostconditions = false
     abstract member encodeCallValidates : bool
     default _.encodeCallValidates = true
 

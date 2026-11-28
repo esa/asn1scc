@@ -515,3 +515,11 @@ let EmitEncodeBodyProcedure (sVarName:string) (sBodyFuncName:string) (sTypeDefNa
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "uper_rust" "EmitEncodeBodyProcedure" [("sVarName",(if sVarName = null then null else ST.StrHelper sVarName:>Object) );("sBodyFuncName",(if sBodyFuncName = null then null else ST.StrHelper sBodyFuncName:>Object) );("sTypeDefName",(if sTypeDefName = null then null else ST.StrHelper sTypeDefName:>Object) );("arrsLocalVariables",(arrsLocalVariables|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object);("sContent",(if sContent = null then null else ST.StrHelper sContent:>Object) );("soSparkAnnotations",(if soSparkAnnotations.IsNone then null else ST.StrHelper soSparkAnnotations.Value:>Object) );("bBsIsUnreferenced",bBsIsUnreferenced :>Object);("bVarNameIsUnreferenced",bVarNameIsUnreferenced :>Object);("bFragmentation",bFragmentation :>Object)]
 
+let sparkAnnotationsEncValidSucceeds (sTypeDefName:string) (sValidator:string) (sVarName:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "uper_rust" "sparkAnnotationsEncValidSucceeds" [("sTypeDefName",(if sTypeDefName = null then null else ST.StrHelper sTypeDefName:>Object) );("sValidator",(if sValidator = null then null else ST.StrHelper sValidator:>Object) );("sVarName",(if sVarName = null then null else ST.StrHelper sVarName:>Object) )]
+
+let sparkAnnotationsEncBody (sTypeDefName:string) (sValidator:string) (sVarName:string) (bAlwaysSucceeds:bool) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "uper_rust" "sparkAnnotationsEncBody" [("sTypeDefName",(if sTypeDefName = null then null else ST.StrHelper sTypeDefName:>Object) );("sValidator",(if sValidator = null then null else ST.StrHelper sValidator:>Object) );("sVarName",(if sVarName = null then null else ST.StrHelper sVarName:>Object) );("bAlwaysSucceeds",bAlwaysSucceeds :>Object)]
+

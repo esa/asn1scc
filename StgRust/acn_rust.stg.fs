@@ -1287,3 +1287,11 @@ let BooleanPatternNoErrCode (p:string) (bTruePattern:bool) (arrsBits:seq<string>
     ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
     ST.call "acn_rust" "BooleanPatternNoErrCode" [("p",p :>Object);("bTruePattern",bTruePattern :>Object);("arrsBits",(arrsBits|>Seq.map (fun s ->  if s = null then null else (ST.StrHelper s):>Object) |> Seq.toArray) :>Object)]
 
+let sparkAnnotationsEncValidSucceeds (sTypeDefName:string) (sValidator:string) (sVarName:string) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "acn_rust" "sparkAnnotationsEncValidSucceeds" [("sTypeDefName",(if sTypeDefName = null then null else ST.StrHelper sTypeDefName:>Object) );("sValidator",(if sValidator = null then null else ST.StrHelper sValidator:>Object) );("sVarName",(if sVarName = null then null else ST.StrHelper sVarName:>Object) )]
+
+let sparkAnnotationsEncBody (sTypeDefName:string) (sValidator:string) (sVarName:string) (bAlwaysSucceeds:bool) =
+    ST.lang <- CommonTypes.ProgrammingLanguage.Ada; ST.double2StringPlain <- true
+    ST.call "acn_rust" "sparkAnnotationsEncBody" [("sTypeDefName",(if sTypeDefName = null then null else ST.StrHelper sTypeDefName:>Object) );("sValidator",(if sValidator = null then null else ST.StrHelper sValidator:>Object) );("sVarName",(if sVarName = null then null else ST.StrHelper sVarName:>Object) );("bAlwaysSucceeds",bAlwaysSucceeds :>Object)]
+

@@ -405,3 +405,7 @@ type IAcn_rust() =
             acn_rust.sparkAnnotationsAlwaysSucceeds  sTypeDefName 
         override this.BooleanPatternNoErrCode  (p:string) (bTruePattern:bool) (arrsBits:seq<string>) =
             acn_rust.BooleanPatternNoErrCode  p bTruePattern arrsBits 
+        override this.sparkAnnotationsEncValidSucceeds  (sTypeDefName:string) (sValidator:string) (sVarName:string) =
+            acn_rust.sparkAnnotationsEncValidSucceeds  sTypeDefName sValidator sVarName 
+        override this.sparkAnnotationsEncBody  (sTypeDefName:string) (sValidator:string) (sVarName:string) (bAlwaysSucceeds:bool) =
+            acn_rust.sparkAnnotationsEncBody  sTypeDefName sValidator sVarName bAlwaysSucceeds 

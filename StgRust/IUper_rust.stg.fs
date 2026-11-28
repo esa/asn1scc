@@ -163,3 +163,7 @@ type IUper_rust() =
             uper_rust.choice_one_alternative  p sAcc sChildID sChildContent 
         override this.EmitEncodeBodyProcedure  (sVarName:string) (sBodyFuncName:string) (sTypeDefName:string) (arrsLocalVariables:seq<string>) (sContent:string) (soSparkAnnotations:string option) (bBsIsUnreferenced:bool) (bVarNameIsUnreferenced:bool) (bFragmentation:bool) =
             uper_rust.EmitEncodeBodyProcedure  sVarName sBodyFuncName sTypeDefName arrsLocalVariables sContent soSparkAnnotations bBsIsUnreferenced bVarNameIsUnreferenced bFragmentation 
+        override this.sparkAnnotationsEncValidSucceeds  (sTypeDefName:string) (sValidator:string) (sVarName:string) =
+            uper_rust.sparkAnnotationsEncValidSucceeds  sTypeDefName sValidator sVarName 
+        override this.sparkAnnotationsEncBody  (sTypeDefName:string) (sValidator:string) (sVarName:string) (bAlwaysSucceeds:bool) =
+            uper_rust.sparkAnnotationsEncBody  sTypeDefName sValidator sVarName bAlwaysSucceeds 
