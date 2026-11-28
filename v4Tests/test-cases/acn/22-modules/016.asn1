@@ -1,17 +1,14 @@
 --RUN_SPARK C_ADA_ONLY (Python, Rust: not needed for this Ada proof shape; types of another module, see 011)
 -- Ada validators state in their Post what their success implies about the value (one fact per checked child): a
 -- child's validator (also of another package), an OPTIONAL child under its presence flag, the presence flag of an
--- ALWAYS PRESENT child, every arm of an inline CHOICE, every element of a SEQUENCE OF (nested, possibly empty, with
--- the quantified loop invariant that carries it), and the fixed SIZE of a reference site on a variable-size typedef.
--- The private encoder bodies require a valid value (Pre); the same-package parent bodies that call them (also in a
--- loop and for an ALWAYS PRESENT child) prove it from their own Pre and the validator's Post; a split encoder whose
--- body cannot fail states that it succeeds on a valid value (Post).
+-- ALWAYS PRESENT child, every arm of an inline CHOICE. The private encoder bodies require a valid value (Pre); the
+-- same-package parent bodies that call them (also for an ALWAYS PRESENT child) prove it from their own Pre and the
+-- validator's Post; a split encoder whose body cannot fail states that it succeeds on a valid value (Post).
+-- SEQUENCE OF shapes: 017; names and constraint shapes: 018.
 TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
-   IMPORTS Num, Name, Rec, Lst FROM MOD-B;
+   IMPORTS Num, Name, Rec FROM MOD-B;
 
    LocalRec ::= SEQUENCE { a Num, n Name }
-   LocalLst ::= SEQUENCE (SIZE(0..3)) OF LocalRec
-   Flags    ::= SEQUENCE (SIZE(1..4)) OF BOOLEAN
    AP2      ::= SEQUENCE { lr LocalRec OPTIONAL, k Num } (WITH COMPONENTS {..., lr PRESENT})
 
    MyPDU ::= SEQUENCE {
@@ -19,11 +16,7 @@ TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
       r    Rec,
       op   LocalRec OPTIONAL,
       ap   AP2,
-      ch   CHOICE { c1 LocalRec, c2 Num, c3 BOOLEAN },
-      ll   LocalLst,
-      nest SEQUENCE (SIZE(1..2)) OF SEQUENCE (SIZE(0..2)) OF Num,
-      lst  Lst,
-      fx   Flags (SIZE(2))
+      ch   CHOICE { c1 LocalRec, c2 Num, c3 BOOLEAN }
    }
 END
 
@@ -31,7 +24,6 @@ MOD-B DEFINITIONS AUTOMATIC TAGS ::= BEGIN
    Num  ::= INTEGER (1..5 | 8..10)
    Name ::= IA5String (SIZE(1..4))
    Rec  ::= SEQUENCE { a Num, b Num OPTIONAL }
-   Lst  ::= SEQUENCE (SIZE(1..3)) OF Num
 END
 
 --TCLS     MyPDU[]

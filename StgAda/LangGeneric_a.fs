@@ -523,6 +523,12 @@ type LangGeneric_a() =
         override _.encoderBodySplit = true
         // cycle b4a (kappa-P): validator Posts, _aux "valid => success" conjuncts, body validity Pres
         override _.validatorPostconditions = true
+        // cycle b4a (round 2): a quantifier `j1` of a fact must not hide a package `J1` (15h rule: every reference to
+        // generated code through Standard.<package>); names without a package are declared in the same package
+        override _.validatorFactName name =
+            match name.Contains "." with
+            | true  -> "Standard." + name
+            | false -> name
         // What the Ada encode templates write to result (coverage step 12b; gnatprove checks the assertions).
         override _.encodeTemplateOutcome t =
             match t with

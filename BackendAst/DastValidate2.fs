@@ -603,69 +603,92 @@ and sequenceOfConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageM
 
 
 
-/// Cycle b4a: the children a SEQUENCE constraint requires present, where the validator checks the mark as a conjunct
-/// (WITH COMPONENTS, also inside an intersection or before an extension marker; nothing under a union, a negation or an
-/// exception, whose checks do not establish the flag)
-let rec private seqConstraintPresentChildren (c:SeqConstraint) : string list =
-    match c with
-    | SeqOrChWithComponentsConstraint (_, ncs) ->
-        ncs |> List.choose (fun nc ->
-            match nc.Mark with
-            | Asn1Ast.MarkPresent   -> Some nc.Name.Value
-            | Asn1Ast.NoMark
-            | Asn1Ast.MarkOptional
-            | Asn1Ast.MarkAbsent    -> None)
-    | SeqOrChIntersectionConstraint (_, c1, c2) -> seqConstraintPresentChildren c1 @ seqConstraintPresentChildren c2
-    | SeqOrChRootConstraint (_, c1)             -> seqConstraintPresentChildren c1
-    | SeqOrChUnionConstraint _
-    | SeqOrChAllExceptConstraint _
-    | SeqOrChExceptConstraint _
-    | SeqOrChRootConstraint2 _
-    | SeqOrChSingleValueConstraint _            -> []
+/// Cycle b4a: the facts the checks of a constraint establish at p, built along the same structure as the checks
+/// (anyConstraint2ValidationCodeBlock and the WITH COMPONENT(S) arms) and with the same helpers: the presence flag of a
+/// child marked PRESENT (seqChildPresenceExp, the check's own expression; Fable F1: the encoder of an ALWAYS PRESENT
+/// child does not look at the flag), the facts of a child's own constraint at the child (under its presence flag when
+/// it is OPTIONAL: sequence_OptionalChild wraps that check), and those of an element constraint for every element (the
+/// bounds of StatementForLoop). Only conjuncts give facts (WITH COMPONENT(S), intersection, before an extension marker);
+/// nothing under a union, a negation or an exception, whose checks do not establish them. Each fact comes from a check
+/// that is always emitted (a presence test) or from a nested fact, so a fact never outlives its check.
+let rec constraintFacts (l:LanguageMacros) (t:Asn1Type) (ac:Asn1AcnAst.AnyConstraint) (p:CodegenScope) : ValidatorFact list =
+    match t.ActualType.Kind, ac with
+    | Sequence o, Asn1AcnAst.SeqConstraint c            -> sequenceConstraintFacts l o.Asn1Children [c] p
+    | SequenceOf o, Asn1AcnAst.SequenceOfConstraint c   -> sequenceOfElementFacts l o.baseInfo o.childType [c] p
+    | _                                                 -> []
 
-/// Cycle b4a: the facts the checks of these SEQUENCE constraints establish: the presence flag of every child marked
-/// PRESENT (Fable F1: the encoder of an ALWAYS PRESENT child does not look at the flag, so the callee's validity needs it)
-let sequenceConstraintFacts (l:LanguageMacros) (children:Asn1Child list) (cons:SeqConstraint list) (p:CodegenScope) : ValidatorFact list =
-    cons |> List.collect seqConstraintPresentChildren |> List.distinct |>
-    List.map (fun name ->
-        let ch = children |> Seq.find (fun x -> x.Name.Value = name)
-        VfExp (seqChildPresenceExp l p ch true))
+and sequenceConstraintFacts (l:LanguageMacros) (children:Asn1Child list) (cons:SeqConstraint list) (p:CodegenScope) : ValidatorFact list =
+    let rec one (c:SeqConstraint) =
+        match c with
+        | SeqOrChWithComponentsConstraint (_, ncs) ->
+            ncs |> List.collect (fun nc ->
+                let ch = children |> Seq.find(fun x -> x.Name.Value = nc.Name.Value)
+                let presence =
+                    match nc.Mark with
+                    | Asn1Ast.MarkPresent   -> [VfExp (seqChildPresenceExp l p ch true)]
+                    | Asn1Ast.NoMark
+                    | Asn1Ast.MarkOptional
+                    | Asn1Ast.MarkAbsent    -> []
+                let nested =
+                    match nc.Constraint with
+                    | None    -> []
+                    | Some ac ->
+                        let c_name = l.lg.getAsn1ChildBackendName ch
+                        let child_arg = l.lg.getSeqChild p.accessPath c_name ch.Type.isIA5String ch.Optionality.IsSome
+                        match constraintFacts l ch.Type ac {p with accessPath = child_arg}, ch.Optionality with
+                        | [], _       -> []
+                        | fs, None    -> fs
+                        | fs, Some _  -> [VfOptional {ValidatorFactOptional.p = p.accessPath.joined l.lg; sAcc = l.lg.getAccess p.accessPath; sChName = c_name; childFacts = fs}]
+                presence @ nested)
+        | SeqOrChIntersectionConstraint (_, c1, c2) -> one c1 @ one c2
+        | SeqOrChRootConstraint (_, c1)             -> one c1
+        | SeqOrChUnionConstraint _
+        | SeqOrChAllExceptConstraint _
+        | SeqOrChExceptConstraint _
+        | SeqOrChRootConstraint2 _
+        | SeqOrChSingleValueConstraint _            -> []
+    cons |> List.collect one
 
-let rec private sizeRangeFixes (c:PosIntTypeConstraint) : UInt32 option =
-    match c with
-    | RangeSingleValueConstraint (_, v)                 -> Some v
-    | RangeConstraint (_, a, b, true, true) when a = b  -> Some a
-    | RangeIntersectionConstraint (_, c1, c2)           -> match sizeRangeFixes c1 with Some n -> Some n | None -> sizeRangeFixes c2
-    | RangeRootConstraint (_, c1)                       -> sizeRangeFixes c1
-    | RangeConstraint _
-    | RangeUnionConstraint _
-    | RangeAllExceptConstraint _
-    | RangeExceptConstraint _
-    | RangeRootConstraint2 _
-    | RangeConstraint_val_MAX _
-    | RangeConstraint_MIN_val _                         -> None
+and sequenceOfElementFacts (l:LanguageMacros) (o:Asn1AcnAst.SequenceOf) (child:Asn1Type) (cons:SequenceOfConstraint list) (p:CodegenScope) : ValidatorFact list =
+    let rec one (c:SequenceOfConstraint) =
+        match c with
+        | SeqOfSeqWithComponentConstraint (_, ac, _) ->
+            let j = sprintf "j%d" (p.accessPath.SequenceOfLevel + 1)
+            match constraintFacts l child ac {p with accessPath = l.lg.getArrayItem p.accessPath j child.isIA5String} with
+            | []  -> []
+            | efs -> [VfForAll {ValidatorFactForAll.p = p.accessPath.joined l.lg; sAcc = l.lg.getAccess p.accessPath; bIsFixedSize = o.isFixedSize; nFixedSize = o.minSize.uper; sIdx = j; elementFacts = efs}]
+        | SeqOfSizeIntersectionConstraint (_, c1, c2) -> one c1 @ one c2
+        | SeqOfSizeRootConstraint (_, c1)             -> one c1
+        | SeqOfSizeConstraint _
+        | SeqOfSizeUnionConstraint _
+        | SeqOfSizeAllExceptConstraint _
+        | SeqOfSizeExceptConstraint _
+        | SeqOfSizeRootConstraint2 _
+        | SeqOfSizeSingleValueConstraint _            -> []
+    cons |> List.collect one
 
-let rec private seqOfConstraintFixes (c:SequenceOfConstraint) : UInt32 option =
+let rec private seqOfHasSizeConstraint (c:SequenceOfConstraint) : bool =
     match c with
-    | SeqOfSizeConstraint (_, ic)                       -> sizeRangeFixes ic
-    | SeqOfSizeIntersectionConstraint (_, c1, c2)       -> match seqOfConstraintFixes c1 with Some n -> Some n | None -> seqOfConstraintFixes c2
-    | SeqOfSizeRootConstraint (_, c1)                   -> seqOfConstraintFixes c1
-    | SeqOfSizeUnionConstraint _
-    | SeqOfSizeAllExceptConstraint _
-    | SeqOfSizeExceptConstraint _
-    | SeqOfSizeRootConstraint2 _
+    | SeqOfSizeConstraint _                             -> true
+    | SeqOfSizeUnionConstraint (_, c1, c2, _)
+    | SeqOfSizeIntersectionConstraint (_, c1, c2)
+    | SeqOfSizeExceptConstraint (_, c1, c2)
+    | SeqOfSizeRootConstraint2 (_, c1, c2)              -> seqOfHasSizeConstraint c1 || seqOfHasSizeConstraint c2
+    | SeqOfSizeAllExceptConstraint (_, c1)
+    | SeqOfSizeRootConstraint (_, c1)                   -> seqOfHasSizeConstraint c1
     | SeqOfSizeSingleValueConstraint _
-    | SeqOfSeqWithComponentConstraint _                 -> None
+    | SeqOfSeqWithComponentConstraint _                 -> false
 
-/// Cycle b4a: `Length = N` when the validator checks a SIZE of these SEQUENCE OF constraints that fixes N (not when the
-/// typedef holds it: sequenceOfConstraint2ValidationCodeBlock emits no check then). A reference site with a fixed SIZE
-/// on a variable-size typedef (`ls Lst (SIZE(2))`): its encoder loops to the constant, so a caller's proof needs it.
-let sequenceOfConstraintFacts (l:LanguageMacros) (typedefFixed:bool) (cons:SequenceOfConstraint list) (p:CodegenScope) : ValidatorFact list =
-    match typedefFixed with
-    | true  -> []
-    | false ->
-        cons |> List.choose seqOfConstraintFixes |> List.distinct |>
-        List.map (fun n -> VfExp (l.isvalid.ExpEqual (l.lg.Length (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath)) (n.ToString())))
+/// Cycle b4a (round 2, Codex P2-3): `Length = N` at a reference site whose merged type has the fixed size N that its
+/// encoder loops to, while the typedef keeps a Length (not typedefFixed), when the site checks a SIZE of its own (else
+/// sequenceOfConstraint2ValidationCodeBlock emits no size check here; `Two (WITH COMPONENT ...)` gets it from Two's Post).
+/// Tied to the encoder's constant, not to the syntax of the constraint (`SIZE(1..2 ^ 2..3)`, `SIZE(1<..2)`): the site
+/// check and the referenced type's (or its Length subtype's) range together hold only N.
+let siteSizeFacts (l:LanguageMacros) (typedefFixed:bool) (merged:Asn1AcnAst.SequenceOf) (cons:SequenceOfConstraint list) (p:CodegenScope) : ValidatorFact list =
+    match typedefFixed, merged.isFixedSize && (cons |> List.exists seqOfHasSizeConstraint) with
+    | false, true -> [VfExp (l.isvalid.ExpEqual (l.lg.Length (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath)) (merged.minSize.uper.ToString()))]
+    | false, false
+    | true, _     -> []
 
 let getIntSimplifiedConstraints (r:Asn1AcnAst.AstRoot) isUnsigned (allCons  : IntegerTypeConstraint list) =
     allCons
@@ -724,6 +747,12 @@ let prependComment (soComment:string option) (vs:ValidationStatement) =
         | ValidationStatement       (st, lv) -> ValidationStatement      (comment + "\n" + st, lv)
         | ValidationStatementImplied (st, lv) -> ValidationStatementImplied (comment + "\n" + st, lv)
 
+
+/// Cycle b4a: the Success of a validator call as a fact: the call text of the check (call_base_type_func_exp), with the
+/// function and the type conversion named so that no name of the contract hides them (round 2, Codex P2-1: a quantifier
+/// `j1` hid a package `J1`; ILangGeneric.validatorFactName, Ada: `Standard.<package>.<name>`)
+let factCall (l:LanguageMacros) (arg:string) (fncName:string) (soTypeCasting:string option) =
+    VfExp (l.isvalid.call_base_type_func_exp arg (l.lg.validatorFactName fncName) (soTypeCasting |> Option.map l.lg.validatorFactName))
 
 /// Cycle b4a: drops the facts that state nothing (an OPTIONAL child, a CHOICE or a SEQUENCE OF without facts below)
 let rec pruneFacts (fs:ValidatorFact list) : ValidatorFact list =
@@ -1103,7 +1132,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Ac
             | Some fncName, MayBeInvalid  ->
                 let f1 (ep:CodegenScope)  =
                     let arg = l.lg.getPointer ep.accessPath
-                    ValidationStatement (callBaseTypeFunc arg fncName None, []), [VfExp (l.isvalid.call_base_type_func_exp arg fncName None)]
+                    ValidationStatement (callBaseTypeFunc arg fncName None, []), [factCall l arg fncName None]
                 Some f1, [], [], [], [cvf], None
             | None, _          ->
                 let f1 (ep:CodegenScope)  =  cvf.funcBody ep, cvf.postFacts ep
@@ -1148,6 +1177,11 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Ac
                 | ValidationStatementFalse  (st,clv)  -> loop st clv
                 | ValidationStatement       (st,clv)  -> loop st clv
         let childCheck, lllvs2 = childCheck |> List.unzip
+        // the element constraints of the type's own WITH COMPONENT checks (with_component_check)
+        let funFacts =
+            match with_component_check with
+            | [] -> funFacts
+            | _  -> funFacts @ sequenceOfElementFacts l o childType o.cons p
         let elementsComment =
             match soNotCheckedComment, childFunc |> Option.map (fun chFunc -> fst (chFunc (chp p))) with
             | Some c, _                                  -> Some c
@@ -1187,7 +1221,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1Acn
                     match isValidFunction.funcName with
                     | Some fncName  ->
                         let arg = l.lg.getPointer chp.accessPath
-                        ValidationStatement (callBaseTypeFunc arg fncName None, []), [VfExp (l.isvalid.call_base_type_func_exp arg fncName None)]
+                        ValidationStatement (callBaseTypeFunc arg fncName None, []), [factCall l arg fncName None]
                     | None ->
                         isValidFunction.funcBody chp, isValidFunction.postFacts chp
             let childFnc =
@@ -1310,7 +1344,7 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
                     match isValidFunction.funcName with
                     | Some fncName ->
                         let arg = l.lg.getPointer  chp.accessPath
-                        ValidationStatement (callBaseTypeFunc arg  fncName None, []), [VfExp (l.isvalid.call_base_type_func_exp arg fncName None)]
+                        ValidationStatement (callBaseTypeFunc arg  fncName None, []), [factCall l arg fncName None]
                     | None ->
                         isValidFunction.funcBody chp, isValidFunction.postFacts chp
             let childFnc =
@@ -1419,7 +1453,8 @@ let createChoiceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1AcnAs
 
 
 /// t: the reference type; its actual type (the merged type) decides the typedef layout of a sizeable type.
-/// Cycle b4a: also the facts the checks of the site constraints establish (sequenceConstraintFacts, sequenceOfConstraintFacts)
+/// Cycle b4a: also the facts the checks of the site constraints establish (sequenceConstraintFacts, siteSizeFacts,
+/// sequenceOfElementFacts)
 let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1AcnAst.Asn1Type) (refTypeId:ReferenceToType) (refCons:Asn1AcnAst.AnyConstraint list) (typeDefinition:TypeDefinitionOrReference) (resolvedType:Asn1Type)  (us:State) : ((CodegenScope -> ValidationCodeBlock) list * (CodegenScope -> ValidatorFact list)) * State =
     let noFacts (fncs, ns) = (fncs, (fun (_:CodegenScope) -> [])), ns
     match resolvedType.Kind with
@@ -1480,7 +1515,7 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.SequenceOfConstraint z -> Some z | _ -> None )
         let typedefFixed = typedefIsFixedSize r t.ActualType
         let fncs, ns = cons |> Asn1Fold.foldMap(fun cs c -> sequenceOfConstraint2ValidationCodeBlock r l refTypeId sqo.baseInfo typedefFixed sqo.childType resolvedType.equalFunction c cs) us
-        (fncs, sequenceOfConstraintFacts l typedefFixed cons), ns
+        (fncs, (fun p -> siteSizeFacts l typedefFixed sqo.baseInfo cons p @ sequenceOfElementFacts l sqo.baseInfo sqo.childType cons p)), ns
 
 
 /// Issue 184: an extension marker with additions (rangeAdd) / any extension marker (rangeRoot) in a range constraint.
@@ -1697,7 +1732,7 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
                   let pp = (l.lg.getParamValue t p.accessPath Encode)
                   match pp with
                   | "self" -> callSuperclassFunc (l.lg.getParamValue t p.accessPath Encode) baseFncName soTypeCasting, []
-                  | _ -> callBaseTypeFunc pp baseFncName soTypeCasting, [VfExp (l.isvalid.call_base_type_func_exp pp baseFncName soTypeCasting)]
+                  | _ -> callBaseTypeFunc pp baseFncName soTypeCasting, [factCall l pp baseFncName soTypeCasting]
                   
             match (funcBodyContent::with_component_check) |> DAstUtilFunctions.nestItems_ret l  with
             | None   -> convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName, []
