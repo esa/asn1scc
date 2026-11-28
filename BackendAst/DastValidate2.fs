@@ -713,7 +713,10 @@ let createIsValidFunction (r:Asn1AcnAst.AstRoot)  (lm:LanguageMacros)  (t:Asn1Ac
         match funcName with
         | Some fn ->
             let key = DAstUtilFunctions.encodeCallKey lm t.id.ModName fn
-            {ns with validatorOutcomes = ns.validatorOutcomes.Add (key, outcome); tasValidatorKeys = ns.tasValidatorKeys.Add key}
+            // cycle b4: a function created under the name calls no validator on its whole value unless the reference
+            // that creates it records one after this (createReferenceTypeFunction)
+            {ns with validatorOutcomes = ns.validatorOutcomes.Add (key, outcome); tasValidatorKeys = ns.tasValidatorKeys.Add key
+                     validatorSameValueCalls = ns.validatorSameValueCalls.Remove key}
         | None    -> ns
     Some ret, ns
 
@@ -1526,6 +1529,18 @@ let createReferenceTypeFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn
             | None   -> convertVCBToStatementAndAssignedErrCode l VCBTrue errCode.errCodeName
             | Some s ->ValidationStatement (s, (lv2 |>List.collect id))
 
-    createIsValidFunction r l t funBody  typeDefinition [] [] [] [] (Some errorCodeComment0) ns
+    let ret, ns = createIsValidFunction r l t funBody  typeDefinition [] [] [] [] (Some errorCodeComment0) ns
+    // cycle b4: the function of a reference type assignment calls the referenced validator first, on its whole value (the
+    // site constraints are nested under its success: funBody above), so its success implies that validator's success
+    let ns =
+        match ret, resolvedType.isValidFunction, referencedNotCalled with
+        | Some {funcName = Some fn}, Some _, false ->
+            let ownKey = DAstUtilFunctions.encodeCallKey l t.id.ModName fn
+            {ns with validatorSameValueCalls = ns.validatorSameValueCalls.Add (ownKey, DAstUtilFunctions.encodeCallKey l t.id.ModName baseFncName)}
+        | Some {funcName = Some _}, Some _, true
+        | Some {funcName = Some _}, None, _
+        | Some {funcName = None}, _, _
+        | None, _, _ -> ns
+    ret, ns
 
 

@@ -357,6 +357,12 @@ type State = {
     // coverage step 14q (Q3 b): the validator a reference site's validation calls (encodeCallKey), by the site's id
     // (ReferenceToType.AsString); absent when it calls none
     siteValidatorCalls : Map<string, string>
+    // cycle b4: the validator that a validator calls first, on its whole value, by encodeCallKey of both: the function of
+    // a reference type assignment (IntValue ::= NumericValue (WITH COMPONENTS ...), WrapN ::= OCTET STRING (CONTAINING
+    // Narrow)) returns success only when the referenced type assignment's validator accepted the same value. Set by
+    // DastValidate2.createReferenceTypeFunction, cleared for every other function created under the name (the last
+    // function created under a name is the emitted one)
+    validatorSameValueCalls : Map<string, string>
     // coverage step 12e: NestingScope.checkedSelectors at the end of the last SEQUENCE encoder body generated inline;
     // a parent SEQUENCE clears it before a child and reads it after a mandatory SEQUENCE child (same function)
     acnSequenceCheckedSelectors : (string * string) list
@@ -374,7 +380,7 @@ type State = {
 }
 
 
-let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; alphaIndex=0; alphaFuncs=[]; typeIdsSet=Map.empty; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty; functionCalls=Map.empty; encodeCallOutcomes=Map.empty; validatorOutcomes=Map.empty; encodeBodies=Map.empty; siteValidatorCalls=Map.empty; acnSequenceCheckedSelectors=[]; emittedValidatorOutcomes=Map.empty; constructionPass=EmittingPass; tasValidatorKeys=Set.empty}
+let emptyState = {currErrorCode=0; curErrCodeNames=Set.empty; alphaIndex=0; alphaFuncs=[]; typeIdsSet=Map.empty; newTypesMap = new Dictionary<ReferenceToType, System.Object>(); icdHashes = Map.empty; functionCalls=Map.empty; encodeCallOutcomes=Map.empty; validatorOutcomes=Map.empty; encodeBodies=Map.empty; siteValidatorCalls=Map.empty; validatorSameValueCalls=Map.empty; acnSequenceCheckedSelectors=[]; emittedValidatorOutcomes=Map.empty; constructionPass=EmittingPass; tasValidatorKeys=Set.empty}
 
 /// Parent context passed from the fold's pre-functions to child callbacks.
 /// Allows seqAcnChildFunc to know about the parent SEQUENCE's deferred children.
