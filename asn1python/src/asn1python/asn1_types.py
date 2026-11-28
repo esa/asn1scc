@@ -158,7 +158,15 @@ class Asn1Boolean(Asn1Base):
 
     # --- Attribute delegation (for any method/properties bool has) ---
     def __getattr__(self, name):
+        if name == "_val":
+            raise AttributeError(f"'{self.__class__.__name__}' object has no attribute '_val'")
         return getattr(self._val, name)
+
+    def __copy__(self):
+        return self.__class__(self._val)
+
+    def __deepcopy__(self, memo):
+        return self.__class__(self._val)
 
     # --- Conversion helpers ---
     @property
