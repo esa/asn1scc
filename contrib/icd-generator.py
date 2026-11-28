@@ -2603,20 +2603,31 @@ def run_asn1scc(files: list[str], root_names: Optional[list[str]]) -> tuple[dict
         return icd_data, xml_root
 
 
-def load_input(args_files: list[str], root_names: Optional[list[str]]) -> tuple[dict, Optional[ET.Element]]:
-    """Load the ICD dump: from .json passthrough, or by running asn1scc."""
+def load_input(
+    args_files: list[str],
+    root_names: Optional[list[str]],
+) -> tuple[dict, Optional[ET.Element]]:
+    """Load the ICD dump and optional XML AST, or run asn1scc."""
     json_files = [f for f in args_files if Path(f).suffix.lower() in JSON_EXTENSIONS]
-    if json_files:
-        if len(json_files) != len(args_files):
-            raise SystemExit(
-                "A .json input must be the only input file "
-                "(it is a complete -icdRaw dump; ASN.1/ACN files cannot be mixed with it)."
-            )
-        # A pre-generated dump: tables are available, but the grammar blocks
-        # have no XML AST to be rendered from and are omitted.
-        return json.loads(Path(json_files[0]).read_text(encoding="utf-8")), None
-    return run_asn1scc(args_files, root_names)
+    xml_files = [f for f in args_files if Path(f).suffix.lower() in XML_EXTENSIONS]
 
+    if json_files:
+        other_files = [f for f in args_files if Path(f).suffix.lower() not in JSON_EXTENSIONS | XML_EXTENSIONS]
+
+        if len(json_files) != 1 or len(xml_files) > 1 or other_files:
+            raise SystemExit(
+                "A .json input must be accompanied by at most one .xml AST "
+                "file. ASN.1/ACN files cannot be mixed with JSON input."
+            )
+
+        icd_data = json.loads( Path(json_files[0]).read_text(encoding="utf-8"))
+        xml_root = (ET.parse(xml_files[0]).getroot() if xml_files else None)
+        return icd_data, xml_root
+
+    if xml_files:
+        raise SystemExit("An .xml AST file can only be supplied alongside a .json input.")
+
+    return run_asn1scc(args_files, root_names)
 
 def main() -> None:
     # openpyxl is needed by the Excel backend only: render_excel_document
@@ -2634,16 +2645,55 @@ def main() -> None:
             "icd-generator.py -t excel -o out.xlsx --root Packet model.asn model.acn"
         ),
     )
-    parser.add_argument("-o", "--output", required=True, metavar="FILE",
-                        help="output file path (.html or .xlsx)")
-    parser.add_argument("-t", "--type", choices=["excel", "html"], default="html",
-                        help="output format: html (default) or excel")
-    parser.add_argument("--root", action="append", default=None, metavar="TYPE",
-                        help="root type name to document (default: every type, sequentially); "
-                             "repeat --root for multiple root tables")
-    parser.add_argument("files", nargs="+", metavar="file",
-                        help="input ASN.1 (.asn/.asn1), ACN (.acn) files, or a single -icdRaw "
-                             "dump (.json)")
+
+    parser = argparse.ArgumentParser(
+        description=(
+            "Generate an ICD document (HTML or Excel) from ASN.1/ACN files, "
+            "or from an existing -icdRaw JSON dump with an optional XML AST."
+        ),
+        epilog=(
+            "asn1scc is called internally with -icdRaw: the ICD tables it produces already "
+            "contain all implicit encoding fields (array lengths, presence bits, choice "
+            "discriminants, patterns, padding). When --root is omitted, every type of the "
+            "model gets its own table, in declaration order. "
+            "Examples: "
+            "icd-generator.py -o out.html model.asn model.acn | "
+            "icd-generator.py -t excel -o out.xlsx --root Packet model.asn model.acn | "
+            "icd-generator.py -o out.html dump.json | "
+            "icd-generator.py -o out.html dump.json ast.xml"
+        ),
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        required=True,
+        metavar="FILE",
+        help="output file path (.html or .xlsx)",
+    )
+    parser.add_argument(
+        "-t",
+        "--type",
+        choices=["excel", "html"],
+        default="html",
+        help="output format: html (default) or excel",
+    )
+    parser.add_argument(
+        "--root",
+        action="append",
+        default=None,
+        metavar="TYPE",
+        help=(
+            "root type name to document (default: every type, sequentially); " "repeat --root for multiple root tables"
+        ),
+    )
+    parser.add_argument(
+        "files",
+        nargs="+",
+        metavar="file",
+        help=(
+            "input ASN.1/ACN files, a single -icdRaw JSON dump (.json), or a JSON dump accompanied by an optional XML AST (.xml)"
+        ),
+    )
     args = parser.parse_args()
 
     out_ext = Path(args.output).suffix.lower()
