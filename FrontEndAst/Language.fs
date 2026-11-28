@@ -937,10 +937,6 @@ type ILangGeneric () =
     /// require a valid value (Ada; the call sites are unchanged).
     abstract member validatorPostconditions : bool
     default _.validatorPostconditions = false
-    /// Cycle b4a (round 2): a generated function or type named in a validator fact (Post, quantified invariant), so that
-    /// no name the contract introduces (a quantifier index) can hide its package (Ada: `Standard.` before a package name)
-    abstract member validatorFactName : name:string -> string
-    default _.validatorFactName name = name
     abstract member encodeCallValidates : bool
     default _.encodeCallValidates = true
 

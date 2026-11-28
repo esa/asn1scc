@@ -1,0 +1,17 @@
+--RUN_SPARK C_ADA_ONLY (Python, Rust: not needed for this Ada proof shape)
+-- Ada validator Posts: a PRESENT nested in the WITH COMPONENTS of an OPTIONAL child holds under the child's presence
+-- flag (and with the child ALWAYS PRESENT too), and a WITH COMPONENT nested in a WITH COMPONENT gives a `for all`
+-- inside a `for all`, each element loop with its quantified invariant (two nested policy blocks). See 016 .. 021.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   K   ::= INTEGER (1..5 | 8..10)
+   Rec ::= SEQUENCE { x K OPTIONAL, y K }
+   P1  ::= SEQUENCE { r Rec OPTIONAL, f BOOLEAN } (WITH COMPONENTS {..., r (WITH COMPONENTS {..., x PRESENT})})
+   P2  ::= SEQUENCE { r Rec OPTIONAL, f BOOLEAN } (WITH COMPONENTS {..., r (WITH COMPONENTS {..., x PRESENT}) PRESENT})
+   L   ::= SEQUENCE (SIZE(0..3)) OF Rec
+   LL  ::= SEQUENCE (SIZE(1..2)) OF L
+   PLL ::= LL (WITH COMPONENT (WITH COMPONENT (WITH COMPONENTS {..., x PRESENT})))
+
+   MyPDU ::= SEQUENCE { fp1 P1, fp2 P2, fpll PLL }
+END
+
+--TCLS     MyPDU[]

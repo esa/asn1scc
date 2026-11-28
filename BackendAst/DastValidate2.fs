@@ -467,6 +467,26 @@ and private renderFactsOrTrue (lm:LanguageMacros) (fs:ValidatorFact list) =
     | Some s -> s
     | None   -> lm.lg.TrueLiteral
 
+/// Cycle b4a (round 3): the one allocator of the index of a quantified fact (`for all <idx> in ...`, in a validator's
+/// Post and in the invariant of the loop that carries it) at a SEQUENCE OF nesting level. The index is the only name the
+/// contracts introduce, and inside the quantified expression it hides every outer entity of the same name (Ada is case
+/// insensitive); the expression names other packages unqualified (`J1.N_IsConstraintValid(val.Data(<idx>))`, the call
+/// text of the check). So the index is `j<level>`, else `j<level>_<k>`, the first that is no module (package) name, no
+/// type or value assignment name (raw or with the type prefix) and none of the fixed names of a validator (val, ret,
+/// result, bs, adaasn1rtl, standard). Distinct levels give distinct indexes. (Round 2 qualified the calls as
+/// `Standard.<pkg>.<fn>` instead, which a declaration named `Standard` hides: Fable r2 F1.)
+let private quantifierTakenNames = System.Runtime.CompilerServices.ConditionalWeakTable<Asn1AcnAst.AstRoot, Set<string>>()
+let quantifierIndex (r:Asn1AcnAst.AstRoot) (level:int) : string =
+    let taken = quantifierTakenNames.GetValue(r, fun r ->
+        let names =
+            r.Modules |> List.collect (fun m ->
+                m.Name.Value ::
+                (m.TypeAssignments |> List.collect (fun ta -> [ta.Name.Value; r.args.TypePrefix + ta.Name.Value])) @
+                (m.ValueAssignments |> List.map (fun va -> va.Name.Value)))
+        (names |> List.map (fun n -> (ToC n).ToLowerInvariant())) @ ["val"; "ret"; "result"; "bs"; "adaasn1rtl"; "standard"] |> Set.ofList)
+    Seq.initInfinite (fun k -> match k with 0 -> sprintf "j%d" level | _ -> sprintf "j%d_%d" level k)
+    |> Seq.find (fun c -> not (taken.Contains (c.ToLowerInvariant())))
+
 /// Cycle b4a: the facts the checks of a constraint establish at p, built along the same structure as the checks
 /// (anyConstraint2ValidationCodeBlock and the WITH COMPONENT(S) arms) and with the same helpers: the presence flag of a
 /// child marked PRESENT (seqChildPresenceExp, the check's own expression; Fable F1: the encoder of an ALWAYS PRESENT
@@ -475,13 +495,13 @@ and private renderFactsOrTrue (lm:LanguageMacros) (fs:ValidatorFact list) =
 /// bounds of StatementForLoop). Only conjuncts give facts (WITH COMPONENT(S), intersection, before an extension marker);
 /// nothing under a union, a negation or an exception, whose checks do not establish them. Each fact comes from a check
 /// that is always emitted (a presence test) or from a nested fact, so a fact never outlives its check.
-let rec constraintFacts (l:LanguageMacros) (t:Asn1Type) (ac:Asn1AcnAst.AnyConstraint) (p:CodegenScope) : ValidatorFact list =
+let rec constraintFacts (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Type) (ac:Asn1AcnAst.AnyConstraint) (p:CodegenScope) : ValidatorFact list =
     match t.ActualType.Kind, ac with
-    | Sequence o, Asn1AcnAst.SeqConstraint c            -> sequenceConstraintFacts l o.Asn1Children [c] p
-    | SequenceOf o, Asn1AcnAst.SequenceOfConstraint c   -> sequenceOfElementFacts l o.baseInfo o.childType [c] p
+    | Sequence o, Asn1AcnAst.SeqConstraint c            -> sequenceConstraintFacts r l o.Asn1Children [c] p
+    | SequenceOf o, Asn1AcnAst.SequenceOfConstraint c   -> sequenceOfElementFacts r l o.baseInfo o.childType [c] p
     | _                                                 -> []
 
-and sequenceConstraintFacts (l:LanguageMacros) (children:Asn1Child list) (cons:SeqConstraint list) (p:CodegenScope) : ValidatorFact list =
+and sequenceConstraintFacts (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (children:Asn1Child list) (cons:SeqConstraint list) (p:CodegenScope) : ValidatorFact list =
     let rec one (c:SeqConstraint) =
         match c with
         | SeqOrChWithComponentsConstraint (_, ncs) ->
@@ -499,7 +519,7 @@ and sequenceConstraintFacts (l:LanguageMacros) (children:Asn1Child list) (cons:S
                     | Some ac ->
                         let c_name = l.lg.getAsn1ChildBackendName ch
                         let child_arg = l.lg.getSeqChild p.accessPath c_name ch.Type.isIA5String ch.Optionality.IsSome
-                        match constraintFacts l ch.Type ac {p with accessPath = child_arg}, ch.Optionality with
+                        match constraintFacts r l ch.Type ac {p with accessPath = child_arg}, ch.Optionality with
                         | [], _       -> []
                         | fs, None    -> fs
                         | fs, Some _  -> [VfOptional {ValidatorFactOptional.p = p.accessPath.joined l.lg; sAcc = l.lg.getAccess p.accessPath; sChName = c_name; childFacts = fs}]
@@ -513,12 +533,12 @@ and sequenceConstraintFacts (l:LanguageMacros) (children:Asn1Child list) (cons:S
         | SeqOrChSingleValueConstraint _            -> []
     cons |> List.collect one
 
-and sequenceOfElementFacts (l:LanguageMacros) (o:Asn1AcnAst.SequenceOf) (child:Asn1Type) (cons:SequenceOfConstraint list) (p:CodegenScope) : ValidatorFact list =
+and sequenceOfElementFacts (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (o:Asn1AcnAst.SequenceOf) (child:Asn1Type) (cons:SequenceOfConstraint list) (p:CodegenScope) : ValidatorFact list =
     let rec one (c:SequenceOfConstraint) =
         match c with
         | SeqOfSeqWithComponentConstraint (_, ac, _) ->
-            let j = sprintf "j%d" (p.accessPath.SequenceOfLevel + 1)
-            match constraintFacts l child ac {p with accessPath = l.lg.getArrayItem p.accessPath j child.isIA5String} with
+            let j = quantifierIndex r (p.accessPath.SequenceOfLevel + 1)
+            match constraintFacts r l child ac {p with accessPath = l.lg.getArrayItem p.accessPath j child.isIA5String} with
             | []  -> []
             | efs -> [VfForAll {ValidatorFactForAll.p = p.accessPath.joined l.lg; sAcc = l.lg.getAccess p.accessPath; bIsFixedSize = o.isFixedSize; nFixedSize = o.minSize.uper; sIdx = j; elementFacts = efs}]
         | SeqOfSizeIntersectionConstraint (_, c1, c2) -> one c1 @ one c2
@@ -694,10 +714,10 @@ and sequenceOfConstraint2ValidationCodeBlock (r:Asn1AcnAst.AstRoot) (l:LanguageM
                 let childCheck p = fnc ({p with accessPath = ch_arg})
                 // cycle b4a (round 2): the facts of the element constraint at element j<level> (the Post states them
                 // for every element: sequenceOfElementFacts), carried by the loop for the elements already checked
-                let sIdx = sprintf "j%d" ii
+                let sIdx = quantifierIndex r ii
                 let soElemFacts =
                     match l.lg.validatorPostconditions with
-                    | true  -> renderFacts l (constraintFacts l child c {p with accessPath = l.lg.getArrayItem p.accessPath sIdx child.isIA5String})
+                    | true  -> renderFacts l (constraintFacts r l child c {p with accessPath = l.lg.getArrayItem p.accessPath sIdx child.isIA5String})
                     | false -> None
                 let loop st = statementForLoop (p.accessPath.joined l.lg) (l.lg.getAccess p.accessPath) i o.isFixedSize o.minSize.uper st sIdx soElemFacts
                 let ret =
@@ -793,11 +813,10 @@ let prependComment (soComment:string option) (vs:ValidationStatement) =
         | ValidationStatementImplied (st, lv) -> ValidationStatementImplied (comment + "\n" + st, lv)
 
 
-/// Cycle b4a: the Success of a validator call as a fact: the call text of the check (call_base_type_func_exp), with the
-/// function and the type conversion named so that no name of the contract hides them (round 2, Codex P2-1: a quantifier
-/// `j1` hid a package `J1`; ILangGeneric.validatorFactName, Ada: `Standard.<package>.<name>`)
+/// Cycle b4a: the Success of a validator call as a fact: the call text of the check (call_base_type_func_exp); inside a
+/// quantifier nothing it names is hidden (quantifierIndex)
 let factCall (l:LanguageMacros) (arg:string) (fncName:string) (soTypeCasting:string option) =
-    VfExp (l.isvalid.call_base_type_func_exp arg (l.lg.validatorFactName fncName) (soTypeCasting |> Option.map l.lg.validatorFactName))
+    VfExp (l.isvalid.call_base_type_func_exp arg fncName soTypeCasting)
 
 /// Cycle b4a: the facts of a part of a validator body: only when the part is a check (a part that is always true or
 /// implied by the typedef is not emitted as a check; the parents skip it)
@@ -1160,7 +1179,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Ac
             | None   -> convertMultipleVCBsToStatementAndSetErrorCode l p errCode vcbs |> List.unzip
         // cycle b4a: when the loop checks the elements, the facts of element j<level> (the same function as the check):
         // the Post states them for every element, the loop invariant for the elements already checked
-        let sIdx = sprintf "j%d" ii
+        let sIdx = quantifierIndex r ii
         let elementFacts () =
             match l.lg.validatorPostconditions, childFunc with
             | true, Some chFunc -> pruneFacts (factsIfChecked (chFunc (elementScope p sIdx)))
@@ -1189,7 +1208,7 @@ let createSequenceOfFunction (r:Asn1AcnAst.AstRoot) (l:LanguageMacros) (t:Asn1Ac
         let funFacts =
             match with_component_check with
             | [] -> funFacts
-            | _  -> funFacts @ sequenceOfElementFacts l o childType o.cons p
+            | _  -> funFacts @ sequenceOfElementFacts r l o childType o.cons p
         let elementsComment =
             match soNotCheckedComment, childFunc |> Option.map (fun chFunc -> fst (chFunc (chp p))) with
             | Some c, _                                  -> Some c
@@ -1314,7 +1333,7 @@ let createSequenceFunction (r:Asn1AcnAst.AstRoot)  (l:LanguageMacros) (t:Asn1Acn
         let constraintFacts =
             match with_component_check with
             | [] -> []
-            | _  -> sequenceConstraintFacts l asn1Children o.cons p
+            | _  -> sequenceConstraintFacts r l asn1Children o.cons p
         prependComment (notCheckedComment l notCalled) body, (childrenFacts |> List.collect id) @ constraintFacts
 
 
@@ -1471,7 +1490,7 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.SeqConstraint z -> Some z | _ -> None )
         let valToStrFunc (p:CodegenScope) (v:Asn1AcnAst.SeqValue) = VCBTrue
         let fncs, ns = cons |> Asn1Fold.foldMap(fun cs c -> sequenceConstraint2ValidationCodeBlock r l refTypeId asn1Children valToStrFunc  c cs) us
-        (fncs, sequenceConstraintFacts l asn1Children cons), ns
+        (fncs, sequenceConstraintFacts r l asn1Children cons), ns
     | ReferenceType rt    ->
         createReferenceTypeFunction_this_type r l t refTypeId refCons typeDefinition rt.resolvedType  us
     | Integer rt ->
@@ -1523,7 +1542,7 @@ let rec createReferenceTypeFunction_this_type (r:Asn1AcnAst.AstRoot) (l:Language
         let cons = refCons |> List.choose(fun c -> match c with Asn1AcnAst.SequenceOfConstraint z -> Some z | _ -> None )
         let typedefFixed = typedefIsFixedSize r t.ActualType
         let fncs, ns = cons |> Asn1Fold.foldMap(fun cs c -> sequenceOfConstraint2ValidationCodeBlock r l refTypeId sqo.baseInfo typedefFixed sqo.childType resolvedType.equalFunction c cs) us
-        (fncs, (fun p -> siteSizeFacts l typedefFixed sqo.baseInfo cons p @ sequenceOfElementFacts l sqo.baseInfo sqo.childType cons p)), ns
+        (fncs, (fun p -> siteSizeFacts l typedefFixed sqo.baseInfo cons p @ sequenceOfElementFacts r l sqo.baseInfo sqo.childType cons p)), ns
 
 
 /// Issue 184: an extension marker with additions (rangeAdd) / any extension marker (rangeRoot) in a range constraint.

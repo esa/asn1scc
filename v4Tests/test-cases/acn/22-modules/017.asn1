@@ -3,7 +3,7 @@
 -- empty list; nested lists: 018), carried by a quantified loop invariant that is proved but not checked at run time (a block-local
 -- Assertion_Policy: checked, it would validate every earlier element again at each iteration); the parent body calls
 -- the element's private body in a loop and proves its validity Pre from that Post. A reference site with a fixed SIZE
--- on a variable-size typedef states `Length = N` (its encoder loops to the constant). See 016, 018, 019.
+-- on a variable-size typedef states `Length = N` (its encoder loops to the constant). See 016, 018 .. 021.
 TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
    IMPORTS Num, Name, Lst FROM MOD-B;
 

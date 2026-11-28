@@ -1,0 +1,20 @@
+--RUN_SPARK C_ADA_ONLY (Python, Rust: not needed for this Ada proof shape; types of another module, see 011)
+-- Ada validator Posts of site constraints on types of another package: a PRESENT at a reference site, the same under an
+-- OPTIONAL child, and a WITH COMPONENT site on an imported SEQUENCE OF (`for all` next to MOD_B.L_IsConstraintValid).
+-- A site SIZE that fixes the size of a list with a validated element (the encoder loops to the constant and calls the
+-- element's body) is not in the corpus: master's automatic SIZE-violation value of such a site is invalid in its
+-- extra element (the test fails on master). See 016 .. 020.
+TEST-CASE DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   IMPORTS Rec, L FROM MOD-B;
+   PL  ::= L (WITH COMPONENT (WITH COMPONENTS {..., x PRESENT}))
+   MyPDU ::= SEQUENCE { r Rec (WITH COMPONENTS {..., x PRESENT}), fpl PL, o Rec OPTIONAL }
+       (WITH COMPONENTS {..., o (WITH COMPONENTS {..., x PRESENT})})
+END
+
+MOD-B DEFINITIONS AUTOMATIC TAGS ::= BEGIN
+   K   ::= INTEGER (1..5 | 8..10)
+   Rec ::= SEQUENCE { x K OPTIONAL, y K }
+   L   ::= SEQUENCE (SIZE(0..3)) OF Rec
+END
+
+--TCLS     MyPDU[]
